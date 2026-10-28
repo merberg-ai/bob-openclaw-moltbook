@@ -55,16 +55,16 @@ class PreflightTests(unittest.TestCase):
     def test_service_status_strict_matching(self):
         class Result:
             returncode = 0
-            stdout = "LoadState=loaded\\nActiveState=active\\nSubState=running\\n"
+            stdout = "LoadState=loaded\nActiveState=active\nSubState=running\n"
         with patch.object(gate.subprocess, "run", return_value=Result()):
             self.assertTrue(gate.check_service())
-            Result.stdout = "LoadState=loaded\\nActiveState=active\\nSubState=exited\\n"
+            Result.stdout = "LoadState=loaded\nActiveState=active\nSubState=exited\n"
             self.assertFalse(gate.check_service())
-            Result.stdout = "LoadState=loaded\\nActiveState=active\\nSubState=running\\nExecStart=secret"
+            Result.stdout = "LoadState=loaded\nActiveState=active\nSubState=running\nExecStart=secret"
             self.assertFalse(gate.check_service())
 
     def test_refused_gate_is_not_approved(self):
-        with patch.object(gate, "check_manager", return_value=True), \\
+        with patch.object(gate, "check_manager", return_value=True), \
              patch.object(gate, "check_backup", return_value=False):
             result = gate.run(Path("/dummy/manager"), Path("/dummy/backup"),
                               service_check=lambda: True)
