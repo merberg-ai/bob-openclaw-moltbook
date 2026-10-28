@@ -19,6 +19,8 @@ KEYS = ("LoadState", "ActiveState", "SubState", "FragmentPath", "DropInPaths",
         "ExecStartPre", "ExecStartPost", "ExecCondition", "User", "DynamicUser",
         "RootDirectory", "RootImage")
 REQUIRED = set(KEYS)
+# systemctl show can omit unset optional properties on some systemd versions.
+OPTIONAL_EMPTY = {"EnvironmentFiles", "ExecStartPre", "ExecStartPost", "ExecCondition"}
 
 
 def classify(raw: str, *, manager: Path) -> dict[str, bool]:
@@ -32,9 +34,11 @@ def classify(raw: str, *, manager: Path) -> dict[str, bool]:
         if key not in REQUIRED or key in values:
             raise ValueError("unexpected or repeated property")
         values[key] = value
-    if set(values) != REQUIRED:
-        missing = sorted(REQUIRED - set(values))
-        raise ValueError("missing_properties:" + ",".join(missing))
+    missing = REQUIRED - set(values)
+    if missing - OPTIONAL_EMPTY:
+        raise ValueError("missing_properties:" + ",".join(sorted(missing - OPTIONAL_EMPTY)))
+    for key in missing:
+        values[key] = ""
     # Fail closed for any surprising execution envelope. ExecStart is
     # systemd's rendered string, so this check only asserts one expected
     # absolute executable token, never a fully parsed service grammar.
