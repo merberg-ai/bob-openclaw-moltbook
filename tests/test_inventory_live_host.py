@@ -92,6 +92,16 @@ class BaselineInventoryTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 inventory.write_private_report({}, folder)
 
+    def test_rejects_symlinked_output_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target"
+            target.mkdir(mode=0o700)
+            link = root / "linked"
+            link.symlink_to(target, target_is_directory=True)
+            with self.assertRaises(PermissionError):
+                inventory.write_private_report({}, link)
+
     def test_filters_names_without_reading_any_config(self):
         self.assertTrue(inventory.is_code_candidate(Path("bobctl")))
         self.assertTrue(inventory.is_code_candidate(Path("bob_moltbook_api.py")))
