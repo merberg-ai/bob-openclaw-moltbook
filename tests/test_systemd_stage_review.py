@@ -42,6 +42,19 @@ MoreSecretKey={secret}
         self.assertEqual(result["unrecognized_directive_counts_by_section"]["Service"], 2)
         self.assertEqual(result["unrecognized_section_count"], 1)
 
+    def test_unknown_gateway_directive_name_only_classified_coarsely(self):
+        private_name = "StartLimitSecretControlPrivate123"
+        shape = names.describe((
+            "[Unit]\n" + private_name + "=ABSOLUTELY_PRIVATE_VALUE\n"
+            "CustomKeyWithPrivateValue=secrethere\n"
+        ).encode())
+        raw = json.dumps(shape)
+        self.assertNotIn(private_name, raw)
+        self.assertNotIn("ABSOLUTELY_PRIVATE_VALUE", raw)
+        self.assertNotIn("CustomKeyWithPrivateValue", raw)
+        self.assertIn('"start-rate": 1', raw)
+        self.assertIn('"other": 1', raw)
+
     def test_only_exact_sha_verified_source_used(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
