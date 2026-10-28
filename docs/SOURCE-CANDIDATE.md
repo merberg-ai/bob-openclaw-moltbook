@@ -10,7 +10,28 @@ The source review finished with 9 Python files, no detected external imports and
 wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && git pull --ff-only && python3 scripts/prepare_source_candidate.py --destination /mnt/d/SRC/bob-source-candidate-v070.zip"
 ~~~
 
-This destination assumes Windows drive D: is mounted at /mnt/d. The file must not already exist; the tool refuses overwrites. For a private WSL-only candidate, omit --destination. The utility also refuses any content drift from the known baseline, unexpected risks in the static audit, and any new credential-like literal matches after masking. If it fails, share **only the error text**, not the raw archive.
+**If /mnt/d/SRC does not exist in WSL, the explicit destination will fail.** This is common with WSL automount differences. The script now explains that failure instead of printing only `FileNotFoundError`. The file must not already exist; the tool refuses overwrites. Do **not** create or mount Windows drives just to perform this export.
+
+### Recommended Windows-to-WSL fallback (no /mnt/d, UNC, wslpath, or remounts)
+
+Paste the complete block below in PowerShell. It creates the ZIP in WSL's private directory, then reads it as Base64 and writes the same bytes to `D:\\SRC` through Windows PowerShell's .NET file API. Raw Base64 is held in memory and not printed to the console. The source archive never goes to GitHub.
+
+~~~powershell
+$run = @(wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && git pull --ff-only && python3 scripts/prepare_source_candidate.py")
+$exit = $LASTEXITCODE
+$run
+if ($exit -ne 0) { throw "WSL source candidate creation failed." }
+$zip = (($run | Where-Object { $_ -like 'Review ZIP created:*' } | Select-Object -Last 1) -replace '^Review ZIP created:\s*','').Trim()
+if (-not $zip) { throw "Missing review ZIP path." }
+$data = @(wsl -d OpenClawLab -u openclaw -- base64 -w0 $zip)
+if ($LASTEXITCODE -ne 0 -or $data.Count -eq 0) { throw "Cannot transfer ZIP bytes." }
+$target = 'D:\\SRC\\bob-source-candidate-v070.zip'
+if (Test-Path $target) { throw "Refusing to overwrite: $target" }
+[System.IO.File]::WriteAllBytes($target, [Convert]::FromBase64String(($data -join '')))
+Get-Item $target | Select-Object FullName, Length
+~~~
+
+The utility also refuses any content drift from the known baseline, unexpected risks in the static audit, and any new credential-like literal matches after masking. If it fails, share **only the error text**, not the raw archive.
 
 Success shows exactly 9 source files, and states that password output was masked in the exported copy only. The original scripts, live database, systemd, credential file and services remain untouched. This candidate is not runnable/deployable and has not passed Bob's app-level regression tests.
 
