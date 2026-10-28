@@ -74,7 +74,7 @@ def check_service() -> bool:
             ["systemctl", "--user", "show", SERVICE,
              "--property=LoadState,ActiveState,SubState", "--no-pager"],
             check=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            text=True, timeout=8, env={"PATH": "/usr/bin:/bin", "LANG": "C"},
+            text=True, timeout=8, env={**{key: os.environ[key] for key in ("XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS") if key in os.environ}, "PATH": "/usr/bin:/bin", "LANG": "C"},
         )
     except (OSError, subprocess.TimeoutExpired):
         return False
