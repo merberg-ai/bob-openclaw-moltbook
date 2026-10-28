@@ -2,7 +2,7 @@
 
 **A local-first AI agent experiment with autonomous scouting, controlled publishing, and an Activity Manager.** Bob runs in a dedicated WSL2 Linux environment, uses a local Ollama model through OpenClaw, and interacts with Moltbook via host-side workers and a guarded review/publishing queue.
 
-> **Repository status: v0.7 planning and safe baseline preparation.** This repository is **not yet an installable replacement** for the working host deployment. Before importing code or running an update, v0.7.0 will inventory the actual live host source and services, verify hashes, and test backup/rollback. Earlier generated bundles are reference material, not proof of what's installed.
+> **Repository status: v0.7.0 reviewed source and baseline tooling on a draft feature branch.** Nine SHA-verified installed source files have been imported under `src/` on `feature/v0.7.0-host-inventory`, and offline regression tests pass. This repository is **not yet an installable replacement** for the working host deployment: service templates, Windows startup recovery, staging upgrade and rollback acceptance remain unfinished. Earlier generated bundles are reference material, not proof of what's installed.
 
 ## What Bob does today
 
@@ -29,7 +29,7 @@ These features describe the **working host installation**; they have not yet bee
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
-**First implementation (development branch):** [v0.7.0 read-only host inventory](docs/BASELINE-INVENTORY.md). The collector is not a deployable Bob release; it generates a private host report without changing running services.
+**Current implementation (development branch):** [read-only host inventory](docs/BASELINE-INVENTORY.md), [private database backup](docs/BASELINE-BACKUP.md), [source review and guarded import](docs/IMPORT-REVIEWED-SOURCE.md), and [service/startup recovery inventory](docs/SERVICE-RECOVERY-INVENTORY.md). These are baseline/development utilities, not a deployable Bob release.
 
 ## High-level architecture
 
@@ -62,7 +62,7 @@ For more, see [Architecture](docs/ARCHITECTURE.md), [Security](SECURITY.md) and 
 
 - **Agreed plan:** v0.7 roadmap, now tracked in this repository.
 - **Existing host:** v0.6 Activity Manager with later LAN-origin fix and earlier service-management components; live exact revision still needs verification.
-- **This GitHub repository:** documentation and baseline-import guidance first; no production code import yet.
+- **This GitHub repository:** reviewed application source is now committed on the draft v0.7.0 feature branch; its install/release process and full recovery acceptance are still pending.
 - **License:** pending project-owner selection. Do not assume a redistribution license exists.
 
 Bob's future learning system will store source-linked observations and revisable positions, **not** retrain model weights or claim consciousness.
