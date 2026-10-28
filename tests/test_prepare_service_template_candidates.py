@@ -101,6 +101,16 @@ class UnitCandidateTests(unittest.TestCase):
                 self.assertIn("NOT DEPLOYABLE", all_content)
                 self.assertIn("Env", all_content)
 
+    def test_environment_only_dropin_never_fabricates_execstart(self):
+        shape = review.sanitized_shape(b"[Service]\nEnvironment=PASSWORD=PRIVATE\n")
+        content = review.make_template("bob-activity-manager.service",
+                                       "user", "dropin", shape)
+        self.assertNotIn("ExecStart=", content)
+        self.assertIn("# Environment: 1", content)
+        service = review.make_template("bob-activity-manager.service",
+                                       "user", "unit", shape)
+        self.assertIn("ExecStart=@REVIEW_REQUIRED_NOT_DEPLOYABLE@", service)
+
     def test_changed_source_and_symlink_fail_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
