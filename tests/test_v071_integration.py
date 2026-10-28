@@ -73,7 +73,7 @@ class IntegratedNavigationTests(unittest.TestCase):
             self.assertEqual(wrapped.count('name="csrf" value="synthetic-only-token"'), 1)
             self.assertEqual(wrapped.count('name="digest" value="synthetic-digest"'), 1)
             self.assertEqual(wrapped.count('<h1>Legacy page</h1>'), 1)
-            self.assertEqual(wrapped.count('aria-current="page"'), 2)
+            self.assertEqual(wrapped.count(' aria-current="page"'), 2)
             self.assertNotIn(nav.LEGACY_NAVS[0], wrapped)
             self.assertNotIn(nav.LEGACY_NAVS[1], wrapped)
             self.assertEqual(wrapped.count('<main class="bob-content"'), 1)
