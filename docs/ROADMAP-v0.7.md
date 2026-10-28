@@ -1,8 +1,8 @@
 # Bob / OpenClawLab — v0.7 Roadmap
 
 **Working title:** Continuity, Learning & Usable Operations  
-**Status:** Approved project roadmap; implementation not started  
-**Planning baseline:** Working v0.6 Activity Manager + later LAN-origin hotfixes, v0.5 publishing, v0.4 reboot/startup recovery and v0.3 `bobctl` health checks. **Exact host files must be verified before importing source.**
+**Status:** Approved roadmap; v0.7.0 reviewed-source import, private baseline, startup/service inventory and isolated release simulation are in progress on draft feature branch  
+**Planning baseline:** Working v0.6 Activity Manager + later LAN-origin hotfixes, v0.5 publishing, v0.4 reboot/startup recovery and v0.3 `bobctl` health checks. **Nine exact installed source files were SHA-verified and imported to the v0.7.0 development branch; full service templates and production release/rollback remain pending.**
 
 **Non-negotiable rule:** Preserve existing services, authentication, publication records, approval decisions, autonomous settings, sandboxing, and reboot recovery throughout every upgrade.
 
