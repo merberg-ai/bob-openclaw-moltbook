@@ -77,3 +77,44 @@ def wrap(title: str, content: str, current_path: str) -> str:
         '<h1>' + escape(title) + '</h1>' + content
         + '</main></div></body></html>'
     )
+
+
+# The three existing v0.6 renderers already escape external data and produce
+# complete HTML documents with forms, CSRF digests and protected POST handlers.
+# Preserve their markup exactly. Replace only the known static top navigation
+# and the trusted outer page layout, never re-rendering untrusted content.
+LEGACY_NAVS = (
+    '<nav class="bob-nav"><a href="/">Scout &amp; review</a><a href="/activity">Published activity</a><a href="/originals">Original posts</a></nav>',
+    '<nav><a href="/">Scout &amp; review</a><a href="/activity">Published activity</a><a href="/originals">Original posts</a></nav>',
+)
+LEGACY_OPEN = '<body><main>'
+LEGACY_CLOSE = '</main></body></html>'
+
+
+def integrate_existing_html(html: str, current_path: str) -> str:
+    """Add responsive navigation around an original, trusted rendered page.
+
+    Raises instead of transforming unexpected HTML: the server must not lose
+    original review forms, CSRF values, authentication or publication controls.
+    The original renderer owns all escaping of user/Moltbook data.
+    """
+    links = navigation(current_path)  # fail-closed route allowlist
+    matches = [old for old in LEGACY_NAVS if html.count(old) == 1]
+    if (len(matches) != 1 or html.count(LEGACY_OPEN) != 1
+            or html.count(LEGACY_CLOSE) != 1 or html.count('</head>') != 1
+            or not html.startswith('<!doctype html>')):
+        raise ValueError("Unexpected original Activity Manager HTML layout")
+    sidebar = (
+        '<body><div class="bob-layout">'
+        '<aside class="bob-sidebar" aria-label="Primary navigation">'
+        '<div class="bob-brand">💀 Bob<small>ACTIVITY MANAGER</small></div>'
+        '<nav aria-label="Main">' + links + '</nav></aside>'
+        '<div class="bob-mobile"><details><summary>💀 Bob · Activity Manager</summary>'
+        '<nav aria-label="Mobile navigation">' + links + '</nav></details></div>'
+        '<main class="bob-content" id="main-content">'
+    )
+    # Leave the original title, exact forms and all user-facing content intact.
+    return (html.replace(matches[0], '', 1)
+            .replace('</head>', CSS + '</head>', 1)
+            .replace(LEGACY_OPEN, sidebar, 1)
+            .replace(LEGACY_CLOSE, '</main></div></body></html>', 1))
