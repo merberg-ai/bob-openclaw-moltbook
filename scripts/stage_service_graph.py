@@ -21,7 +21,7 @@ import subprocess
 import sys
 import tempfile
 
-from stage_mock_actor import MARKER, ROLES, validate
+from stage_mock_actor import MARKER, ROLES, MOCK_CONFIG, validate
 
 PREFIX = "bob-v070-stage-"
 RUNNING = {"gateway", "manager"}
@@ -151,6 +151,8 @@ def create(root: Path, source: Path = MOCK_SOURCE) -> dict:
     save_private(root / "STAGING-MARKER.json",
                  json.dumps({"purpose": MARKER, "production_allowed": False}).encode())
     (root / "private").mkdir(mode=0o700)
+    save_private(root / "private" / "MOCK-CONFIG.json",
+                 json.dumps(MOCK_CONFIG, sort_keys=True).encode())
     dbpath = root / "private" / "synthetic.sqlite3"
     old_umask = os.umask(0o077)
     try:
