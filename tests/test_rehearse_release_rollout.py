@@ -56,6 +56,63 @@ class RehearsalTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "membership"):
                 r.source_bytes(root)
 
+    def test_realistic_python_cache_is_ignored_but_sources_remain_hash_pinned(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "bin").mkdir()
+            lib = root / "lib/bob"
+            lib.mkdir(parents=True)
+            source = root / "bin/bobctl"
+            source.write_bytes(self.synthetic_sources()["bin/bobctl"])
+            cache = lib / "__pycache__"
+            cache.mkdir()
+            (cache / "bob_originals.cpython-311.pyc").write_bytes(b"bytecode")
+            with patch.dict(r.SOURCES, self.synthetic_hashes(), clear=True):
+                self.assertEqual(r.source_bytes(root), self.synthetic_sources())
+                source.write_bytes(b"changed")
+                with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                    r.source_bytes(root)
+
+    def test_cache_symlink_and_nonbytecode_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "bin").mkdir()
+            lib = root / "lib/bob"
+            lib.mkdir(parents=True)
+            (root / "bin/bobctl").write_bytes(self.synthetic_sources()["bin/bobctl"])
+            cache = lib / "__pycache__"
+            cache.mkdir()
+            with patch.dict(r.SOURCES, self.synthetic_hashes(), clear=True):
+                (cache / "other.txt").write_text("not bytecode")
+                with self.assertRaisesRegex(ValueError, "Unexpected Python cache entry"):
+                    r.source_bytes(root)
+                (cache / "other.txt").unlink()
+                (cache / "valid.pyc").write_bytes(b"bytecode")
+                (cache / "symlink.pyc").symlink_to(cache / "valid.pyc")
+                with self.assertRaisesRegex(ValueError, "Unexpected Python cache entry"):
+                    r.source_bytes(root)
+                (cache / "symlink.pyc").unlink()
+                (cache / "valid.pyc").unlink()
+                cache.rmdir()
+                cache.symlink_to(root / "bin", target_is_directory=True)
+                with self.assertRaisesRegex(ValueError, "Unexpected Python cache type"):
+                    r.source_bytes(root)
+
+    def test_unreviewed_file_remains_refused_even_when_cache_exists(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "bin").mkdir()
+            lib = root / "lib/bob"
+            lib.mkdir(parents=True)
+            (root / "bin/bobctl").write_bytes(self.synthetic_sources()["bin/bobctl"])
+            cache = lib / "__pycache__"
+            cache.mkdir()
+            (cache / "valid.pyc").write_bytes(b"bytecode")
+            (lib / "unexpected.py").write_text("not reviewed")
+            with patch.dict(r.SOURCES, self.synthetic_hashes(), clear=True):
+                with self.assertRaisesRegex(ValueError, "membership"):
+                    r.source_bytes(root)
+
     def test_refuses_stale_current_or_unexpected_root(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
