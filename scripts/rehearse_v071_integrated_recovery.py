@@ -56,7 +56,7 @@ def validate_state(root: Path, journal_root: Path, scenario: str,
     validate_release(root, "candidate")
     record = transaction.read_journal(journal_root)
     if record is None or record["phase"] != phase or record["scenario"] != (
-            scenario if scenario in transaction.SCENARIOS else "healthy"):
+            scenario if scenario in ("healthy", "failed-health", "failed-recovery") else "healthy"):
         raise AssertionError("transaction state drift")
     if service_starts != starts:
         raise AssertionError("service start budget mismatch")
@@ -71,7 +71,7 @@ def validate_state(root: Path, journal_root: Path, scenario: str,
 def exercise(scenario: str) -> dict:
     if scenario not in SCENARIOS:
         raise ValueError("unsupported scenario")
-    journal_scenario = scenario if scenario in transaction.SCENARIOS else "healthy"
+    journal_scenario = scenario if scenario in ("healthy", "failed-health", "failed-recovery") else "healthy"
     with tempfile.TemporaryDirectory(prefix="bob-v071-ui-") as stage_dir, \
          tempfile.TemporaryDirectory(prefix="bob-v071-journal-") as journal_dir:
         stage, journal_root = Path(stage_dir), Path(journal_dir)
