@@ -240,6 +240,9 @@ def build_inventory(
 
 
 def write_private_report(data: dict, folder: Path) -> Path:
+    # Do not follow an output symlink into an unexpected location.
+    if folder.is_symlink():
+        raise PermissionError("Output directory must not be a symlink")
     # Do not weaken permissions of any existing directory supplied by the user.
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     if stat.S_IMODE(folder.stat().st_mode) & 0o077:
@@ -272,6 +275,8 @@ def main() -> int:
         help="Skip read-only systemctl show queries",
     )
     args = parser.parse_args()
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        parser.error("Run as the OpenClawLab operator account, never as root")
     home = Path.home()
     code_dirs = [
         home / ".local/bin", home / "bin",
