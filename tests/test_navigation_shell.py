@@ -21,7 +21,7 @@ class NavigationShellTests(unittest.TestCase):
     def test_exactly_one_current_link_per_navigation(self):
         for path in ("/", "/activity", "/originals"):
             html = NAV.wrap("Test", "<p>Safe</p>", path)
-            self.assertEqual(html.count('aria-current="page"'), 2)
+            self.assertEqual(html.count(' aria-current="page"'), 2)
             self.assertEqual(html.count(f'href="{path}" aria-current="page"'), 2)
 
     def test_unknown_routes_refused(self):
