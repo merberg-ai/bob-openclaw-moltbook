@@ -61,7 +61,7 @@ class EffectiveUnitTests(unittest.TestCase):
         vals.pop("EnvironmentFiles")
         class Result:
             returncode = 0
-            stdout = "\\n".join(f"{k}={v}" for k, v in vals.items()) + "\\n"
+            stdout = "\n".join(f"{k}={v}" for k, v in vals.items()) + "\n"
         with patch.object(module.subprocess, "run", return_value=Result()):
             status, omitted = module.inspect()
         self.assertIn("RootImage", omitted)
