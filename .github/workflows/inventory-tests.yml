@@ -9,6 +9,8 @@ on:
       - 'scripts/audit_service_candidate_zip.py'
       - 'scripts/report_service_readiness.py'
       - 'scripts/rehearse_release_rollout.py'
+      - 'scripts/stage_service_graph.py'
+      - 'scripts/stage_mock_actor.py'
       - 'scripts/inventory_windows_startup.ps1'
       - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
@@ -23,6 +25,7 @@ on:
       - 'tests/test_audit_service_candidate_zip.py'
       - 'tests/test_report_service_readiness.py'
       - 'tests/test_rehearse_release_rollout.py'
+      - 'tests/test_stage_service_graph.py'
       - 'tests/test_reconcile_dev_checkout.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
@@ -41,6 +44,8 @@ on:
       - 'scripts/audit_service_candidate_zip.py'
       - 'scripts/report_service_readiness.py'
       - 'scripts/rehearse_release_rollout.py'
+      - 'scripts/stage_service_graph.py'
+      - 'scripts/stage_mock_actor.py'
       - 'scripts/inventory_windows_startup.ps1'
       - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
@@ -55,6 +60,7 @@ on:
       - 'tests/test_audit_service_candidate_zip.py'
       - 'tests/test_report_service_readiness.py'
       - 'tests/test_rehearse_release_rollout.py'
+      - 'tests/test_stage_service_graph.py'
       - 'tests/test_reconcile_dev_checkout.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
@@ -81,6 +87,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Run complete isolated release rehearsal after tests
         run: python3 scripts/rehearse_release_rollout.py
+      - name: Run inert service-graph acceptance in disposable sandbox
+        run: python3 scripts/stage_service_graph.py
 
   windows-startup-script-parse:
     runs-on: windows-latest
