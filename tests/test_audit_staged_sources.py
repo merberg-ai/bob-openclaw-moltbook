@@ -53,6 +53,22 @@ class RedactedAuditTests(unittest.TestCase):
             self.assertNotIn(secret_literal, serialized)
             self.assertNotIn(token, serialized)
 
+    def test_context_classification_never_returns_secret_text(self):
+        direct = 'password = "FAKE_ONLY_123456789"\n'
+        embedded = 'print(\'Example: password = "FAKE_ONLY_123456789"\')\n'
+        comment = '# password = "FAKE_ONLY_123456789"\n'
+        results = []
+        for sample in (direct, embedded, comment):
+            match = stage.LITERAL_SECRET.search(sample)
+            self.assertIsNotNone(match)
+            results.append(audit._syntax_context(sample, match.start("value"), match.end("value")))
+        self.assertEqual(results, [
+            "direct Python string literal",
+            "embedded in Python string text",
+            "inside Python comment",
+        ])
+        self.assertNotIn("FAKE_ONLY", json.dumps(results))
+
     def test_clean_source_returns_no_findings(self):
         with tempfile.TemporaryDirectory() as temp:
             archive = self.make_archive(Path(temp), "print('hello world')\n")
