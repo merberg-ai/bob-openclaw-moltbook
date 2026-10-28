@@ -50,9 +50,23 @@ class EffectiveUnitTests(unittest.TestCase):
             returncode = 0
             stdout = "\n".join(f"{k}={v}" for k, v in vals.items()) + "\n"
         with patch.object(module.subprocess, "run", return_value=Result()):
-            status = module.inspect()
+            status, omitted = module.inspect()
+        self.assertEqual(omitted, [])
         self.assertTrue(status["inline_environment_declared"])
         self.assertNotIn("secret", repr(status))
+
+    def test_omitted_optional_systemd_properties_are_reported(self):
+        vals = self.fixture()
+        vals.pop("RootImage")
+        vals.pop("EnvironmentFiles")
+        class Result:
+            returncode = 0
+            stdout = "\\n".join(f"{k}={v}" for k, v in vals.items()) + "\\n"
+        with patch.object(module.subprocess, "run", return_value=Result()):
+            status, omitted = module.inspect()
+        self.assertIn("RootImage", omitted)
+        self.assertIn("EnvironmentFiles", omitted)
+        self.assertTrue(status["service_running"])
 
 
 if __name__ == "__main__":
