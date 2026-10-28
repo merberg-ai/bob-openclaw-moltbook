@@ -115,7 +115,10 @@ def build_candidate(archive: Path, destination: Path) -> dict:
     if destination.exists() or destination.is_symlink():
         raise FileExistsError("Refusing to overwrite an existing candidate archive")
     if not destination.parent.is_dir():
-        raise FileNotFoundError("Destination directory must already exist")
+        raise FileNotFoundError(
+            "Destination folder is not accessible from WSL. "
+            "Omit --destination to save to the private WSL folder."
+        )
     if destination.parent.resolve() == archive.parent.resolve():
         raise ValueError("Export to a distinct destination, not source-staging")
     if destination.suffix.lower() != ".zip":
@@ -208,6 +211,15 @@ def main() -> int:
         destination = private_folder / f"bob-source-candidate-{date}.zip"
     try:
         report = build_candidate(archive, destination)
+    except FileNotFoundError as exc:
+        # Controlled messages are safe: do not include source lines, secret
+        # values, or absolute paths from unexpected lower-level exceptions.
+        message = str(exc) if str(exc).startswith("Destination folder") else (
+            "A required source archive or destination was not found."
+        )
+        print("SOURCE CANDIDATE FAILED:", message,
+              "(no live code was modified)", file=sys.stderr)
+        return 1
     except (OSError, ValueError, RuntimeError, SyntaxError, UnicodeError,
             tarfile.TarError, zipfile.BadZipFile) as exc:
         print("SOURCE CANDIDATE FAILED:", type(exc).__name__,
