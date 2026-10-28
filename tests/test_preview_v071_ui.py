@@ -24,8 +24,8 @@ class ReadonlyBrowserPreviewTests(unittest.TestCase):
             self.assertEqual(manifest["preview_only"], "true")
             self.assertEqual(stat.S_IMODE((root / "PREVIEW-MARKER.json").stat().st_mode), 0o600)
             self.assertEqual((root / "bin/bob-activity-manager").read_bytes(), builder.build()[0])
-            data = json.loads((root / "home/.config/moltbook/scout-result-" +
-                               preview.FAKE_STAMP + ".json").read_text())
+            data = json.loads((root / "home/.config/moltbook" /
+                               f"scout-result-{preview.FAKE_STAMP}.json").read_text())
             self.assertEqual(data["chosen_post_id"], preview.FAKE_ID)
             self.assertEqual(data["chosen_author"], "Demo Agent")
             self.assertTrue(data["draft_comment"].startswith("A synthetic"))
