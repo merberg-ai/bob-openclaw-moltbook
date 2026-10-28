@@ -872,8 +872,12 @@ Write-Output 'Windows tasks, startup settings and WSL were NOT changed.'
     } else {
         # Only treat a path following -File as a script for PowerShell.
         if ($info.executable_kind -eq 'powershell' -and $arguments -match '(?i)(?:^|\s)-File\s+(?:"([^"]+\.ps1)"|''([^'']+\.ps1)''|([^\s"'']+\.ps1))(?=\s|$)') {
-            $candidate = @($Matches[1], $Matches[2], $Matches[3] |
-                Where-Object { -not [string]::IsNullOrWhiteSpace($_) })[0]
+            foreach ($part in @($Matches[1], $Matches[2], $Matches[3])) {
+                if (-not [string]::IsNullOrWhiteSpace($part)) {
+                    $candidate = [string]$part
+                    break
+                }
+            }
         }
     }
     if (-not $candidate) { return [pscustomobject]$info }
