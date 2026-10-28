@@ -112,9 +112,9 @@ class StageGraphTests(unittest.TestCase):
                 stage.create(Path.home())
 
     def test_bad_fixture_and_symlink_refused(self):
-        with self.sandbox() as tmp:
+        with self.sandbox() as tmp, tempfile.TemporaryDirectory() as source_tmp:
             root = Path(tmp)
-            fixture = root / "wrong.py"
+            fixture = Path(source_tmp) / "wrong.py"
             fixture.write_text("import requests\n")
             with self.assertRaisesRegex(ValueError, "Unexpected mock actor"):
                 stage.create(root, source=fixture)
