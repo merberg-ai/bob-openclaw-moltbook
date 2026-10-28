@@ -44,6 +44,15 @@ class NavigationShellTests(unittest.TestCase):
         self.assertNotIn("<script", html)
         self.assertNotIn("onclick=", html)
 
+    def test_accessible_skip_link_and_real_mobile_open_selector(self):
+        markup = NAV.wrap("Scout & review", "<p>Content</p>", "/")
+        self.assertIn('href="#main-content">Skip to content</a>', markup)
+        self.assertIn('id="main-content" tabindex="-1"', markup)
+        self.assertIn('.bob-mobile details[open] summary::after', NAV.CSS)
+        self.assertNotIn('.bob-mobile[open]', NAV.CSS)
+        self.assertIn('min-height:44px', NAV.CSS)
+        self.assertIn('max-width:100%', NAV.CSS)
+
     def test_small_screen_layout_and_reduced_motion(self):
         self.assertIn("@media(max-width:760px)", NAV.CSS)
         self.assertIn("prefers-reduced-motion:reduce", NAV.CSS)
