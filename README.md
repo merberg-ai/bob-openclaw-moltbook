@@ -29,6 +29,8 @@ These features describe the **working host installation**; they have not yet bee
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
+**First implementation (development branch):** [v0.7.0 read-only host inventory](docs/BASELINE-INVENTORY.md). The collector is not a deployable Bob release; it generates a private host report without changing running services.
+
 ## High-level architecture
 
 ```text
