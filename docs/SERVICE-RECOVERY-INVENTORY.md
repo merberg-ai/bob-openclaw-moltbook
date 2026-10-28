@@ -60,3 +60,29 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows startup audit failed.' }
 ~~~
 
 The console contains only unit counts/duplicate scope names and classified Startup-folder entries. Share that console output for the next architectural decision. Never upload the private reports, or raw shortcut targets/arguments, to a public repository.
+
+## Verified host topology (2026-10-28)
+
+The operator successfully reconciled the separate WSL development checkout and ran both host collectors.
+
+- systemd: **15 files/drop-ins across 12 scope-qualified units**; 10 user-scope and 2 system-scope, with no expected names missing.
+- Both `bob-moltbook-scout.service` and `bob-moltbook-scout.timer` exist in **both scopes**. Presence is not equivalent to enabled or active.
+- Windows: 0 matching scheduled tasks, 0 Run registry entries, and 2 user Startup-folder shortcuts, without query warnings.
+- `Bob OpenClaw Startup` is a PowerShell shortcut; its safely inspected local wrapper references **WSL, OpenClawLab, and systemd**.
+- `OpenClaw Companion` references an OpenClaw-named executable. No WSL command was present directly in that shortcut's arguments.
+
+These findings identify the likely **Windows user logon → PowerShell wrapper → WSL OpenClawLab → systemd** chain. They **do not** establish unattended boot-to-login recovery, actual unit enablement states, Companion behavior, or systemd startup order.
+
+### Next: exact active/enabled status, no fresh inventory required
+
+After syncing the **clean development checkout** with GitHub:
+
+~~~powershell
+wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && GIT_TERMINAL_PROMPT=0 git pull --ff-only && python3 scripts/report_service_readiness.py --report /home/openclaw/.local/state/bob-baseline/inventory-20261028T144113282656Z-93497.json"
+~~~
+
+The checker reads the existing private topology report; queries read-only `systemctl show` for only expected Bob units and `loginctl show-user` for the boolean `Linger` state. It prints only allowlisted categories for loaded/active/substate/enabled, no command arguments, environment values, private contents or paths, and changes no services.
+
+An active or enabled system-scope scout alongside the user-scope scout needs a closer look before changing either. `Linger=yes` supports a user systemd manager **after WSL starts**; it cannot make Windows boot WSL. A failed or unknown status is diagnostic, not proof of absence.
+
+Keep both private inventories out of public GitHub; share only the console summary.
