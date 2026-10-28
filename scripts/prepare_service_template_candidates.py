@@ -49,6 +49,9 @@ DURATION_KEYS = SAFE_TIMER_KEYS - {"OnCalendar"}
 # No slash, backslash, quote, dollar sign, control character, equals or
 # shell metacharacter can survive into a timing field.
 CALENDAR_RE = re.compile(r"^(?=.{1,96}$)[A-Za-z0-9*.,: +~!-]*(?:[0-9]/[0-9]+[A-Za-z0-9*.,: +~!-]*)*$")
+CALENDAR_WORDS = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "UTC",
+                  "minutely", "hourly", "daily", "weekly", "monthly",
+                  "quarterly", "semiannually", "yearly", "annually"}
 DURATION_RE = re.compile(r"^[0-9]{1,7}(?:us|ms|s|sec|seconds?|min|minutes?|h|hours?|d|days?|w|weeks?)?$")
 SENSITIVE_KEYS = {
     "ExecStart", "ExecStartPre", "ExecStartPost", "ExecStop", "ExecReload",
@@ -144,7 +147,9 @@ def sanitized_shape(data: bytes) -> dict:
             if values and len(values) <= 20 and all(v in DEPENDENCIES for v in values):
                 emit = " ".join(values)
         elif section == "Timer" and key in SAFE_TIMER_KEYS:
-            if key == "OnCalendar" and CALENDAR_RE.fullmatch(value):
+            if (key == "OnCalendar" and CALENDAR_RE.fullmatch(value)
+                    and all(word in CALENDAR_WORDS
+                            for word in re.findall(r"[A-Za-z]+", value))):
                 emit = value
             elif key in DURATION_KEYS and DURATION_RE.fullmatch(value):
                 emit = value
