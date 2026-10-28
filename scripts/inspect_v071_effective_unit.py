@@ -52,20 +52,29 @@ def inspect() -> dict[str, bool]:
         if key not in PROPS or key in props:
             raise ValueError("unexpected systemd property")
         props[key] = value
-    if set(props) != set(PROPS):
-        raise ValueError("incomplete systemd metadata")
-    return classify(props, Path.home() / ".local/bin/bob-activity-manager")
+    required = {"LoadState", "ActiveState", "SubState", "ExecStart"}
+    if not required.issubset(props):
+        raise ValueError("missing core systemd metadata")
+    return classify(props, Path.home() / ".local/bin/bob-activity-manager"), [key for key in PROPS if key not in props]
 
 
 def main() -> int:
     try:
-        results = inspect()
+        results, omitted = inspect()
     except (OSError, ValueError, subprocess.TimeoutExpired):
         print("v0.7.1 EFFECTIVE UNIT INSPECTION: REFUSED")
         print("No service settings or installed files changed.")
         return 1
+    dependent = {"dropins_present": "DropInPaths", "custom_working_directory": "WorkingDirectory",
+                 "environment_files_declared": "EnvironmentFiles", "inline_environment_declared": "Environment",
+                 "dynamic_user_enabled": "DynamicUser", "user_override_declared": "User"}
     for key, value in results.items():
-        print(f"{key}: {'YES' if value else 'NO'}")
+        needs = ([dependent[key]] if key in dependent else
+                 ["RootDirectory", "RootImage"] if key == "root_directory_or_image_declared" else
+                 ["ExecStartPre", "ExecStartPost", "ExecCondition"] if key == "pre_post_or_condition_hooks" else [])
+        label = "UNKNOWN" if any(item in omitted for item in needs) and not value else "YES" if value else "NO"
+        print(f"{key}: {label}")
+    print("unsupported_or_omitted_properties:", ", ".join(omitted) if omitted else "none")
     print("v0.7.1 EFFECTIVE UNIT INSPECTION: COMPLETED (read-only)")
     print("No raw paths, arguments or environment values printed. Not deployment approval.")
     return 0
