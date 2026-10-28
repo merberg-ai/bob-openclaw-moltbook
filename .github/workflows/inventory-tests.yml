@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/inventory_live_host.py'
       - 'scripts/inventory_service_topology.py'
+      - 'scripts/prepare_service_template_candidates.py'
       - 'scripts/report_service_readiness.py'
       - 'scripts/rehearse_release_rollout.py'
       - 'scripts/inventory_windows_startup.ps1'
@@ -17,6 +18,7 @@ on:
       - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_prepare_service_template_candidates.py'
       - 'tests/test_report_service_readiness.py'
       - 'tests/test_rehearse_release_rollout.py'
       - 'tests/test_reconcile_dev_checkout.py'
@@ -33,6 +35,7 @@ on:
     paths:
       - 'scripts/inventory_live_host.py'
       - 'scripts/inventory_service_topology.py'
+      - 'scripts/prepare_service_template_candidates.py'
       - 'scripts/report_service_readiness.py'
       - 'scripts/rehearse_release_rollout.py'
       - 'scripts/inventory_windows_startup.ps1'
@@ -45,6 +48,7 @@ on:
       - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_prepare_service_template_candidates.py'
       - 'tests/test_report_service_readiness.py'
       - 'tests/test_rehearse_release_rollout.py'
       - 'tests/test_reconcile_dev_checkout.py'
