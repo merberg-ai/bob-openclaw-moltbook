@@ -62,6 +62,39 @@ DIRECTIVE_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9]{0,79}$")
 MAX_RECORDS = 120
 
 
+def unknown_family(key: str) -> str:
+    """Return only one of a few fixed category words, never an unknown name."""
+    if not DIRECTIVE_KEY.fullmatch(key):
+        return "other"
+    groups = (
+        ("Exec", "execution"),
+        ("Restart", "restart"),
+        ("StartLimit", "start-rate"),
+        ("Timeout", "timeout"),
+        ("Kill", "shutdown"),
+        ("Environment", "environment"),
+        ("LoadCredential", "credentials"),
+        ("SetCredential", "credentials"),
+        ("Protect", "security"),
+        ("Private", "security"),
+        ("Restrict", "security"),
+        ("SystemCall", "security"),
+        ("Condition", "conditions"),
+        ("Assert", "conditions"),
+        ("Limit", "resource-limits"),
+        ("Memory", "resource-limits"),
+        ("CPU", "resource-limits"),
+        ("Watchdog", "health"),
+        ("Notify", "health"),
+        ("Log", "logging"),
+        ("Standard", "logging"),
+    )
+    for prefix, family in groups:
+        if key.startswith(prefix):
+            return family
+    return "other"
+
+
 def describe(data: bytes) -> dict:
     """Analyze raw bytes internally; serialize only allowlisted key NAMES."""
     text = data.decode("utf-8")
@@ -69,6 +102,7 @@ def describe(data: bytes) -> dict:
     continuation = False
     known: dict[str, Counter[str]] = {}
     unknown_count: Counter[str] = Counter()
+    unknown_groups: dict[str, Counter[str]] = {}
     unknown_sections = 0
     for line in text.splitlines():
         if len(line) > 4096:
@@ -97,6 +131,7 @@ def describe(data: bytes) -> dict:
                 known.setdefault(section, Counter())[key] += 1
             else:
                 unknown_count[section] += 1
+                unknown_groups.setdefault(section, Counter())[unknown_family(key)] += 1
         else:
             unknown_count["other"] += 1
     return {
@@ -105,6 +140,10 @@ def describe(data: bytes) -> dict:
             for section, counts in sorted(known.items())
         },
         "unrecognized_directive_counts_by_section": dict(sorted(unknown_count.items())),
+        "unrecognized_directive_families_by_section": {
+            section: dict(sorted(counts.items()))
+            for section, counts in sorted(unknown_groups.items())
+        },
         "unrecognized_section_count": unknown_sections,
     }
 
@@ -176,6 +215,9 @@ def main() -> int:
                       "known keys:", ", ".join(sorted(keys)))
             print("  Gateway unrecognized directive count:",
                   sum(shape["unrecognized_directive_counts_by_section"].values()))
+            for section, families in shape["unrecognized_directive_families_by_section"].items():
+                print("  Gateway unrecognized", section, "family categories:",
+                      ", ".join(f"{group}={count}" for group, count in sorted(families.items())))
     print("No directive values, unknown key names, credentials or paths printed.")
     print("No units, timers, processes, Windows startup or database changed.")
     return 0
