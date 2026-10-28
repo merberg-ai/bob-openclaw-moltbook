@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/inventory_live_host.py'
       - 'scripts/inventory_service_topology.py'
+      - 'scripts/inventory_windows_startup.ps1'
       - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
@@ -28,6 +29,7 @@ on:
     paths:
       - 'scripts/inventory_live_host.py'
       - 'scripts/inventory_service_topology.py'
+      - 'scripts/inventory_windows_startup.ps1'
       - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
@@ -61,3 +63,20 @@ jobs:
           python-version: '3.11'
       - name: Run offline synthetic baseline and backup tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+  windows-startup-script-parse:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Windows startup inventory PowerShell syntax (no execution)
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $file = Join-Path $PWD 'scripts/inventory_windows_startup.ps1'
+          [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Output 'PowerShell syntax valid; no startup tasks or registry keys touched.'
