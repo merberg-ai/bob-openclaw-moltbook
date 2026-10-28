@@ -29,6 +29,8 @@ These features describe the **working host installation**; they have not yet bee
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
+**v0.7.1 UI preview:** The draft [`feature/v0.7.1-navigation`](https://github.com/merberg-ai/bob-openclaw-moltbook/tree/feature/v0.7.1-navigation) branch integrates responsive desktop/mobile navigation into the existing three Activity Manager pages and includes a [checksummed, isolated rollback rehearsal](docs/V071-UI-UPDATE-REHEARSAL.md). It is an **uninstalled, non-deployable candidate**; no service changes or Moltbook requests have occurred.
+
 **Current implementation (development branch):** [read-only host inventory](docs/BASELINE-INVENTORY.md), [private database backup](docs/BASELINE-BACKUP.md), [source review and guarded import](docs/IMPORT-REVIEWED-SOURCE.md), and [service/startup recovery inventory](docs/SERVICE-RECOVERY-INVENTORY.md), [isolated release rehearsal](docs/RELEASE-REHEARSAL.md), and [sanitized service-template candidates](docs/SERVICE-TEMPLATE-CANDIDATES.md), plus [isolated inert service-graph staging](docs/INERT-SERVICE-STAGING.md) and [systemd parser acceptance](docs/SYSTEMD-PARSER-ACCEPTANCE.md), followed by [isolated mock-process lifecycle acceptance](docs/INERT-LIFECYCLE-ACCEPTANCE.md), and [read-only systemd staging preflight](docs/SYSTEMD-STAGING-PREFLIGHT.md), with a [separately gated transient-service experiment plan](docs/TRANSIENT-SYSTEMD-EXPERIMENT-PLAN.md). These are baseline/development utilities, not a deployable Bob release.
 
 ## High-level architecture
