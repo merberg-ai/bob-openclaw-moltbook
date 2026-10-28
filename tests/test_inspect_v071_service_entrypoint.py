@@ -37,9 +37,9 @@ class EntryPointTests(unittest.TestCase):
         class Result:
             returncode = 0
             stdout = (
-                "LoadState=loaded\\nActiveState=active\\nSubState=running\\n"
-                "FragmentPath=/secret/unit\\nDropInPaths=\\n"
-                "ExecStart={ argv[]=/secret/bin --token private; }\\n"
+                "LoadState=loaded\nActiveState=active\nSubState=running\n"
+                "FragmentPath=/secret/unit\nDropInPaths=\n"
+                "ExecStart={ argv[]=/secret/bin --token private; }\n"
             )
         with patch.object(mod.subprocess, "run", return_value=Result()):
             status = mod.inspect()
