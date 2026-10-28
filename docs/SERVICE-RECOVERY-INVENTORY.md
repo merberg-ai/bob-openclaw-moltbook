@@ -43,7 +43,9 @@ These checks use no external APIs and require no GitHub authentication in WSL. T
 
 ## Follow-up after first Windows scan (2026-10-28)
 
-Initial host scan returned zero matching scheduled tasks, zero Run entries, and two matching Startup-folder items, with no query errors. That points toward possible **Windows interactive-logon** startup, not necessarily machine boot. The first scan did **not** inspect shortcut targets; run the updated collector and compare its two safe launch classifications with the WSL systemd summary before deciding whether Bob can recover from a cold reboot or from WSL shutdown.
+Initial host scan returned zero matching scheduled tasks, zero Run entries, and two matching Startup-folder items, with no query errors. The second scan classified `Bob OpenClaw Startup` as a **PowerShell** shortcut and `OpenClaw Companion` as **other**, with no direct `wsl` or `OpenClawLab` mention in either shortcut's arguments. That points toward possible **Windows interactive-logon** startup, not necessarily machine boot. The first scan did **not** inspect shortcut targets; run the updated collector and compare its two safe launch classifications with the WSL systemd summary before deciding whether Bob can recover from a cold reboot or from WSL shutdown.
+
+The newest collector additionally examines a small, local PowerShell `-File` script when referenced by a matching `.lnk`. It reports only whether that wrapper mentions WSL, `OpenClawLab` or systemd; it does not execute the script or save its contents. `wrapper=unavailable` means it could not safely inspect the script, **not** that no WSL launch occurs. For `other`, the collector reports the executable type and whether its *filename* mentions OpenClaw without disclosing its actual name or full path.
 
 To re-run the improved checks without changing the live installation, start from the **already reconciled** WSL feature checkout and use:
 
