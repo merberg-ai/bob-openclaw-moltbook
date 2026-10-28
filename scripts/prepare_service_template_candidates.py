@@ -200,7 +200,9 @@ def make_template(unit: str, scope: str, kind: str, shape: dict) -> str:
         for key in sorted(values):
             for value in values[key]:
                 lines.append(key + "=" + value)
-        if section == "Service":
+        if section == "Service" and kind == "unit":
+            # Environment-only drop-ins are not executable overrides. A fake
+            # ExecStart there would misrepresent the source unit semantics.
             lines.append("ExecStart=@REVIEW_REQUIRED_NOT_DEPLOYABLE@")
     lines.extend(["", "# WITHHELD KNOWN DIRECTIVES (key names only):"])
     for key, count in shape["withheld_known_keys"].items():
