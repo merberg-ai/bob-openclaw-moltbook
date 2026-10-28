@@ -14,7 +14,7 @@ wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && git pull 
 
 ### Recommended Windows-to-WSL fallback (no /mnt/d, UNC, wslpath, or remounts)
 
-Paste the complete block below in PowerShell. It creates the ZIP in WSL's private directory, then reads it as Base64 and writes the same bytes to `D:\\SRC` through Windows PowerShell's .NET file API. Raw Base64 is held in memory and not printed to the console. The source archive never goes to GitHub.
+Paste the complete block below in PowerShell. It creates the ZIP in WSL's private directory, then reads it as Base64 and writes the same bytes to `D:\SRC` through Windows PowerShell's .NET file API. Raw Base64 is held in memory and not printed to the console. The source archive never goes to GitHub.
 
 ~~~powershell
 $run = @(wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && git pull --ff-only && python3 scripts/prepare_source_candidate.py")
@@ -25,7 +25,7 @@ $zip = (($run | Where-Object { $_ -like 'Review ZIP created:*' } | Select-Object
 if (-not $zip) { throw "Missing review ZIP path." }
 $data = @(wsl -d OpenClawLab -u openclaw -- base64 -w0 $zip)
 if ($LASTEXITCODE -ne 0 -or $data.Count -eq 0) { throw "Cannot transfer ZIP bytes." }
-$target = 'D:\\SRC\\bob-source-candidate-v070.zip'
+$target = 'D:\SRC\bob-source-candidate-v070.zip'
 if (Test-Path $target) { throw "Refusing to overwrite: $target" }
 [System.IO.File]::WriteAllBytes($target, [Convert]::FromBase64String(($data -join '')))
 Get-Item $target | Select-Object FullName, Length
