@@ -1,10 +1,12 @@
-name: Offline host inventory tests
+name: Offline baseline and backup tests
 
 on:
   push:
     paths:
       - 'scripts/inventory_live_host.py'
+      - 'scripts/backup_live_sqlite.py'
       - 'tests/test_inventory_live_host.py'
+      - 'tests/test_backup_live_sqlite.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -23,5 +25,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run offline synthetic inventory tests
-        run: python3 -m unittest discover -s tests -p 'test_inventory_*.py' -v
+      - name: Run offline synthetic baseline and backup tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
