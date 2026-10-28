@@ -106,6 +106,57 @@ def assert_private(root: Path) -> None:
         raise ValueError("Preview candidate source changed")
 
 
+def seed_synthetic_views(module, root: Path) -> None:
+    """Populate only the throwaway HOME's SQLite with fake dashboard content."""
+    expected = (root / "home/.config/moltbook").resolve()
+    if (module.DATA.resolve() != expected
+            or Path.home().resolve() != (root / "home").resolve()):
+        raise ValueError("Refusing to seed anything outside the preview sandbox")
+    t = "2026-10-28T12:00:00+00:00"
+    with module.publish_conn() as db:
+        module.original_init(db)
+        db.execute(
+            "INSERT INTO publish_jobs "
+            "(run_id,approval_sha256,post_id,draft_comment,mode,state,"
+            "created_at,attempted_at,comment_id,updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("20261027T120000Z", "0" * 64, FAKE_ID,
+             "A fictional published comment for the layout preview.",
+             "manual", "published", t, t, FAKE_ID, t),
+        )
+        db.execute(
+            "INSERT INTO published_replies "
+            "(id,post_id,comment_id,author,content,detected_at) "
+            "VALUES (?,?,?,?,?,?)",
+            ("sample-reply", FAKE_ID, FAKE_ID,
+             "Example Reader", "Synthetic reply, never retrieved from Moltbook.", t),
+        )
+        db.execute(
+            "INSERT INTO original_requests "
+            "(id,kind,state,created_at,completed_at) VALUES (?,?,?,?,?)",
+            ("a" * 24, "thought", "completed", t, t),
+        )
+        title = "Preview: Bob's imaginary original post"
+        content = (
+            "This sample original post exists only in a temporary demonstration "
+            "database. It is included to exercise the draft editor, approval "
+            "buttons, long content wrapping and narrow mobile layouts."
+        )
+        digest = hashlib.sha256(
+            ("general\n" + title + "\n" + content).encode()).hexdigest()
+        db.execute(
+            "INSERT INTO original_posts "
+            "(id,request_id,submolt,title,content,digest,state,source,"
+            "created_at,updated_at,visible) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            ("b" * 24, "a" * 24, "general", title, content, digest,
+             "draft", "synthetic preview", t, t, 0),
+        )
+        db.execute(
+            "INSERT INTO publish_events (at,kind,details) VALUES (?,?,?)",
+            (t, "preview_event", "Synthetic-only activity for layout review"),
+        )
+
+
 def make_server(root: Path):
     # Called only in the child with HOME set to the synthetic directory.
     assert_private(root)
@@ -119,9 +170,26 @@ def make_server(root: Path):
     spec = importlib.util.spec_from_loader(loader.name, loader)
     module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
+    seed_synthetic_views(module, root)
     from http.server import ThreadingHTTPServer
 
     class ReadOnlyPreview(module.Handler):
+        def _send(self, status, message, typ="text/plain; charset=utf-8"):
+            # This banner is preview-only and never part of production code.
+            if status == 200 and typ == "text/html; charset=utf-8":
+                banner = (
+                    '<div role="status" style="padding:12px;border:1px solid '
+                    '#cda96f;border-radius:9px;background:#382f21;color:#ffe2a5;'
+                    'margin-bottom:16px"><strong>DEMO PREVIEW ONLY</strong> '
+                    'Synthetic data. Publishing, approvals and generation '
+                    'are disabled.</div>'
+                )
+                marker = '<main class="bob-content" id="main-content" tabindex="-1">'
+                if message.count(marker) != 1:
+                    raise ValueError("Unexpected preview HTML layout")
+                message = message.replace(marker, marker + banner, 1)
+            return super()._send(status, message, typ)
+
         def do_POST(self):
             self._send(405, "Read-only preview: publishing and approvals are disabled")
 
@@ -156,7 +224,8 @@ def smoke(server) -> None:
             if result.status != 200:
                 raise AssertionError("Preview GET route failed")
             if route != "/healthz":
-                if 'class="bob-layout"' not in body or 'name="csrf"' not in body and route != "/activity":
+                if ('DEMO PREVIEW ONLY' not in body or 'class="bob-layout"' not in body
+                        or ('name="csrf"' not in body and route != "/activity")):
                     raise AssertionError("Preview markup missing")
             conn.close()
         conn = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
