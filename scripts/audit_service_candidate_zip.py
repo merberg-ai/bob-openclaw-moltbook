@@ -120,8 +120,13 @@ def audit_template(data: bytes, item: dict) -> None:
     expected_header = HEADER | {
         "# Scope: " + item["scope"], "# Unit: " + item["unit"], "# Kind: " + item["kind"],
     }
+    # Legacy v1 archives inserted a nondeployable ExecStart placeholder even
+    # in Environment-only drop-ins. Accept that *one exact placeholder* solely
+    # for reviewing old ZIPs; new exporter never fabricates a drop-in command.
+    valid_placeholders = ({0, 1} if item["kind"] == "dropin"
+                          else {1} if item["unit"].endswith(".service") else {0})
     if (not expected_header.issubset(comments)
-            or placeholders != (1 if item["unit"].endswith(".service") else 0)
+            or placeholders not in valid_placeholders
             or hidden != item["withheld_known_keys"]
             or other != item["unclassified_directives_count"]
             or sorted(keys) != item["safe_directive_keys"]):
