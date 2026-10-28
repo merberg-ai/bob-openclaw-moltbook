@@ -7,10 +7,12 @@ on:
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
       - 'scripts/audit_staged_sources.py'
+      - 'scripts/review_staged_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
+      - 'tests/test_review_staged_sources.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -18,10 +20,12 @@ on:
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
       - 'scripts/audit_staged_sources.py'
+      - 'scripts/review_staged_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
+      - 'tests/test_review_staged_sources.py'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
