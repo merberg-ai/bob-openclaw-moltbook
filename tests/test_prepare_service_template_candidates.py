@@ -144,6 +144,7 @@ class UnitCandidateTests(unittest.TestCase):
             "[Timer]\nOnCalendar=*-*-* 05:00:00\n"
             "OnCalendar=*/home/private 01:00\n"
             "OnCalendar=*:0/15\nOnUnitActiveSec=15min\n"
+            "OnCalendar=SECRETACCESSCODE123\n"
             "OnUnitInactiveSec=bad;touch /tmp/secret\n"
         ).encode())
         vals = shape["safe"]["Timer"]
@@ -151,7 +152,7 @@ class UnitCandidateTests(unittest.TestCase):
         self.assertIn("*:0/15", vals["OnCalendar"])
         self.assertNotIn("*/home/private 01:00", vals["OnCalendar"])
         self.assertEqual(vals["OnUnitActiveSec"], ["15min"])
-        self.assertEqual(shape["withheld_known_keys"]["OnCalendar"], 1)
+        self.assertEqual(shape["withheld_known_keys"]["OnCalendar"], 2)
         self.assertEqual(shape["withheld_known_keys"]["OnUnitInactiveSec"], 1)
 
 
