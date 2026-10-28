@@ -17,6 +17,8 @@ import time
 
 MARKER = "bob-v070-inert-service-sandbox"
 ROLES = {"gateway", "manager", "scout", "publisher", "original-worker", "reconcile"}
+MOCK_CONFIG = {"purpose": MARKER, "network_access": False, "allow_publish": False,
+               "credential": "DUMMY-NONFUNCTIONAL-ONLY"}
 
 
 def validate(root: Path) -> tuple[Path, str]:
@@ -35,6 +37,12 @@ def validate(root: Path) -> tuple[Path, str]:
     meta = json.loads(marker.read_text(encoding="utf-8"))
     if meta != {"purpose": MARKER, "production_allowed": False}:
         raise ValueError("Incorrect staging marker")
+    config = root / "private" / "MOCK-CONFIG.json"
+    if (config.is_symlink() or not config.is_file()
+            or stat.S_IMODE(config.stat().st_mode) & 0o077):
+        raise ValueError("Missing or insecure mock configuration")
+    if json.loads(config.read_text(encoding="utf-8")) != MOCK_CONFIG:
+        raise ValueError("Only explicitly offline dummy configuration is accepted")
     current = root / "current"
     if not current.is_symlink():
         raise ValueError("Missing staging release pointer")
