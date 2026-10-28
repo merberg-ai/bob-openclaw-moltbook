@@ -31,6 +31,12 @@ def execstart_checks(command: str, manager: Path) -> dict[str, bool]:
         "expected_path_token": ("{ path=" + expected + " ;") in command,
         "expected_argv_token": ("argv[]=" + expected) in command,
         "ignore_errors_no_token": " ; ignore_errors=no" in command,
+        "manager_path_anywhere": expected in command,
+        "python_interpreter_path": any(("{ path=" + p + " ;") in command for p in
+                                       ("/usr/bin/python3", "/usr/bin/python",
+                                        "/usr/local/bin/python3")),
+        "manager_as_later_argument": (" " + expected + " ") in command or
+                                     (" " + expected + " ;") in command,
     }
 
 
@@ -53,7 +59,9 @@ def classify(raw: str, *, manager: Path) -> dict[str, bool]:
     # Fail closed for any surprising execution envelope. ExecStart is
     # systemd's rendered string, so this check only asserts one expected
     # absolute executable token, never a fully parsed service grammar.
-    executable_match = all(execstart_checks(values["ExecStart"], manager).values())
+    checks = execstart_checks(values["ExecStart"], manager)
+    executable_match = all(checks[k] for k in ("single_exec_record", "expected_path_token",
+                                                  "expected_argv_token", "ignore_errors_no_token"))
     return {
         "loaded_running": (values["LoadState"], values["ActiveState"], values["SubState"])
                            == ("loaded", "active", "running"),
