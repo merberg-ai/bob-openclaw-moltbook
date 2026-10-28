@@ -92,6 +92,24 @@ class StageGraphTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "marker"):
                 mock.run_once(root, "scout")
 
+    def test_fake_actor_refuses_enabled_external_access_or_real_credentials(self):
+        with self.sandbox() as tmp:
+            root = Path(tmp)
+            stage.create(root)
+            config = root / "private/MOCK-CONFIG.json"
+            value = json.loads(config.read_text())
+            value["network_access"] = True
+            config.write_text(json.dumps(value))
+            config.chmod(0o600)
+            with self.assertRaisesRegex(ValueError, "offline dummy"):
+                mock.run_once(root, "publisher")
+            value["network_access"] = False
+            value["credential"] = "ANY-OTHER-CREDENTIAL"
+            config.write_text(json.dumps(value))
+            config.chmod(0o600)
+            with self.assertRaisesRegex(ValueError, "offline dummy"):
+                mock.run_once(root, "publisher")
+
     def test_mock_actor_rejects_untrusted_pointer(self):
         with self.sandbox() as tmp:
             root = Path(tmp)
