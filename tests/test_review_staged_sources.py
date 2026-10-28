@@ -51,7 +51,26 @@ class SourceReviewTests(unittest.TestCase):
             self.assertEqual(set(f["category"] for f in report["findings"]), {
                 "possible credential-related stdout",
             })
+            self.assertEqual(
+                [f["syntax_shape"] for f in report["findings"]],
+                ["contains sensitive-key lookup", "contains sensitive-key lookup"],
+            )
             self.assertNotIn("config.json", json.dumps(report))
+
+    def test_static_warning_vs_dynamic_print_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = (
+                "#!/usr/bin/env python3\n"
+                "print('Password should not be logged')\n"
+                "print('Password:', get_config())\n"
+            )
+            archive = self.make_archive(tmp, {"bin/bobctl": source})
+            report = review.review_snapshot(archive)
+            self.assertEqual(
+                [f["syntax_shape"] for f in report["findings"]],
+                ["static literal arguments only", "contains runtime expression"],
+            )
+            self.assertNotIn("get_config()", json.dumps(report))
 
     def test_detects_literal_code_risks_and_unresolved_dependencies(self):
         with tempfile.TemporaryDirectory() as tmp:
