@@ -9,6 +9,7 @@ This is NOT an installer, updater, or backup tool.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -90,7 +91,7 @@ def inventory_code(directories: list[Path]) -> list[dict]:
             continue
         try:
             for path in sorted(folder.iterdir()):
-                if is_code_candidate(path):
+                if not path.is_symlink() and is_code_candidate(path):
                     result.append(file_fingerprint(path))
         except OSError:
             result.append({"directory": str(folder), "status": "unreadable"})
@@ -165,7 +166,7 @@ def inventory_sqlite_schema(database: Path) -> dict:
     try:
         # mode=ro protects the live DB against accidental modifications.
         uri = database.resolve().as_uri() + "?mode=ro"
-        with sqlite3.connect(uri, uri=True, timeout=2) as conn:
+        with closing(sqlite3.connect(uri, uri=True, timeout=2)) as conn:
             conn.execute("PRAGMA query_only=ON")
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             objects = conn.execute(
