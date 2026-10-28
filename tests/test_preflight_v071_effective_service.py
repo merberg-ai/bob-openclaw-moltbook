@@ -55,6 +55,18 @@ class EffectivePreflightTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.classify(fixture().replace("DynamicUser=no\n", ""))
 
+    def test_optional_unset_properties_may_be_omitted(self):
+        raw = fixture()
+        for key in mod.OPTIONAL_EMPTY:
+            raw = raw.replace(key + "=\\n", "")
+        self.assertTrue(all(self.classify(raw).values()))
+
+    def test_omitted_optional_does_not_hide_configured_hook(self):
+        raw = fixture(ExecStartPre="{ path=/bin/true ; argv[]=/bin/true }")
+        for key in mod.OPTIONAL_EMPTY - {"ExecStartPre"}:
+            raw = raw.replace(key + "=\\n", "")
+        self.assertFalse(self.classify(raw)["no_extra_exec_hooks"])
+
     def test_duplicate_property_refused(self):
         with self.assertRaises(ValueError):
             self.classify(fixture() + "LoadState=loaded\n")
