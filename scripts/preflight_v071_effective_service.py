@@ -23,6 +23,17 @@ REQUIRED = set(KEYS)
 OPTIONAL_EMPTY = {"EnvironmentFiles", "ExecStartPre", "ExecStartPost", "ExecCondition"}
 
 
+def execstart_checks(command: str, manager: Path) -> dict[str, bool]:
+    """Return only comparison booleans, never command or paths."""
+    expected = str(manager)
+    return {
+        "single_exec_record": command.count("{ path=") == 1,
+        "expected_path_token": ("{ path=" + expected + " ;") in command,
+        "expected_argv_token": ("argv[]=" + expected) in command,
+        "ignore_errors_no_token": " ; ignore_errors=no" in command,
+    }
+
+
 def classify(raw: str, *, manager: Path) -> dict[str, bool]:
     if not raw or len(raw) > 256 * 1024 or "\x00" in raw:
         raise ValueError("invalid systemd output")
@@ -42,14 +53,7 @@ def classify(raw: str, *, manager: Path) -> dict[str, bool]:
     # Fail closed for any surprising execution envelope. ExecStart is
     # systemd's rendered string, so this check only asserts one expected
     # absolute executable token, never a fully parsed service grammar.
-    command = values["ExecStart"]
-    expected = str(manager)
-    executable_match = (
-        command.count("{ path=") == 1 and
-        ("{ path=" + expected + " ;") in command and
-        ("argv[]=" + expected) in command and
-        " ; ignore_errors=no" in command
-    )
+    executable_match = all(execstart_checks(values["ExecStart"], manager).values())
     return {
         "loaded_running": (values["LoadState"], values["ActiveState"], values["SubState"])
                            == ("loaded", "active", "running"),
@@ -88,7 +92,8 @@ def main():
     args = parser.parse_args()
     manager = Path.home() / ".local/bin/bob-activity-manager"
     try:
-        results = classify(query(), manager=manager)
+        raw = query()
+        results = classify(raw, manager=manager)
         results["recent_private_backup"] = check_backup(args.backup.expanduser())
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
         # Only static reason codes/property NAMES. Never expose raw systemctl output.
@@ -103,6 +108,11 @@ def main():
         print("preflight_refusal_reason:", reason)
         print("v0.7.1 EFFECTIVE SERVICE PREFLIGHT: REFUSED")
         return 1
+    if not results["effective_execstart_expected"]:
+        lines = [line for line in raw.splitlines() if line.startswith("ExecStart=")]
+        if len(lines) == 1:
+            for key, matched in execstart_checks(lines[0].split("=", 1)[1], manager).items():
+                print("execstart_" + key + ":", "MATCH" if matched else "DIFFERS")
     for key, passed in results.items():
         print(key + ":", "PASS" if passed else "REFUSED")
     print("v0.7.1 EFFECTIVE SERVICE PREFLIGHT:",
