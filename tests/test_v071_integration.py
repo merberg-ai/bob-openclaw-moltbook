@@ -86,7 +86,7 @@ class IntegratedNavigationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             nav.integrate_existing_html(old_html("/"), "/shutdown")
         with self.assertRaises(ValueError):
-            nav.integrate_existing_html(malformed.replace('</nav>', '</nav></nav>', 1), "/")
+            nav.integrate_existing_html(malformed.replace(nav.LEGACY_NAVS[0], nav.LEGACY_NAVS[0] * 2), "/")
             
     def test_review_zip_contains_exactly_two_development_files_and_manifest(self):
         candidate, navigation = builder.build()
