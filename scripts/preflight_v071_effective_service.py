@@ -30,7 +30,7 @@ PYTHON_EXECUTABLES = ("/usr/bin/python3", "/usr/bin/python", "/usr/local/bin/pyt
 def expected_launch(command: str, manager: Path) -> bool:
     """Match the actual systemd command grammar, not substring appearances."""
     # Time/pid/status fields follow the command; reject extra argv or shell wrappers.
-    match = re.fullmatch(r"\\{ path=(/[^ ;]+) ; argv\\[\\]=([^;]+) ; ignore_errors=no(?: ; [^{}\\r\\n]+)* \\}", command)
+    match = re.fullmatch(r"\\{ path=(/[^ ;]+) ; argv\\[\\]=(.+?) ; ignore_errors=no(?: ; [^{}\\r\\n]+)* \\}", command)
     if match is None:
         return False
     executable, arguments = match.groups()
