@@ -39,6 +39,28 @@ class EffectivePreflightTests(unittest.TestCase):
     def test_execstart_drift_refused(self):
         self.assertFalse(self.classify(fixture(ExecStart="{ path=/bin/false ; argv[]=/bin/false ; ignore_errors=no }"))["effective_execstart_expected"])
 
+    def test_python_interpreter_wrapper_passes(self):
+        interpreter = "/usr/bin/python3"
+        cmd = ("{ path=" + interpreter + " ; argv[]=" + interpreter + " " + str(MANAGER)
+               + " ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }")
+        self.assertTrue(self.classify(fixture(ExecStart=cmd))["effective_execstart_expected"])
+
+    def test_python_wrapper_extra_arguments_refused(self):
+        interpreter = "/usr/bin/python3"
+        cmd = ("{ path=" + interpreter + " ; argv[]=" + interpreter + " -I " + str(MANAGER)
+               + " ; ignore_errors=no }")
+        self.assertFalse(self.classify(fixture(ExecStart=cmd))["effective_execstart_expected"])
+
+    def test_python_wrapper_different_script_refused(self):
+        interpreter = "/usr/bin/python3"
+        cmd = ("{ path=" + interpreter + " ; argv[]=" + interpreter + " /tmp/untrusted.py"
+               + " ; ignore_errors=no }")
+        self.assertFalse(self.classify(fixture(ExecStart=cmd))["effective_execstart_expected"])
+
+    def test_shell_wrapper_refused(self):
+        cmd = "{ path=/bin/sh ; argv[]=/bin/sh " + str(MANAGER) + " ; ignore_errors=no }"
+        self.assertFalse(self.classify(fixture(ExecStart=cmd))["effective_execstart_expected"])
+
     def test_extra_hook_refused(self):
         self.assertFalse(self.classify(fixture(ExecStartPre="{ path=/bin/true ; argv[]=/bin/true }"))["no_extra_exec_hooks"])
 
