@@ -12,7 +12,7 @@ The existing Activity Manager already serves three pages: `/` (Scout & review), 
 
 ## CI verification
 
-GitHub Actions runs **119 offline tests**, including actual loopback HTTP page rendering, the integrated UI candidate builder, and the existing source-rollback, inert service-graph, static systemd parser and process-lifecycle simulations. New tests verify route allowlisting, HTML escaping, exact form and hidden token preservation, the unchanged AST of *every* non-GET request-handler method, and the generated candidate's three actual GET handler paths under synthetic HOME.
+GitHub Actions runs **128 offline tests**, including actual loopback HTTP page rendering, the integrated UI candidate builder, and the existing source-rollback, inert service-graph, static systemd parser and process-lifecycle simulations. New tests verify route allowlisting, HTML escaping, exact form and hidden token preservation, the unchanged AST of *every* non-GET request-handler method, and the generated candidate's three actual GET handler paths under synthetic HOME.
 
 ## Development-only acceptance
 
@@ -21,7 +21,7 @@ From the v0.7.1 feature checkout, running `python3 scripts/build_v071_manager_ca
 ## Next integration gates
 
 1. **Completed in CI:** Generated candidate ran under a fresh synthetic HOME and SQLite database using an ephemeral `127.0.0.1` HTTP listener. All three actual GET pages and `/healthz` responded 200, existing Content-Security-Policy remained intact, and requests with an unexpected Host were rejected 403. The test made no POST or external API calls.
-2. Verify the actual mobile/browser layout and form usability; correct CSS behavior without changing business logic or introducing JavaScript into authenticated forms.
-3. Build a verified staged release package with explicit original-source compatibility and rollback, then request the operator's permission for a controlled service update. The existing WSL startup and live database must remain intact.
+2. Responsive CSS refinement is implemented: mobile disclosure fix, keyboard skip-link, touch targets, and narrow-screen form sizing. Browser pixel/visual acceptance is still pending.
+3. A checksummed, two-file review package and isolated atomic code-switch/rollback rehearsal are complete. A production installer and live-host permission remain separate, pending gates. See [UI update rehearsal](V071-UI-UPDATE-REHEARSAL.md).
 
 No live service reload, restart, Windows Task Scheduler change, Moltbook request or database migration occurred during this phase.
