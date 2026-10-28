@@ -67,6 +67,24 @@ def prints_credential(node: ast.Call) -> bool:
     )
 
 
+def stdout_expression_shape(node: ast.Call) -> str:
+    """Report syntax shape, never call-argument text or credential values."""
+    if all(isinstance(arg, ast.Constant) for arg in node.args):
+        return "static literal arguments only"
+    for arg in node.args:
+        for child in ast.walk(arg):
+            if isinstance(child, ast.Name) and SENSITIVE.search(child.id):
+                return "contains sensitive-named value reference"
+            if (isinstance(child, ast.Attribute) and SENSITIVE.search(child.attr)):
+                return "contains sensitive-named attribute reference"
+            if (isinstance(child, ast.Subscript) and
+                isinstance(child.slice, ast.Constant) and
+                isinstance(child.slice.value, str) and
+                SENSITIVE.search(child.slice.value)):
+                return "contains sensitive-key lookup"
+    return "contains runtime expression"
+
+
 def review_python(name: str, source: str) -> tuple[list[dict], set[str]]:
     tree = ast.parse(source, filename=name)
     signals: list[dict] = []
@@ -88,6 +106,10 @@ def review_python(name: str, source: str) -> tuple[list[dict], set[str]]:
         elif isinstance(node, ast.Call):
             if prints_credential(node):
                 add_signal(signals, name, node.lineno, "possible credential-related stdout")
+                for finding in signals:
+                    if (finding["file"] == name and finding["line"] == node.lineno
+                            and finding["category"] == "possible credential-related stdout"):
+                        finding["syntax_shape"] = stdout_expression_shape(node)
             if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec"):
                 add_signal(signals, name, node.lineno, "dynamic Python execution")
             if any(k.arg == "shell" and isinstance(k.value, ast.Constant)
@@ -191,7 +213,9 @@ def main() -> int:
           ", ".join(result["possible_nonstdlib_imports"]) or "none detected")
     print("Additional static review findings:", len(result["findings"]))
     for item in result["findings"]:
-        print(f'{item["file"]}:{item["line"]}: {item["category"]}')
+        shape = item.get("syntax_shape")
+        suffix = f" ({shape})" if shape else ""
+        print(f'{item["file"]}:{item["line"]}: {item["category"]}{suffix}')
     print("Only relative paths, line numbers, categories and import names printed.")
     print("No source code or credential values printed; private archive unchanged.")
     print("Static review does NOT certify this source safe for publication.")
