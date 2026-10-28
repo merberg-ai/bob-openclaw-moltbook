@@ -33,7 +33,8 @@ def classify(raw: str, *, manager: Path) -> dict[str, bool]:
             raise ValueError("unexpected or repeated property")
         values[key] = value
     if set(values) != REQUIRED:
-        raise ValueError("missing effective systemd properties")
+        missing = sorted(REQUIRED - set(values))
+        raise ValueError("missing_properties:" + ",".join(missing))
     # Fail closed for any surprising execution envelope. ExecStart is
     # systemd's rendered string, so this check only asserts one expected
     # absolute executable token, never a fully parsed service grammar.
@@ -85,7 +86,17 @@ def main():
     try:
         results = classify(query(), manager=manager)
         results["recent_private_backup"] = check_backup(args.backup.expanduser())
-    except (OSError, ValueError, subprocess.TimeoutExpired):
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        # Only static reason codes/property NAMES. Never expose raw systemctl output.
+        if isinstance(exc, ValueError) and str(exc).startswith("missing_properties:"):
+            reason = str(exc)
+        elif isinstance(exc, subprocess.TimeoutExpired):
+            reason = "systemd_query_timeout"
+        elif isinstance(exc, OSError):
+            reason = "systemd_query_os_error"
+        else:
+            reason = "systemd_response_invalid"
+        print("preflight_refusal_reason:", reason)
         print("v0.7.1 EFFECTIVE SERVICE PREFLIGHT: REFUSED")
         return 1
     for key, passed in results.items():
