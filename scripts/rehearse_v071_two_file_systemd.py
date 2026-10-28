@@ -20,7 +20,6 @@ import tempfile
 import time
 
 import preview_v071_ui as preview
-from rehearse_v071_ui_update import active, switch, make_stage, validate_release
 import build_v071_manager_candidate as builder
 import rehearse_v071_user_systemd as units
 
@@ -137,7 +136,7 @@ def execute(scenario: str) -> dict:
             # Inject a health verdict failure AFTER verifying real HTTP, so the
             # rollback branch is exercised without damaging actual application.
             return {"outcome": "health_failure_injected", "real_candidate_http": True,
-                    "candidate_files_verified": True, "rollback": "pending"}
+                    "candidate_files_verified": True, "rollback": "needs_recovery_fixture"}
         finally:
             # Even if start reports failure, try to stop the unique unit.
             stop_unit(name)
@@ -158,6 +157,34 @@ def main() -> int:
         return 0
     try:
         result = execute(args.scenario)
+        if args.scenario == "failed-health":
+            recovery_name = units.UNIT_PREFIX + secrets.token_hex(6) + ".service"
+            units.absent(recovery_name)
+            port = units.choose_port()
+            started = False
+            try:
+                cmd = ["systemd-run", "--user", "--collect", "--quiet",
+                       "--unit=" + recovery_name, "--property=Type=exec",
+                       sys.executable, str(Path(units.__file__).resolve()),
+                       "--fixture-port", str(port)]
+                response = subprocess.run(cmd, capture_output=True, text=True,
+                                          timeout=12, check=False, env=units.command_env())
+                if response.returncode:
+                    raise ValueError("recovery unit start refused")
+                started = True
+                recovered = False
+                for _ in range(12):
+                    if units.probe(port):
+                        recovered = True
+                        break
+                    time.sleep(0.2)
+                if not recovered:
+                    raise ValueError("recovery health failed")
+                result["outcome"] = "synthetic_recovery_healthy"
+                result["rollback"] = "candidate_stopped_and_fixture_verified"
+            finally:
+                # A failed systemd-run may still have registered a unit.
+                stop_unit(recovery_name)
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
             sqlite3.Error) as exc:
         print("v0.7.1 TWO-FILE SYSTEMD: REFUSED", type(exc).__name__)
