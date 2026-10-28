@@ -37,9 +37,47 @@ a{color:var(--accent)}a:focus-visible,summary:focus-visible{outline:3px solid #f
  .bob-mobile summary{list-style:none;cursor:pointer;font-weight:800;padding:16px 20px;min-height:50px}
  .bob-mobile summary::-webkit-details-marker{display:none}
  .bob-mobile summary::after{content:"Menu";float:right;font-weight:600;color:var(--muted)}
- .bob-mobile[open] summary::after{content:"Close"}
+ .bob-mobile details[open] summary::after{content:"Close"}
  .bob-mobile nav{display:grid;gap:5px;padding:0 12px 14px}
  .bob-content{padding:20px 14px 58px}
+}
+/* App chrome only; legacy cards/forms are untouched. */
+.bob-sidebar{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto}
+.bob-brand{padding:0 10px 16px;border-bottom:1px solid var(--border)}
+.bob-sidebar nav{margin-top:20px}
+.bob-sidebar nav a,.bob-mobile nav a{min-height:44px;display:flex;align-items:center}
+.bob-sidebar nav a:focus-visible,.bob-mobile nav a:focus-visible{outline-offset:-3px}
+.bob-skip{position:absolute;top:-100px;left:12px;z-index:20;background:#f5cf79;color:#151a25;padding:12px 16px;border-radius:8px;font-weight:800}
+.bob-skip:focus{top:10px}
+.bob-content{line-height:1.55}
+.bob-content :is(h1,h2,h3){line-height:1.25}
+.bob-content :is(.card,.stat,.legacy,pre){min-width:0;max-width:100%}
+.bob-content pre{overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.bob-content :is(input,select,textarea){max-width:100%;min-width:0}
+.bob-content :is(button,input,select,textarea){font-size:16px}
+.bob-content button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.bob-content form{max-width:100%}
+.bob-content .actions{align-items:flex-start}
+.bob-content :is(.stats,.card,.stat){min-width:0}
+.bob-content a{overflow-wrap:anywhere}
+@media(max-width:1050px) and (min-width:761px){
+ .bob-layout{grid-template-columns:210px minmax(0,1fr)}
+ .bob-content{padding:24px 18px 56px}
+}
+@media(max-width:760px){
+ .bob-content{padding:18px 12px 48px}
+ .bob-mobile details[open]{padding-bottom:4px}
+ .bob-content .stats{gap:9px}
+ .bob-content .stat{min-width:min(140px,100%)}
+ .bob-content :is(input,textarea,select){max-width:100%}
+ .bob-content form{max-width:100%}
+ .bob-content .actions form{flex:1 1 150px}
+ .bob-content .actions button{width:100%}
+}
+@media(max-width:380px){
+ .bob-content{padding:14px 10px 36px}
+ .bob-mobile summary{padding:15px 12px}
+ .bob-content .stat{min-width:0}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>"""
@@ -67,13 +105,14 @@ def wrap(title: str, content: str, current_path: str) -> str:
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>' + escape(title) + ' | Bob Activity Manager</title>'
         + CSS + '</head><body>'
+        '<a class="bob-skip" href="#main-content">Skip to content</a>'
         '<div class="bob-layout">'
         '<aside class="bob-sidebar" aria-label="Primary navigation">'
         '<div class="bob-brand">💀 Bob<small>ACTIVITY MANAGER</small></div>'
         '<nav aria-label="Main">' + links + '</nav></aside>'
         '<div class="bob-mobile"><details><summary>💀 Bob · Activity Manager</summary>'
         '<nav aria-label="Mobile navigation">' + links + '</nav></details></div>'
-        '<main class="bob-content" id="main-content">'
+        '<main class="bob-content" id="main-content" tabindex="-1">'
         '<h1>' + escape(title) + '</h1>' + content
         + '</main></div></body></html>'
     )
@@ -105,13 +144,13 @@ def integrate_existing_html(html: str, current_path: str) -> str:
             or not html.startswith('<!doctype html>')):
         raise ValueError("Unexpected original Activity Manager HTML layout")
     sidebar = (
-        '<body><div class="bob-layout">'
+        '<body><a class="bob-skip" href="#main-content">Skip to content</a><div class="bob-layout">'
         '<aside class="bob-sidebar" aria-label="Primary navigation">'
         '<div class="bob-brand">💀 Bob<small>ACTIVITY MANAGER</small></div>'
         '<nav aria-label="Main">' + links + '</nav></aside>'
         '<div class="bob-mobile"><details><summary>💀 Bob · Activity Manager</summary>'
         '<nav aria-label="Mobile navigation">' + links + '</nav></details></div>'
-        '<main class="bob-content" id="main-content">'
+        '<main class="bob-content" id="main-content" tabindex="-1">'
     )
     # Leave the original title, exact forms and all user-facing content intact.
     return (html.replace(matches[0], '', 1)
