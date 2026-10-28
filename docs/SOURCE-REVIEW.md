@@ -10,7 +10,7 @@ The nine installed source files have been captured into a private SHA-verified a
 wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && git pull --ff-only && python3 scripts/review_staged_sources.py"
 ~~~
 
-Expected output includes source count, script languages, prior scanner findings, possible non-stdlib Python imports, and file/line flags for credential output, literal assignments, IP addresses, machine paths and dynamic execution.
+Expected output includes source count, script languages, prior scanner findings, possible non-stdlib Python imports, and file/line flags for credential output, literal assignments, IP addresses, machine paths and dynamic execution. Credential-related stdout findings also indicate whether the print arguments are static literals, runtime expressions or sensitive-named references. These are lexical hints only, not proof that values are safe to print.
 
 Example (illustrative only):
 
