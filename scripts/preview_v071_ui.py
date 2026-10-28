@@ -227,6 +227,13 @@ def smoke(server) -> None:
                 if ('DEMO PREVIEW ONLY' not in body or 'class="bob-layout"' not in body
                         or ('name="csrf"' not in body and route != "/activity")):
                     raise AssertionError("Preview markup missing")
+                expected_text = {
+                    "/": "Preview: an imaginary discussion",
+                    "/activity": "Synthetic reply, never retrieved from Moltbook.",
+                    "/originals": "Preview: Bob&#x27;s imaginary original post",
+                }[route]
+                if expected_text not in body:
+                    raise AssertionError("Synthetic preview page not populated")
             conn.close()
         conn = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
         conn.request("POST", "/originals/request/intro", body="confirmation=test")
