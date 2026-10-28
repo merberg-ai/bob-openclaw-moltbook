@@ -45,6 +45,7 @@ on:
       - 'webui/**'
       - 'tests/test_navigation_shell.py'
       - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
       - 'scripts/build_v071_manager_candidate.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
@@ -91,6 +92,7 @@ on:
       - 'webui/**'
       - 'tests/test_navigation_shell.py'
       - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
       - 'scripts/build_v071_manager_candidate.py'
       - '.github/workflows/inventory-tests.yml'
 
