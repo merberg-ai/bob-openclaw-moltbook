@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -21,6 +22,22 @@ KEYS = ("LoadState", "ActiveState", "SubState", "FragmentPath", "DropInPaths",
 REQUIRED = set(KEYS)
 # systemctl show can omit unset optional properties on some systemd versions.
 OPTIONAL_EMPTY = {"EnvironmentFiles", "ExecStartPre", "ExecStartPost", "ExecCondition"}
+
+
+PYTHON_EXECUTABLES = ("/usr/bin/python3", "/usr/bin/python", "/usr/local/bin/python3")
+
+
+def expected_launch(command: str, manager: Path) -> bool:
+    """Match the actual systemd command grammar, not substring appearances."""
+    # Time/pid/status fields follow the command; reject extra argv or shell wrappers.
+    match = re.fullmatch(r"\\{ path=(/[^ ;]+) ; argv\\[\\]=([^;]+) ; ignore_errors=no(?: ; [^{}\\r\\n]+)* \\}", command)
+    if match is None:
+        return False
+    executable, arguments = match.groups()
+    argv = arguments.strip().split(" ")
+    direct = executable == str(manager) and argv == [str(manager)]
+    python = executable in PYTHON_EXECUTABLES and argv == [executable, str(manager)]
+    return direct or python
 
 
 def execstart_checks(command: str, manager: Path) -> dict[str, bool]:
@@ -60,8 +77,7 @@ def classify(raw: str, *, manager: Path) -> dict[str, bool]:
     # systemd's rendered string, so this check only asserts one expected
     # absolute executable token, never a fully parsed service grammar.
     checks = execstart_checks(values["ExecStart"], manager)
-    executable_match = all(checks[k] for k in ("single_exec_record", "expected_path_token",
-                                                  "expected_argv_token", "ignore_errors_no_token"))
+    executable_match = expected_launch(values["ExecStart"], manager)
     return {
         "loaded_running": (values["LoadState"], values["ActiveState"], values["SubState"])
                            == ("loaded", "active", "running"),
