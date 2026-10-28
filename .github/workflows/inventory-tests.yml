@@ -17,6 +17,8 @@ on:
       - 'tests/test_review_staged_sources.py'
       - 'tests/test_prepare_source_candidate.py'
       - 'tests/test_import_verified_sources.py'
+      - 'tests/test_live_source_regression.py'
+      - 'src/**'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -34,6 +36,8 @@ on:
       - 'tests/test_review_staged_sources.py'
       - 'tests/test_prepare_source_candidate.py'
       - 'tests/test_import_verified_sources.py'
+      - 'tests/test_live_source_regression.py'
+      - 'src/**'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
