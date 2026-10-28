@@ -47,6 +47,40 @@ class CandidateZipAuditTests(unittest.TestCase):
                 z.writestr(name,data)
         path.chmod(0o600)
 
+    def test_dropin_archive_current_and_legacy_placeholder_compatible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            units = root/"units"
+            units.mkdir()
+            dropdir = units/"bob-activity-manager.service.d"
+            dropdir.mkdir()
+            source = dropdir/"override.conf"
+            data = b"[Service]\nEnvironment=BOB_TEST=synthetic-only\n"
+            source.write_bytes(data)
+            record = {"scope":"user","kind":"dropin",
+                      "unit":"bob-activity-manager.service",
+                      "filename":"override.conf",
+                      "sha256":hashlib.sha256(data).hexdigest()}
+            topology = {"report_version":1,
+                        "purpose":"private read-only Bob service topology; not a deployable unit template",
+                        "unit_files":[record]}
+            report = root/"inventory.json"
+            report.write_text(json.dumps(topology))
+            report.chmod(0o600)
+            manifest,candidates = extractor.prepare(
+                topology,{"user":[units],"system":[]})
+            archive = extractor.private_output(root/"private",manifest,candidates)
+            self.assertEqual(audit.audit(archive,report),1)
+            with zipfile.ZipFile(archive) as z:
+                name = next(x for x in z.namelist() if x.endswith(".template.txt"))
+                self.assertNotIn(b"ExecStart=",z.read(name))
+            def legacy_v1(entries):
+                entries[name] = entries[name].replace(
+                    b"# WITHHELD KNOWN DIRECTIVES",
+                    b"ExecStart=@REVIEW_REQUIRED_NOT_DEPLOYABLE@\n\n# WITHHELD KNOWN DIRECTIVES")
+            self.rewrite(archive,legacy_v1)
+            self.assertEqual(audit.audit(archive,report),1)
+
     def test_normal_zip_passes_with_original_topology_hash(self):
         with tempfile.TemporaryDirectory() as tmp:
             archive,report = self.build(Path(tmp))
