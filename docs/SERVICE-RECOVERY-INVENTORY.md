@@ -37,6 +37,24 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows startup script transfer failed' }
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
 ~~~
 
-The Windows collector reads scheduled tasks, Run registry entries, and startup-folder filenames. It selects entries with Bob/OpenClaw/WSL-distro signatures and saves only category, a safe task label (or hidden placeholder), state, action type and trigger type. It **never records action arguments, registry values, full executable paths, credentials or Windows user identity**. The output is a private JSON under `%LOCALAPPDATA%\BobBaseline` and the console prints only counts and query warnings. It cannot prove startup/recovery works, only show obvious launch mechanisms.
+The Windows collector reads scheduled tasks, Run registry entries, and startup-folder filenames. It selects entries with Bob/OpenClaw/WSL-distro signatures. For matching `.lnk` shortcuts, it now inspects target and arguments **in memory only** to classify the launcher (for example WSL or PowerShell) and whether `OpenClawLab` was mentioned. Those raw strings are never saved or printed. Script-wrapper contents are not inspected. It saves only category, a safe task label (or hidden placeholder), state, action type and trigger type. It **never records action arguments, registry values, full executable paths, credentials or Windows user identity**. The output is a private JSON under `%LOCALAPPDATA%\BobBaseline` and the console prints only counts and query warnings. It cannot prove startup/recovery works, only show obvious launch mechanisms.
 
 These checks use no external APIs and require no GitHub authentication in WSL. They cannot trigger Moltbook publishing. **Do not upload the private JSON reports to GitHub.** The console summaries can be shared for planning the next safe service-template collection and reboot acceptance phase.
+
+## Follow-up after first Windows scan (2026-10-28)
+
+Initial host scan returned zero matching scheduled tasks, zero Run entries, and two matching Startup-folder items, with no query errors. That points toward possible **Windows interactive-logon** startup, not necessarily machine boot. The first scan did **not** inspect shortcut targets; run the updated collector and compare its two safe launch classifications with the WSL systemd summary before deciding whether Bob can recover from a cold reboot or from WSL shutdown.
+
+To re-run the improved checks without changing the live installation, start from the **already reconciled** WSL feature checkout and use:
+
+~~~powershell
+wsl -d OpenClawLab -u openclaw -- bash -lc "cd ~/bob-v070-inventory && GIT_TERMINAL_PROMPT=0 git pull --ff-only && python3 scripts/inventory_service_topology.py"
+if ($LASTEXITCODE -ne 0) { throw 'Linux service inventory failed; Windows phase not started.' }
+$script = Join-Path $env:TEMP 'bob-windows-startup-review.ps1'
+wsl -d OpenClawLab -u openclaw -- bash -lc "cat ~/bob-v070-inventory/scripts/inventory_windows_startup.ps1" | Set-Content -Encoding UTF8 -Path $script
+if ($LASTEXITCODE -ne 0) { throw 'Startup script transfer failed.' }
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
+if ($LASTEXITCODE -ne 0) { throw 'Windows startup audit failed.' }
+~~~
+
+The console contains only unit counts/duplicate scope names and classified Startup-folder entries. Share that console output for the next architectural decision. Never upload the private reports, or raw shortcut targets/arguments, to a public repository.
