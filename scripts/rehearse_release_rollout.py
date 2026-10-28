@@ -31,6 +31,17 @@ def source_bytes(source_root: Path) -> dict[str, bytes]:
         if path.is_symlink() or not path.is_dir():
             raise ValueError("Missing or symlinked source directory")
         for file in path.iterdir():
+            if file.name == "__pycache__":
+                # Offline regression tests import the reviewed modules and create
+                # bytecode beside the *unchanged* Python source files.
+                # Never include caches in releases; reject symlinks or other content.
+                if file.is_symlink() or not file.is_dir():
+                    raise ValueError("Unexpected Python cache type")
+                for cached in file.iterdir():
+                    if (cached.is_symlink() or not cached.is_file()
+                            or cached.suffix != ".pyc"):
+                        raise ValueError("Unexpected Python cache entry")
+                continue
             if not file.is_file() or file.is_symlink():
                 raise ValueError("Unexpected source entry")
             found.add(directory + "/" + file.name)
@@ -201,8 +212,16 @@ def main() -> int:
         results = prove_isolated_rehearsal(root / "src")
     except (OSError, ValueError, AssertionError, RuntimeError, SyntaxError,
             sqlite3.Error, json.JSONDecodeError) as exc:
+        message = str(exc)
+        safe_reasons = {
+            "Unexpected source entry", "Unexpected Python cache type",
+            "Unexpected Python cache entry",
+            "Source membership does not match reviewed baseline",
+            "Missing or symlinked source directory",
+        }
+        category = message if message in safe_reasons else "check failed (details withheld)"
         print("ISOLATED RELEASE REHEARSAL FAILED:", type(exc).__name__,
-              "(production untouched)", file=sys.stderr)
+              category, "(production untouched)", file=sys.stderr)
         return 1
     print("ISOLATED RELEASE REHEARSAL: PASS")
     for key, value in results.items():
