@@ -239,7 +239,7 @@ def run_fixture(root: Path, role: str) -> str:
         [sys.executable, str(actor), "--stage-root", str(root),
          "--role", role, "--once"],
         capture_output=True, text=True, timeout=8, check=False,
-        env={"PATH":"/usr/bin:/bin", "HOME":str(root), "PYTHONDONTWRITEBYTECODE":"1"},
+        env={"PATH":"/usr/bin:/bin", "HOME":str(root / "private"), "PYTHONDONTWRITEBYTECODE":"1"},
     )
     if process.returncode:
         raise RuntimeError("Inert stage actor failed")
