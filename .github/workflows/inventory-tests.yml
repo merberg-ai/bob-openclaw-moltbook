@@ -71,6 +71,8 @@ jobs:
           python-version: '3.11'
       - name: Run offline synthetic baseline and backup tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run complete isolated release rehearsal after tests
+        run: python3 scripts/rehearse_release_rollout.py
 
   windows-startup-script-parse:
     runs-on: windows-latest
