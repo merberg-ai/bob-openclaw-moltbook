@@ -44,6 +44,8 @@ on:
       - 'src/**'
       - 'webui/**'
       - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'scripts/build_v071_manager_candidate.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -88,6 +90,8 @@ on:
       - 'src/**'
       - 'webui/**'
       - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'scripts/build_v071_manager_candidate.py'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
@@ -103,6 +107,8 @@ jobs:
           python-version: '3.11'
       - name: Run offline synthetic baseline and backup tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Build integrated v0.7.1 manager candidate from pinned baseline
+        run: python3 scripts/build_v071_manager_candidate.py
       - name: Run complete isolated release rehearsal after tests
         run: python3 scripts/rehearse_release_rollout.py
       - name: Run inert service-graph acceptance in disposable sandbox
