@@ -15,13 +15,13 @@ The audit reads the newest locally staged Bob archive. It verifies archive membe
 ~~~text
 Source files checked: 9
 Potential secret indicators: 2
-bin/bobctl:123: credential-like literal assignment
-lib/bob/bob_moltbook_api.py:45: credential-shaped token or private-key marker
+bin/bobctl:123: credential-like literal assignment (direct Python string literal)
+lib/bob/bob_moltbook_api.py:45: credential-shaped token or private-key marker (embedded in Python string text)
 No matched strings, source text, or credentials were printed.
 DO NOT publish the raw source archive. Manual review still required.
 ~~~
 
-Those locations are **examples**, not actual findings. The tool does not print the flagged values, source lines, system configuration, credentials, or absolute host paths. It does not change the live host or contact any external service.
+Those locations are **examples**, not actual findings. The tool also labels each finding by basic Python syntax context: a **direct string literal**, **string embedded in text**, **comment**, or **other source expression**. This is only a lexical hint and does not establish that any value is safe or unsafe. It does not print the flagged values, source lines, system configuration, credentials, or absolute host paths. It does not change the live host or contact any external service.
 
 The location-only output is appropriate to paste in the project chat for review. The archive itself **must remain private** until the flagged lines and surrounding code have been reviewed by the operator, and any secrets have been rotated and removed from the *sanitized* public source. A match can be harmless test data or a false positive. A clean audit is not proof that code contains no sensitive information.
 
