@@ -31,6 +31,39 @@ function Get-VisibleLabel([string]$name) {
     return 'matched-entry-name-withheld'
 }
 
+function Get-ShortcutLaunchShape([System.IO.FileInfo]$file) {
+    # Inspect a .lnk target and arguments in memory only. NEVER record them.
+    $shape = [ordered]@{
+        target_category = 'not-inspected'
+        target_inspected = $false
+        mentions_wsl = $false
+        mentions_openclawlab = $false
+    }
+    if ($file.Extension -ne '.lnk') {
+        return [pscustomobject]$shape
+    }
+    $shell = $null
+    $shortcut = $null
+    try {
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($file.FullName)
+        $target = [string]$shortcut.TargetPath
+        $args = [string]$shortcut.Arguments
+        $shape.target_category = Get-CommandCategory $target
+        $shape.target_inspected = $true
+        $shape.mentions_wsl = (($shape.target_category -eq 'wsl') -or
+            ($args -match '(?i)(?:^|[^a-z0-9_-])wsl(?:\.exe)?(?:$|[^a-z0-9_-])'))
+        $shape.mentions_openclawlab = ($args -match '(?i)(?:^|[^a-z0-9_-])OpenClawLab(?:$|[^a-z0-9_-])')
+    } catch {
+        $shape.target_category = 'inspection-unavailable'
+        $warnings.Add('shortcut-target-inspection-unavailable')
+    } finally {
+        if ($null -ne $shortcut) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shortcut) }
+        if ($null -ne $shell) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shell) }
+    }
+    return [pscustomobject]$shape
+}
+
 function Get-TriggerCategory([object]$trigger) {
     $className = [string]$trigger.CimClass.CimClassName
     if ($className -match 'Logon') { return 'logon' }
@@ -96,6 +129,7 @@ foreach ($folder in $startFolders) {
         if (-not $folder.path -or -not (Test-Path -LiteralPath $folder.path)) { continue }
         foreach ($file in @(Get-ChildItem -LiteralPath $folder.path -File -ErrorAction Stop)) {
             if ($file.Name -notmatch $markers) { continue }
+            $shape = Get-ShortcutLaunchShape $file
             $matched.Add([pscustomobject]@{
                 source = 'startup-folder'
                 scope = $folder.scope
@@ -103,6 +137,11 @@ foreach ($folder in $startFolders) {
                 extension = if ($file.Extension -in @('.lnk', '.exe', '.cmd', '.bat', '.ps1')) {
                     $file.Extension
                 } else { 'other' }
+                launch_category = $shape.target_category
+                shortcut_target_inspected = $shape.target_inspected
+                shortcut_mentions_wsl = $shape.mentions_wsl
+                shortcut_mentions_openclawlab = $shape.mentions_openclawlab
+                trigger_category = 'interactive-logon'
             })
         }
     } catch {
@@ -128,6 +167,7 @@ $report = [ordered]@{
     query_warnings = @($warnings.ToArray() | Sort-Object -Unique)
     limitations = @(
         'Only relevant-looking scheduled tasks, Run keys and startup-folder filenames inspected',
+        'For matching .lnk files only, shortcut targets and arguments are inspected in memory and reduced to safe categories/booleans',
         'Action argument values, full paths, environment and registry values were NOT captured',
         'Startup entries using unrelated names or indirect wrappers can be missed',
         'Absence of a match is NOT proof of no reboot recovery',
@@ -141,5 +181,10 @@ Write-Output ("Relevant scheduled tasks: " + $report.scheduled_task_matches)
 Write-Output ("Relevant Run entries: " + $report.run_registry_matches)
 Write-Output ("Relevant startup-folder items: " + $report.startup_folder_matches)
 Write-Output ("Read-only query warnings: " + $report.query_warnings.Count)
-Write-Output 'No command arguments, credentials or registry values printed or saved.'
+foreach ($entry in @($matched | Where-Object source -eq 'startup-folder')) {
+    Write-Output ("Startup item: {0}; scope={1}; extension={2}; target={3}; wsl={4}; distro={5}" -f
+        $entry.label, $entry.scope, $entry.extension, $entry.launch_category,
+        $entry.shortcut_mentions_wsl, $entry.shortcut_mentions_openclawlab)
+}
+Write-Output 'No shortcut targets, arguments, credentials, executable paths or registry values printed or saved.'
 Write-Output 'Windows tasks, startup settings and WSL were NOT changed.'
