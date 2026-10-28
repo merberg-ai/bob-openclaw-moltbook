@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'scripts/inventory_live_host.py'
+      - 'scripts/inventory_service_topology.py'
+      - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
       - 'scripts/audit_staged_sources.py'
@@ -11,6 +13,8 @@ on:
       - 'scripts/prepare_source_candidate.py'
       - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
+      - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_reconcile_dev_checkout.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
@@ -23,6 +27,8 @@ on:
   pull_request:
     paths:
       - 'scripts/inventory_live_host.py'
+      - 'scripts/inventory_service_topology.py'
+      - 'scripts/reconcile_dev_checkout.py'
       - 'scripts/backup_live_sqlite.py'
       - 'scripts/stage_live_sources.py'
       - 'scripts/audit_staged_sources.py'
@@ -30,6 +36,8 @@ on:
       - 'scripts/prepare_source_candidate.py'
       - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
+      - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_reconcile_dev_checkout.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
