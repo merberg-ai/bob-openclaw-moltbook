@@ -9,12 +9,14 @@ on:
       - 'scripts/audit_staged_sources.py'
       - 'scripts/review_staged_sources.py'
       - 'scripts/prepare_source_candidate.py'
+      - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
       - 'tests/test_review_staged_sources.py'
       - 'tests/test_prepare_source_candidate.py'
+      - 'tests/test_import_verified_sources.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -24,12 +26,14 @@ on:
       - 'scripts/audit_staged_sources.py'
       - 'scripts/review_staged_sources.py'
       - 'scripts/prepare_source_candidate.py'
+      - 'scripts/import_verified_sources.py'
       - 'tests/test_inventory_live_host.py'
       - 'tests/test_backup_live_sqlite.py'
       - 'tests/test_stage_live_sources.py'
       - 'tests/test_audit_staged_sources.py'
       - 'tests/test_review_staged_sources.py'
       - 'tests/test_prepare_source_candidate.py'
+      - 'tests/test_import_verified_sources.py'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
