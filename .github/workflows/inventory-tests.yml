@@ -11,7 +11,9 @@ on:
   pull_request:
     paths:
       - 'scripts/inventory_live_host.py'
+      - 'scripts/backup_live_sqlite.py'
       - 'tests/test_inventory_live_host.py'
+      - 'tests/test_backup_live_sqlite.py'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
