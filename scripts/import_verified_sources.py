@@ -104,6 +104,8 @@ def import_to_checkout(root: Path, sources: dict[str, bytes]) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
             target.chmod(0o755 if filename.startswith("bin/") else 0o644)
+        if (root / "src").exists() or (root / "src").is_symlink():
+            raise FileExistsError("src/ already exists; refusing to overwrite")
         os.rename(base, root / "src")
 
 
