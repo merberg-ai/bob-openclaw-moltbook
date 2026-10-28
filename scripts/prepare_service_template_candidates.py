@@ -48,7 +48,7 @@ SAFE_TIMER_KEYS = {
 DURATION_KEYS = SAFE_TIMER_KEYS - {"OnCalendar"}
 # No slash, backslash, quote, dollar sign, control character, equals or
 # shell metacharacter can survive into a timing field.
-CALENDAR_RE = re.compile(r"^[A-Za-z0-9*.,: +~!-]{1,96}$")
+CALENDAR_RE = re.compile(r"^(?=.{1,96}$)[A-Za-z0-9*.,: +~!-]*(?:[0-9]/[0-9]+[A-Za-z0-9*.,: +~!-]*)*$")
 DURATION_RE = re.compile(r"^[0-9]{1,7}(?:us|ms|s|sec|seconds?|min|minutes?|h|hours?|d|days?|w|weeks?)?$")
 SENSITIVE_KEYS = {
     "ExecStart", "ExecStartPre", "ExecStartPost", "ExecStop", "ExecReload",
