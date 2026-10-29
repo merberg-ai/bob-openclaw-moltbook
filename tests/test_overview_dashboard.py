@@ -131,6 +131,13 @@ class OverviewTests(unittest.TestCase):
             self.assertIn('data-tone="quiet">unknown',html)
             self.assertIn("do not prove",html)
 
+    def test_zero_auto_budget_is_disabled_not_unknown(self):
+        ring=overview._cap("auto","Automatic",0,0,"Auto disabled","#6ee4d3")
+        self.assertIn("Disabled",ring)
+        self.assertIn("0 percent consumed",ring)
+        self.assertIn("max === 0 ? 'Disabled'",overview.javascript())
+        self.assertIn("txt('next-comment','Unknown')",overview.javascript())
+
     def test_navigation_and_sensitive_post_routes_are_unchanged(self):
         baseline, _=previous.build()
         changed,nav=candidate.build()
