@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime,timezone,timedelta
 from bob_publish_common import connect,now,event,setting,set_setting
 from bob_originals import initialize,validate,add_draft,IDENT
+from bob_job_tracking import checkpoint
 from bob_moltbook_api import api,api_key,parse_time
 
 HOME=Path.home()
@@ -45,16 +46,21 @@ def generate(db):
     row=db.execute("SELECT id,kind FROM original_requests WHERE state='queued' ORDER BY created_at LIMIT 1").fetchone()
     if not row:return 'no draft requests'
     rid,kind=row
+    checkpoint('original',rid,'queued')
     # Dependency problems are temporary: keep the queued job intact until ready.
     try:
         with socket.create_connection(('127.0.0.1',18789),timeout=2): pass
         env_check=os.environ.copy()
         env_check['DOCKER_CONFIG']=str(HOME/'.docker-openclaw')
         check=subprocess.run(['docker','info','--format','{{.ServerVersion}}'],capture_output=True,timeout=7,env=env_check)
-        if check.returncode != 0:return 'draft queued: Docker engine not ready'
+        if check.returncode != 0:
+            checkpoint('original',rid,'waiting')
+            return 'draft queued: Docker engine not ready'
     except (OSError,subprocess.TimeoutExpired):
+        checkpoint('original',rid,'waiting')
         return 'draft queued: Gateway or Docker is not ready'
     db.execute("UPDATE original_requests SET state='running' WHERE id=? AND state='queued'",(rid,));db.commit()
+    checkpoint('original',rid,'generating')
     try:
         env=os.environ.copy()
         env['PATH']=f'{HOME}/.openclaw/bin:{HOME}/.openclaw/tools/node/bin:'+env.get('PATH','')
@@ -65,14 +71,18 @@ def generate(db):
                 '--message-file',str(f),'--timeout','240'],capture_output=True,text=True,
                 env=env,timeout=300)
         if p.returncode:raise RuntimeError('OpenClaw agent failed; check Gateway and sandbox readiness')
+        checkpoint('original',rid,'validating')
         title,body=parse_draft(p.stdout)
         validate('introductions' if kind=='intro' else 'general',title,body)
         post_id=add_draft(db,rid,title,body)
-        db.commit();return f'Bob created original draft {post_id}'
+        db.commit()
+        checkpoint('original',rid,'completed')
+        return f'Bob created original draft {post_id}'
     except Exception as ex:
         db.execute("UPDATE original_requests SET state='failed',error=?,completed_at=? WHERE id=?",(str(ex)[:180],now(),rid))
         event(db,'original_draft_failed',rid+' '+type(ex).__name__)
         db.commit()
+        checkpoint('original',rid,'failed')
         return f'draft generation failed: {type(ex).__name__}'
 
 def publish(db):
