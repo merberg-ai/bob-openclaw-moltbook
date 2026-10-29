@@ -226,14 +226,9 @@ class LocalAITests(unittest.TestCase):
         self.assertEqual(result,proposals(idea()))
 
     def test_worker_is_bounded_and_updates_visible_status_safely(self):
-        # Use an on-disk synthetic DB and fresh connection per worker phase.
-        self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        image=sqlite3.connect(self.dbpath)
-        image.execute("CREATE TABLE publish_events(id INTEGER PRIMARY KEY AUTOINCREMENT,at TEXT,kind TEXT,details TEXT)")
-        image.commit()
-        image.close()
-        # Worker can operate on the in-memory fixture through a mocked context
-        # (the worker independently uses a new connection in real deployment).
+        # Emulate the publisher-style transaction context for a worker on
+        # synthetic SQLite; no WAL checkpoint on an open in-memory transaction.
+        # The production connection factory opens a fresh SQLite connection.
         jobid=ai.start(self.db,RID)
         @contextmanager
         def connect():
