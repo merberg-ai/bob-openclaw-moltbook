@@ -85,12 +85,24 @@ def build():
     source = source.replace(anchor, '''        elif self.path == "/api/system/status":
             self._send(200, json.dumps(status_snapshot()), "application/json")
         elif self.path == "/system/status":
-            items = status_snapshot()["services"]
-            content = '<section class="card"><h2>Live service status</h2><p>Read-only snapshot. Refresh to update.</p><ul>'
-            for item in items:
+            report = status_snapshot()
+            content = '<section class="card"><h2>Live service status</h2><p>Updates every 10 seconds. Service active does not guarantee readiness.</p><ul>'
+            for item in report["services"]:
                 content += "<li><strong>" + esc(item["name"]) + "</strong>: " + esc(item["state"]) + "</li>"
-            content += "</ul><p>A running service is not proof of job readiness or completion.</p></section>"
-            self._send(200, wrap("System status", content, "/system/status"), "text/html; charset=utf-8")
+            content += "</ul></section><section class=\"card\"><h2>Recent recorded jobs</h2>"
+            if not report["queue"]["available"]:
+                content += "<p>Queue records unavailable. No state inferred.</p>"
+            elif not report["queue"]["jobs"]:
+                content += "<p>No recent queue records.</p>"
+            else:
+                content += "<ul>"
+                for job in report["queue"]["jobs"]:
+                    content += "<li>" + esc(job["kind"]) + ": <strong>" + esc(job["state"]) + "</strong> · " + esc(job["created"]) + "</li>"
+                content += "</ul>"
+            content += "</section>"
+            page = wrap("System status", content, "/system/status")
+            page = page.replace("</head>", '<meta http-equiv="refresh" content="10"></head>', 1)
+            self._send(200, page, "text/html; charset=utf-8")
 ''' + anchor, 1)
     nav = navigation.decode("utf-8")
     anchor = '    ("/originals", "Original posts", "Original posts"),'
