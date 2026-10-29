@@ -7,9 +7,9 @@
 - Scout: queued, fetching discussions, validating selected feed, generating with OpenClaw, validating model reply, completed or failed.
 - Original draft: queued, waiting for Gateway/Docker, generating with OpenClaw, validating draft, completed or failed. The SQLite `original_requests` table remains authoritative for its request state, completion timestamp, and error existence.
 - Comment publisher: validating exact draft and approval, waiting for posting limits or pause, checking public target, sending, awaiting manual verification, verifying, completed, uncertain. The existing `publish_jobs` SQLite state is authoritative; failures that may have reached Moltbook **remain non-retriable automatically**.
-- Original post publishing: existing `original_posts` SQLite states remain authoritative. This release does not change its posting or verification decisions. Worker checkpoints currently cover *original draft generation*, not detailed original-post HTTP substeps.
+- Original post publishing: separate checkpoints for approval/integrity validation, posting limits, sending, awaiting human verification, verification response and confirmed/uncertain results. Existing `original_posts` SQLite states remain authoritative, and posting/verification decisions are unchanged.
 
-Each worker writes at most its current checkpoint to an owner-private `~/.config/moltbook/job-progress/<worker>.json` with fixed, non-sensitive stage labels and an ISO timestamp. Malformed/unsafe stage updates are discarded without disrupting worker behavior. Stale active stages become `unknown` rather than fake indefinitely active spinners.
+Each operation stream writes at most its current checkpoint (scout, original generation, original publication, comment publisher) to an owner-private `~/.config/moltbook/job-progress/<worker>.json` with fixed, non-sensitive stage labels and an ISO timestamp. Malformed/unsafe stage updates are discarded without disrupting worker behavior. Stale active stages become `unknown` rather than fake indefinitely active spinners.
 
 System Status shows these stage cards and canonical latest 30 queue records, including creation and update timestamps, a Boolean error-recorded flag (never raw errors), and **no automatic retry**. The in-place 15-second refresh does not write to the queue. No percentage progress is claimed.
 
