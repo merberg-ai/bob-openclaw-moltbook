@@ -259,7 +259,7 @@ def _editor(csrf, item=None):
               'OpenClaw prompts or generate public activity.</p>',
               '<form method="post" action="/mind/memory">',
               f'<input type="hidden" name="csrf" value="{e(csrf)}">',
-              f'<input type="hidden" name="operation" value="{"edit" if editing else "create"}">']
+              '<input type="hidden" name="operation" value="create">' if not editing else '']
     if editing:
         output += [f'<input type="hidden" name="id" value="{e(item["id"])}">',
                    f'<input type="hidden" name="expected_sha" value="{e(item["sha256"])}">']
@@ -272,15 +272,14 @@ def _editor(csrf, item=None):
                _field("content", data["content"], "Memory / note", multiline=True, required=True, maxlength=2400),
                _field("source_url", data["source_url"], "Public HTTPS source URL (optional)", maxlength=1000)]
     if editing:
+        output.append(_select("operation", ("edit", "correct"), "edit"))
         output.append(_field("reason", "", "Why did this change? (required)", required=True, maxlength=240))
         output.append('<p class="bmm-muted">Use Correct below when fixing inaccurate memory, '
                       'or Save edit for ordinary refinements. Both keep revision history.</p>')
     output.append('<div class="bmm-actions"><button type="submit">' +
                   ("Save edit" if editing else "Add private memory") + '</button>')
     if editing:
-        # Separate explicit correction action overrides the ordinary edit submit button.
-        output += ['<button type="submit" name="operation" value="correct">Correct memory</button>',
-                   '<a class="bmm-link secondary" href="/mind/memory">Cancel edit</a>']
+        output.append('<a class="bmm-link secondary" href="/mind/memory">Cancel edit</a>')
     output.append('</div></form></section>')
     return "".join(output)
 
@@ -354,7 +353,7 @@ def page(db, params, csrf, wrap):
     parts = [CSS, '<div class="bmm"><p class="bmm-muted">Private memory ledger · '
              'Every entry is operator-entered and unverified. Archived and excluded entries '
              'will not be eligible for later agent recall. No recall integration exists yet.</p>',
-             _editor(csrf, selected),
+             _editor(csrf, selected if selected is None or selected["state"] == "active" else None),
              '<section class="bmm-panel"><h2>Search memories</h2>',
              '<form method="get" action="/mind/memory" class="bmm-filter">',
              f'<label>Search<input type="search" name="q" maxlength="64" value="{e(search)}" '
@@ -402,6 +401,10 @@ def page(db, params, csrf, wrap):
         parts.append(f'<a href="{e(href(number+1))}">Next</a>')
     parts.append('</nav></section>')
     if selected:
+        if selected["state"] != "active":
+            parts.append('<section class="bmm-panel"><p class="bmm-muted">This memory is ' +
+                         e(selected["state"]) +
+                         '. Restore it to active before editing; the history remains readable.</p></section>')
         parts.append(_history(db,selected["id"]))
     parts.append('</div>')
     return wrap("Bob's Mind · Memory", "".join(parts), "/mind/memory")
