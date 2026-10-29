@@ -1,7 +1,7 @@
 # Bob / OpenClawLab — v0.7 Roadmap
 
 **Working title:** Continuity, Learning & Usable Operations  
-**Status (October 29, 2026):** v0.7.0–v0.7.2 foundation **shipped and operator-tested**, including live status, mobile navigation, manual-first comment publishing and a reusable `bobctl update` command. GitHub `main` is authoritative. The one-time installed-updater migration to `main` is **prepared, not yet applied**. Dashboard refinements and the first nonempty manifest-driven update come next; v0.7.3 learning features remain unimplemented.  
+**Status (October 29, 2026):** v0.7.0–v0.7.2 foundation **shipped and operator-tested**, including live status, mobile navigation, manual-first comment publishing and a reusable `bobctl update` command. GitHub `main` is authoritative. The installed updater migration to `main` is **operator-confirmed complete**. Dashboard refinements and the first nonempty manifest-driven update come next; v0.7.3 learning features remain unimplemented.  
 **Planning baseline:** Bob currently uses an existing Windows 11/OpenClawLab WSL2 setup, local Ollama, OpenClaw, Docker and user-systemd services. A general **fresh-host installer is still missing**. Historical v0.5/v0.6 source and staging notes below are retained for technical context, not as current instructions.
 
 **Non-negotiable rule:** Preserve existing services, authentication, publication records, approval decisions, autonomous settings, sandboxing, and reboot recovery throughout every upgrade.
@@ -248,4 +248,4 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ## Next actionable task
 
-**Finish operational polish before v0.7.3:** run the guarded [migration to canonical `main`](MAIN-UPDATER-MIGRATION.md), discuss and implement a focused batch of dashboard refinements, and deliver the first nonempty release through `bobctl update` with one targeted acceptance test. Then plan the guided fresh-host installer and the v0.7.3 source-linked learning features as separate workstreams.
+**Finish operational polish before v0.7.3:** the updater is now tracking canonical `main`; discuss and implement a focused dashboard-polish batch on a dedicated feature branch, merge it into `main`, and exercise the first nonempty release through `bobctl update` with one targeted acceptance test. Then plan the guided fresh-host installer and the v0.7.3 source-linked learning features as separate workstreams.
