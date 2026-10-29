@@ -40,4 +40,4 @@ Do not paste passwords, API tokens, systemd environment files, `~/.config/moltbo
 
 ## Before starting v0.7.3
 
-Finish the channel migration, collect and implement a small reviewed batch of dashboard tweaks, and use that batch to verify the **first nonempty manifest-driven update**. The v0.7.3 observations and opinion-learning features are not yet shipped and must remain distinct from authority to publish.
+The canonical `main` migration and first nonempty manifest-driven updates have been operator-verified. The next merged dashboard release, `v0.7.2-compact1`, shortens Scout/Activity pages while retaining the full legacy views; host installation is pending. The v0.7.3 observations and opinion-learning features are not yet shipped and must remain distinct from authority to publish.
