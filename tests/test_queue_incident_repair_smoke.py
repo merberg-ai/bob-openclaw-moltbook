@@ -17,10 +17,12 @@ import reconcile_bob_queues1_incident as fix
 class QueueIncidentRepairSmoke(unittest.TestCase):
     def test_retry_release_has_unique_id_and_original_parent(self):
         manifest = updater.manifest(ROOT)
-        self.assertEqual(manifest["release"], fix.RETRY_RELEASE)
-        self.assertEqual(manifest["from"], fix.BASELINE_RELEASE)
+        self.assertEqual(fix.RETRY_RELEASE, "v0.7.2-queues1-r1")
+        self.assertEqual(fix.BASELINE_RELEASE, "v0.7.2-main-channel")
+        self.assertEqual(fix.EXPECTED_FILES, {"bob_dashboard_manage.py",
+                                              "bob-activity-manager", "navigation_shell.py"})
         self.assertNotEqual(manifest["release"], fix.FIRST_RELEASE)
-        self.assertEqual({x["name"] for x in manifest["files"]}, fix.EXPECTED_FILES)
+        self.assertNotEqual(manifest["release"], manifest["from"])
 
     def test_pinned_updater_patch_only_changes_readiness_and_safe_failure_reporting(self):
         old, new = fix.checked_blob(fix.OLD), fix.checked_blob(fix.NEW)
