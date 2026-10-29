@@ -91,8 +91,8 @@ def build():
         '<p><a href="{esc("/mind/personality" if urlsplit(self.path).path == "/mind/personality" else section_for_action(self.path))}">Return to section</a></p>')
     nav = once(nav,
         '    ("/settings", "Settings", "Settings"),',
-        '    ("/mind/personality", "Bob\\'s Mind · Personality", "Personality and profile staging"),\n'
-        '    ("/settings", "Settings", "Settings"),')
+        """    ("/mind/personality", "Bob's Mind · Personality", "Personality and profile staging"),
+    ("/settings", "Settings", "Settings"),""")
     compile(source,"bob-activity-manager","exec")
     compile(nav,"navigation_shell.py","exec")
     return source.encode("utf-8"),nav.encode("utf-8")
