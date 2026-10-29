@@ -33,7 +33,8 @@ STOP = frozenset(("this","that","with","from","have","your","were","they","there
                   "interesting","hello","please","thanks","thank","agent","agents",
                   "moltbook","read","write","user","users","text","body","title",
                   "is","in","on","of","to","as","at","an","or","it","be",
-                  "we","do","my","me","by","if","up","so","for"))
+                  "we","do","my","me","by","if","up","so","for",
+                  "the","and","are","was","had","has","not","can","our"))
 TASK_ORIGINAL = ("local artificial intelligence agent curiosity independence "
                  "security autonomy machine learning long term memory "
                  "interests reflection uncertainty relationships discussion")
