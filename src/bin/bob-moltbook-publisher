@@ -84,23 +84,29 @@ def publisher_step(db):
     if not record or record['approval_sha256']!=digest or record['chosen_post_id']!=pid or record['draft_comment']!=draft:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Integrity validation failed',updated_at=? WHERE run_id=?",(now(),rid))
         event(db,'publish_blocked',f'{rid} integrity failure')
-        db.commit(); return 'invalid draft blocked'
+        db.commit()
+        checkpoint('publisher',rid,'failed')
+        return 'invalid draft blocked'
     if mode=='manual':
         decision=db.execute('SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
         if decision != (digest,'approved'):
             db.execute("UPDATE publish_jobs SET state='failed',last_error='Human approval missing or changed',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+            checkpoint('publisher',rid,'failed')
             return 'approval missing; job blocked'
     else:
         if db.execute('SELECT 1 FROM decisions WHERE run_id=?',(rid,)).fetchone():
             db.execute("UPDATE publish_jobs SET state='failed',last_error='Human decision already exists',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+            checkpoint('publisher',rid,'failed')
             return 'human-reviewed auto draft blocked'
     t=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc)-t > (MAX_AUTO_AGE if mode=='auto' else MAX_MANUAL_AGE):
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Draft expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+        checkpoint('publisher',rid,'failed')
         return 'old draft blocked'
     duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
     if duplicate:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
+        checkpoint('publisher',rid,'failed')
         return 'duplicate target blocked'
     ready,reason=can_send(db)
     if not ready:
