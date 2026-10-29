@@ -186,11 +186,19 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** Current controls still work from localhost and LAN, no opaque-origin/CSRF regression, responsive mobile layouts and keyboard navigation are usable.
 
-### v0.7.2 — Actual background job feedback
+### v0.7.2 — Live background-job feedback and dashboard Settings
 
-**Deliver:** job-status model/API, real spinners, stage-specific messages, health diagnostics, timeouts, error display and safe retry eligibility.
+**Deliver:** job-status model/API, real spinners, stage-specific messages, health diagnostics, timeouts, error display, safe retry eligibility, and a responsive **System → Settings** page with LAN dashboard password rotation.
 
-**Pass:** Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
+**Settings / password rotation requirements:**
+- Password change is the first v0.7.2 feature to implement. Keep the current LAN username unless explicitly changed separately. Current password + new password + confirmation fields; never display or return an existing password.
+- Use the established authenticated session/request, CSRF token, exact Host and Origin validation, a restricted POST route, no-store responses, no URL parameters for secrets, and safe body-length/field validation. Prevent changing credentials through a GET or cross-origin request.
+- Store the replacement credentials atomically in the existing private `~/.config/bob-system/lan-auth.json` (same owner, directory privacy, mode 0600), with fsync and safe rollback on a write failure. Never write credentials to logs, Git, SQLite, or diagnostics.
+- Avoid a service restart for routine password changes. Currently the manager reads `LAN_CREDS` only at startup, so switch to fail-closed credential reload/check or a carefully controlled credential refresh with tests proving old credentials immediately stop working and the new credentials work.
+- Explain browser HTTP Basic authentication caching: desktop and mobile may retain stale login details. Provide clear reauthentication guidance, not a false promise of reliable single-click logout. The existing HTTP LAN interface is unencrypted; advise trusted LAN/VPN or HTTPS reverse proxy and do not expose it publicly.
+- Distinguish live *process* health from Ollama, Gateway, scout and publisher *readiness*. Show queued/running/waiting/error using observed worker state and last update, never invented progress. Preserve all existing publication permissions and state.
+
+**Pass:** Test credential rotation, current-password mismatch, CSRF/Origin refusal, malformed and oversized requests, private permissions, atomic-write failure, concurrent requests, and old-password rejection without service restart. Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
 
 ### v0.7.3 — Observations and evolving opinions
 
