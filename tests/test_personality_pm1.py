@@ -103,7 +103,7 @@ class PersonalityTests(unittest.TestCase):
             self.assertNotIn("Some text the UI must not leak",html)
             self.assertIn('action="/mind/personality"',html)
             self.assertIn('src="/assets/bob-personality.js"',html)
-            self.assertIn("Staging only",html)
+            self.assertIn("Two separate steps",html)
             self.assertIn("Save staged profile",html)
             self.assertEqual(html.count('type="range"'),8)
 
