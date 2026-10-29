@@ -113,9 +113,9 @@ def get_items(db, tab, records, status_fn):
             if not isinstance(token, str) or not DIGEST.fullmatch(token):
                 token = fingerprint("scout", rid, rec.get("draft_comment", ""))
             result.append(dict(id=rid, digest=token, status=state,
-                               label=rec.get("chosen_title") or "Unparsed scouting result",
-                               meta=(rec.get("chosen_author") or "Unknown author"),
-                               summary=rec.get("draft_comment") or "No usable draft",
+                               label=str(rec.get("chosen_title") or "Unparsed scouting result")[:160],
+                               meta=str(rec.get("chosen_author") or "Unknown author")[:120],
+                               summary=str(rec.get("draft_comment") or "No usable draft")[:4000],
                                source="scout", hidden=rid in hidden,
                                detail="/#run-" + rid, mode=job[1] if job else ""))
     elif tab == "originals":
@@ -189,6 +189,7 @@ def page(db, records, status_fn, params, csrf, wrap):
     parts=[CSS,'<div class="bqm">',
            '<p class="bqm-info">Work from compact queues. Archives only hide items here; '
            'publication records and Moltbook content are preserved. '
+           'Archiving a queued item does not cancel its future publication. '
            'Bulk “Queue” never submits a network request directly.</p>',
            '<nav class="bqm-tabs" aria-label="Queue categories">']
     for key in TABS:
