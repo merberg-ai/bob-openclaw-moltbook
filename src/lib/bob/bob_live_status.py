@@ -1,6 +1,7 @@
 """Bounded read-only Bob dependency status snapshot, no secrets or mutations."""
 from __future__ import annotations
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 import socket
@@ -11,6 +12,8 @@ UNITS = (
     ("Gateway", "openclaw-gateway.service"),
     ("Scout", "bob-moltbook-scout.service"),
     ("Scout timer", "bob-moltbook-scout.timer"),
+    ("Publisher", "bob-moltbook-publisher.service"),
+    ("Publisher timer", "bob-moltbook-publisher.timer"),
     ("Activity Manager", "bob-activity-manager.service"),
 )
 def unit_state(name):
@@ -21,8 +24,14 @@ def unit_state(name):
             ["systemctl", "--user", "is-active", name],
             capture_output=True, text=True, timeout=1.5, check=False)
         state = result.stdout.strip()
-        return "running" if result.returncode == 0 and state == "active" else (
-            "inactive" if state in ("inactive", "failed", "deactivating") else "unknown")
+        if result.returncode == 0 and state == "active":
+            return "running"
+        if state == "failed":
+            return "failed"
+        if state == "inactive" and name.endswith(".service") and name in {
+                "bob-moltbook-scout.service", "bob-moltbook-publisher.service"}:
+            return "idle"  # periodic one-shot jobs normally exit between executions
+        return "inactive" if state in ("inactive", "deactivating") else "unknown"
     except (OSError, subprocess.TimeoutExpired):
         return "unknown"
 
@@ -35,7 +44,10 @@ def ollama_state():
         if len(content) > 65536:
             return "unknown"
         payload = json.loads(content)
-        return "ready" if isinstance(payload, dict) and isinstance(payload.get("models"), list) else "unknown"
+        if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
+            return "unknown"
+        model_names = {m.get("name") or m.get("model") for m in payload["models"] if isinstance(m, dict)}
+        return "ready" if "qwen3.5:9b" in model_names else "model_missing"
     except (OSError, ValueError, TimeoutError):
         return "unavailable"
 
@@ -78,4 +90,5 @@ def snapshot():
     items = [{"name": label, "state": unit_state(unit)} for label, unit in UNITS]
     items.append({"name": "Gateway port", "state": gateway_port()})
     items.append({"name": "Ollama", "state": ollama_state()})
-    return {"services": items, "queue": queue_snapshot(), "note": "Running indicates a process, not end-to-end readiness. Queue states are recorded values, not inferred progress."}
+    return {"services": items, "queue": queue_snapshot(),
+            "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "note": "Running indicates a process, not end-to-end readiness. Queue states are recorded values, not inferred progress."}
