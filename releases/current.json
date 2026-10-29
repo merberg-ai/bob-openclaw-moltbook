@@ -1,17 +1,22 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm2-editfix1",
-  "from": "v0.7.3-pm2-memory1",
-  "notes": "PM2.1 focused edit repair: separate Save edit/Correct submit buttons, allow concise non-empty reasons, surface whitelisted validation errors, Memory-specific error footer and return link. No schema, memory data, identity, workers or publishing changes.",
+  "release": "v0.7.3-pm22-scout-review1",
+  "from": "v0.7.3-pm2-editfix1",
+  "notes": "PM2.2 first reviewed suggestion inbox: operator stages previously verified Bob Scout draft with source fingerprints, then explicitly edits/approves or rejects. Private provenance, dedupe, stale/source rechecks and transaction guard. No model generation, automatic recall, publishers or workers changed.",
   "files": [
     {
-      "name": "bob_memory.py",
-      "source": "src/lib/bob/bob_memory.py"
+      "name": "bob_memory_suggestions.py",
+      "source": "src/lib/bob/bob_memory_suggestions.py"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v073_pm2_memory_candidate.py",
+      "builder": "scripts/build_v073_pm22_suggestions_candidate.py",
       "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v073_pm22_suggestions_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
