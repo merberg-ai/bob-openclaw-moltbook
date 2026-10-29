@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.2-queues1",
+  "release": "v0.7.2-queues1-r1",
   "from": "v0.7.2-main-channel",
-  "notes": "Manage queues: desktop/mobile tabs, searchable 10-item pages, bulk approve/reject, explicitly confirmed publication queueing and reversible archives. No workers, limits or credentials changed.",
+  "notes": "Manage queues: guarded retry after preserving incident from v0.7.2-queues1; includes filters, ten-item pages, batch decisions and reversible archives; no changes to publisher limits.",
   "files": [
     {
       "name": "bob_dashboard_manage.py",
