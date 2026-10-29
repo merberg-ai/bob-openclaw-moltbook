@@ -145,23 +145,8 @@ STYLE = """<style>
 .bo{--bo-blue:#66b7ff;--bo-mint:#6ee4d3;--bo-gold:#f4c578;--bo-pink:#d6a2ff;
  max-width:1150px;margin:auto;display:grid;gap:16px}
 .bo *{box-sizing:border-box}
-.bo-hero{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center;
- background:radial-gradient(ellipse at 90% -10%,#24517e88,transparent 53%),
- linear-gradient(135deg,#152a45,#111f34 75%);border:1px solid #395a82;
- border-radius:20px;padding:clamp(18px,4vw,30px);box-shadow:0 15px 45px #0004}
-.bo-hero h2{font-size:clamp(1.25rem,3vw,1.85rem);margin:0 0 8px}
 .bo-sub{color:#afc4dc;font-size:.88rem;line-height:1.5;margin:5px 0}
-.bo-status-chip{display:inline-flex;gap:8px;align-items:center;border-radius:999px;
- background:#223951;border:1px solid #496b8c;padding:9px 13px;font-size:.86rem;font-weight:700}
-.bo-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#8da4be}
-.bo-status-chip[data-tone=good] .bo-dot{background:#65e1b5;box-shadow:0 0 12px #4dcaa18a}
-.bo-status-chip[data-tone=warn] .bo-dot{background:#f3bb65}
-.bo-status-chip[data-tone=bad] .bo-dot{background:#f1909e}
-.bo-links{display:flex;gap:9px;flex-wrap:wrap}
-.bo-links a{background:#213d5b;border:1px solid #466b91;color:#d7e9ff;
- padding:10px 13px;text-decoration:none;border-radius:10px;font-size:.87rem;
- min-height:44px;display:inline-flex;align-items:center;font-weight:650}
-.bo-links a:focus-visible,.bo button:focus-visible{outline:3px solid #ffe099;outline-offset:3px}
+.bo button:focus-visible{outline:3px solid #ffe099;outline-offset:3px}
 .bo-panel{background:linear-gradient(155deg,#172a40,#101d31);border:1px solid #2f4a69;
  border-radius:17px;padding:clamp(15px,2.5vw,22px);min-width:0}
 .bo-panel-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:14px}
@@ -276,15 +261,6 @@ JS = r"""'use strict';
   }
   function draw(d) {
     if (!d || !Array.isArray(d.services) || !Array.isArray(d.workers) || !d.metrics) throw Error('Invalid snapshot');
-    const observed = d.services.filter(x => x && good.has(x.state)).length;
-    const warnings = d.services.filter(x => x && bad.has(x.state)).length;
-    const working = d.workers.filter(x => x && active.has(x.stage) && !x.stale).length;
-    const chip = id('health');
-    chip.dataset.tone = d.paused ? 'warn' : warnings ? 'bad' : 'good';
-    txt('health-text', d.paused ? 'Bob paused' : warnings ? warnings+' dependencies need attention' : 'Monitoring live');
-    txt('service-count',observed+' / '+d.services.length+' ready/running');
-    txt('worker-count',working+' recently active');
-    txt('updated',new Date(d.checked_at).toLocaleTimeString());
     const m=d.metrics;
     if (!m.available || !m.limits || !m.usage || !m.queues) {
       ['comments','auto','originals'].forEach(n=>cap(n,null,null));
@@ -429,8 +405,6 @@ def page(data):
         _cap("originals","Original posts",usage.get("originals"),limits.get("original_daily"),
              "Owner-authorized attempts","#d6a2ff"),
     ])
-    ready=sum(s.get("state") in GOOD for s in data["services"])
-    bad=sum(s.get("state") in BAD for s in data["services"])
     workers={x.get("worker"):x for x in data["workers"]}
     stages=[workers.get(key,{"worker":key,"stage":"unobserved","message":"No checkpoint observed yet"}) for key in KEYS]
     recent=metrics.get("recent_events") or []
@@ -442,35 +416,17 @@ def page(data):
                  esc(x.get("updated") or x.get("created") or "")+'</small></span>'+
                  _pill(x.get("state","unknown"))+'</div>' for x in data["jobs"])
     if not jobs: jobs='<p class="bo-muted">No recent jobs available.</p>'
-    tone_health="warn" if data["paused"] else "bad" if bad else "good"
-    label="Bob paused" if data["paused"] else f"{bad} dependencies need attention" if bad else "Monitoring live"
     times=metrics.get("next_possible_utc") or {}
     body=(STYLE+'<div class="bo" id="bob-overview">'
-          '<section class="bo-hero"><div><p class="bo-sub">BOB / LIVE OPERATIONS</p>'
-          '<h2>Mission control</h2><p class="bo-sub">Last observed: <span id="bo-updated">'+
-          esc(data["checked_at"])+'</span></p><p class="bo-sub"><span id="bo-service-count">'+
-          f'{ready} / {len(data["services"])} ready/running</span> · '
-          '<span id="bo-worker-count">'+str(sum(x.get("stage") in BUSY for x in stages))+
-          ' recently active</span></p></div>'
-          f'<span class="bo-status-chip" id="bo-health" data-tone="{tone_health}">'
-          f'<span class="bo-dot"></span><span id="bo-health-text">{esc(label)}</span></span></section>'
-          '<nav class="bo-links" aria-label="Quick actions">'
-          '<a href="/scout">Scout &amp; review</a><a href="/manage">Manage queues</a>'
-          '<a href="/originals">Original posts</a><a href="/activity">Activity</a>'
-          '<a href="/settings/activity-limits">Activity limits</a></nav>'
           '<section class="bo-panel"><div class="bo-panel-head"><h2>Daily activity budgets</h2>'
           '<span id="bo-metrics-state" class="bo-muted">'+
           esc("Auto comments enabled" if metrics.get("auto_enabled") else
               "Auto comments disabled" if avail else "Metrics unavailable")+
           '</span></div><div class="bo-caps">'+cards+'</div>'
-          '<p class="bo-sub">Gauges show daily attempts consumed, not task completion. '
-          'UTC limits reset at 00:00 UTC. A lower budget can already be exhausted.</p>'
           '<p class="bo-sub">Earliest possible next comment: <b id="bo-next-comment">'+
           esc(times.get("comments","Unknown"))+'</b><br>'
           'Earliest possible next original post: <b id="bo-next-original">'+
-          esc(times.get("originals","Unknown"))+'</b></p>'
-          '<p class="bo-muted">These are local rate slots, not scheduled posts. '
-          'Approval, queue freshness, timers and Moltbook restrictions still apply.</p></section>'
+          esc(times.get("originals","Unknown"))+'</b></p></section>'
           '<div class="bo-grid"><section class="bo-panel"><div class="bo-panel-head"><h2>Queue &amp; publication</h2>'
           '<a href="/manage" class="bo-muted">Manage queues</a></div><div class="bo-facts">'+
           _fact("comments-queued",count("comments_queued"),"Comments queued","/manage?tab=activity&state=queued")+
@@ -494,8 +450,7 @@ def page(data):
           '</div></section><section class="bo-panel"><div class="bo-panel-head">'
           '<h2>Background workers</h2><span class="bo-muted">Observed checkpoints</span>'
           '</div><div class="bo-list" id="bo-workers">'+_rows(stages,worker=True)+
-          '</div><p class="bo-muted">Spinner indicates a recent active stage. '
-          'Idle, waiting and stale stages show no simulated progress.</p></section></div>'
+          '</div></section></div>'
           '<div class="bo-grid"><section class="bo-panel"><div class="bo-panel-head">'
           '<h2>Recent jobs</h2><a href="/system/status" class="bo-muted">All recent</a>'
           '</div><div id="bo-jobs" class="bo-list">'+jobs+'</div></section>'

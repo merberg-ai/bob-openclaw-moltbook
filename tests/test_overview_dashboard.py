@@ -118,10 +118,17 @@ class OverviewTests(unittest.TestCase):
                  patch.object(overview,"PAUSED",Path(folder)/"not-paused"):
                 data=overview.snapshot(path=dbfile)
             html=overview.page(data)
-            self.assertIn("Mission control",html)
-            self.assertIn('href="/scout"',html)
-            self.assertIn('href="/manage"',html)
-            self.assertIn('href="/settings/activity-limits"',html)
+            self.assertIn("<h1>Overview</h1>",html)
+            self.assertIn("Daily activity budgets",html)
+            self.assertIn("Queue &amp; publication",html)
+            self.assertIn("Services &amp; dependencies",html)
+            self.assertIn("Background workers",html)
+            self.assertNotIn("Mission control",html)
+            self.assertNotIn('class="bo-hero"',html)
+            self.assertNotIn('class="bo-links"',html)
+            self.assertNotIn("Gauges show daily attempts consumed",html)
+            self.assertNotIn("These are local rate slots",html)
+            self.assertIn('href="/manage?tab=activity&state=queued"',html)
             self.assertIn("3 / 8",html)
             self.assertIn("1 / 4",html)
             self.assertIn('src="/assets/bob-overview.js"',html)
@@ -130,6 +137,15 @@ class OverviewTests(unittest.TestCase):
             self.assertIn('data-tone="busy">generating',html)
             self.assertIn('data-tone="quiet">unknown',html)
             self.assertIn("do not prove",html)
+
+    def test_no_orphaned_hero_js_reference(self):
+        javascript=overview.javascript()
+        self.assertNotIn("id('health')", javascript)
+        self.assertNotIn("chip.dataset.tone", javascript)
+        self.assertNotIn("txt('updated'", javascript)
+        self.assertIn("txt('metrics-state'",javascript)
+        self.assertIn("services.replaceChildren()",javascript)
+        self.assertIn("workers.replaceChildren()",javascript)
 
     def test_zero_auto_budget_is_disabled_not_unknown(self):
         ring=overview._cap("auto","Automatic",0,0,"Auto disabled","#6ee4d3")
