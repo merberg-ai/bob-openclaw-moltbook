@@ -11,6 +11,7 @@ from pathlib import Path
 import re, sqlite3
 from bob_publish_common import DATA, connect, now, setting, set_setting, event, load_record, auto_candidates, UUID
 from bob_job_tracking import checkpoint
+from bob_activity_limits import allowed as activity_allowed
 
 API='https://www.moltbook.com/api/v1'
 CREDS=DATA/'credentials.json'
@@ -59,16 +60,10 @@ def parse_time(stamp):
     try: return datetime.fromisoformat(stamp.replace('Z','+00:00')).astimezone(timezone.utc)
     except (TypeError,ValueError,AttributeError): return None
 
-def can_send(db):
-    day=datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    count=db.execute("SELECT count(*) FROM publish_jobs WHERE attempted_at LIKE ?",(day+'%',)).fetchone()[0]
-    if count>=MAX_DAILY: return False, f'Daily safety limit ({MAX_DAILY}) reached'
-    last=db.execute("SELECT attempted_at FROM publish_jobs WHERE attempted_at IS NOT NULL ORDER BY attempted_at DESC LIMIT 1").fetchone()
-    if last:
-        t=parse_time(last[0])
-        if t and datetime.now(timezone.utc)-t < MIN_BETWEEN:
-            return False, 'One-hour posting interval not elapsed'
-    return True,''
+def can_send(db, *, mode="manual"):
+    # Exact shared policy; invalid persisted settings fail closed.
+    return activity_allowed(db, "comment", mode=mode)
+
 
 def publisher_step(db):
     auto_candidates(db)
@@ -110,7 +105,7 @@ def publisher_step(db):
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
         checkpoint('publisher',rid,'failed')
         return 'duplicate target blocked'
-    ready,reason=can_send(db)
+    ready,reason=can_send(db,mode=mode)
     if not ready:
         checkpoint('publisher',rid,'waiting')
         return reason
