@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 from datetime import datetime, timezone
+from bob_job_tracking import read_checkpoints
 from pathlib import Path
 import sqlite3
 import socket
@@ -68,18 +69,27 @@ def queue_snapshot(path=None):
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=1) as db:
             db.execute("PRAGMA query_only=ON")
             comments = db.execute(
-                "SELECT 'comment', state, created_at FROM publish_jobs "
-                "ORDER BY created_at DESC LIMIT 20").fetchall()
+                "SELECT 'comment', run_id, state, created_at, updated_at, "
+                "CASE WHEN last_error IS NOT NULL AND last_error != '' THEN 1 ELSE 0 END "
+                "FROM publish_jobs ORDER BY created_at DESC LIMIT 20").fetchall()
             originals = db.execute(
-                "SELECT 'original', state, created_at FROM original_posts "
-                "ORDER BY created_at DESC LIMIT 20").fetchall()
+                "SELECT 'original', id, state, created_at, updated_at, "
+                "CASE WHEN last_error IS NOT NULL AND last_error != '' THEN 1 ELSE 0 END "
+                "FROM original_posts ORDER BY created_at DESC LIMIT 20").fetchall()
             requests = db.execute(
-                "SELECT 'generation', state, created_at FROM original_requests "
-                "ORDER BY created_at DESC LIMIT 20").fetchall()
+                "SELECT 'generation', id, state, created_at, "
+                "COALESCE(completed_at, created_at), "
+                "CASE WHEN error IS NOT NULL AND error != '' THEN 1 ELSE 0 END "
+                "FROM original_requests ORDER BY created_at DESC LIMIT 20").fetchall()
         jobs = [
-            {"kind": kind, "state": state if isinstance(state, str) else "unknown",
-             "created": created if isinstance(created, str) else ""}
-            for kind, state, created in (comments + originals + requests)
+            {"kind": kind, "job_id": ident if isinstance(ident, str) else "",
+             "state": state if isinstance(state, str) else "unknown",
+             "created": created if isinstance(created, str) else "",
+             "updated": updated if isinstance(updated, str) else "",
+             "has_error": bool(has_error),
+             "automatic_retry": False}
+            for kind, ident, state, created, updated, has_error in
+            (comments + originals + requests)
         ]
         jobs.sort(key=lambda item: item["created"], reverse=True)
         return {"available": True, "jobs": jobs[:30]}
@@ -92,4 +102,5 @@ def snapshot():
     items.append({"name": "Gateway port", "state": gateway_port()})
     items.append({"name": "Ollama", "state": ollama_state()})
     return {"services": items, "queue": queue_snapshot(),
+            "workers": read_checkpoints(),
             "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "note": "Running indicates a process, not end-to-end readiness. Queue states are recorded values, not inferred progress."}
