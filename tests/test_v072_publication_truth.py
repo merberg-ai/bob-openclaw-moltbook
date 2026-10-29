@@ -66,6 +66,46 @@ class OriginalFormatTests(unittest.TestCase):
             self.worker.validate("general", "short", "no")
 
 
+class VerificationStateTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.publisher = import_worker("bob-moltbook-publisher")
+
+    def test_verified_without_comment_id_is_not_published(self):
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, challenge_code TEXT, "
+                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT)")
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                       ("20261029T020000Z", "awaiting_verification", "moltbook_test",
+                        "15.00", None, None, "2026-10-29"))
+            with patch.object(self.publisher, "api", return_value={"success": True, "data": {}}), \
+                 patch.object(self.publisher, "api_key", return_value="test"), \
+                 patch.object(self.publisher, "event"), \
+                 patch.object(self.publisher, "checkpoint"):
+                message = self.publisher.verification_step(db)
+            state, cid = db.execute("SELECT state,comment_id FROM publish_jobs").fetchone()
+            self.assertEqual(state, "verified_unconfirmed")
+            self.assertIsNone(cid)
+            self.assertIn("no retry", message)
+
+    def test_verified_retains_original_comment_id_when_response_omits_it(self):
+        confirmed = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, challenge_code TEXT, "
+                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT)")
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                       ("20261029T020000Z", "awaiting_verification", "moltbook_test",
+                        "15.00", None, confirmed, "2026-10-29"))
+            with patch.object(self.publisher, "api", return_value={"success": True, "data": {}}), \
+                 patch.object(self.publisher, "api_key", return_value="test"), \
+                 patch.object(self.publisher, "event"), \
+                 patch.object(self.publisher, "checkpoint"):
+                self.publisher.verification_step(db)
+            state, cid = db.execute("SELECT state,comment_id FROM publish_jobs").fetchone()
+            self.assertEqual(state, "published")
+            self.assertEqual(cid, confirmed)
+
+
 class VisibilityTests(unittest.TestCase):
     def test_tree_match_and_no_false_match(self):
         a = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
