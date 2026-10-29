@@ -122,7 +122,7 @@ def get_items(db, tab, records, status_fn):
                                summary=str(rec.get("draft_comment") or "No usable draft")[:4000],
                                source="scout", hidden=rid in hidden,
                                publication_state=publication_state,
-                               detail="/#run-" + rid, mode=job[1] if job else ""))
+                               detail="/scout/full#run-" + rid, mode=job[1] if job else ""))
     elif tab == "originals":
         original_init(db)
         rows = db.execute(
