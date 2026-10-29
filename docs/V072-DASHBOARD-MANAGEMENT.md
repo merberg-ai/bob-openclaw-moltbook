@@ -1,6 +1,6 @@
 # Dashboard queue-management polish (v0.7.2 UI batch 1)
 
-**Status (October 29, 2026):** [PR #6](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/6) merged into `main` after GitHub's offline acceptance passed. The reviewed **`v0.7.2-queues1`** manifest is now available to `bobctl update`, but **not yet reported installed on the live Activity Manager**. Publisher behavior, credentials and rate limits are unchanged.
+**Status (October 29, 2026):** [PR #6](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/6) merged into `main` after GitHub's offline acceptance passed. The reviewed dashboard candidate was first offered as `v0.7.2-queues1`, but its first live update attempt **failed and was restored to baseline**. The incident is still recorded and the owner has not installed these changes. A guarded [incident reconciliation](V072-QUEUES1-INCIDENT-RECOVERY.md) and a distinct `v0.7.2-queues1-r1` retry manifest are prepared on `main`. Publisher behavior, credentials and rate limits are unchanged.
 
 ## What is new
 
