@@ -23,11 +23,12 @@ class StatusRefreshTests(unittest.TestCase):
         self.assertIn(b'("/settings", "Settings", "Settings")', nav)
 
     def test_safe_html_and_external_script(self):
-        html = view.page({
+        with patch.object(view, "wrap", side_effect=lambda title, body, route: "<html><head></head><body>" + body + "</body></html>"):
+            html = view.page({
             "services": [{"name": "<script>alert(1)</script>", "state": "running"}],
             "queue": {"available": True, "jobs": [
                 {"kind": "<img src=x>", "state": "queued", "created": "2026-10-28T18:00:00Z"}]}
-        })
+            })
         self.assertNotIn('<script>alert(1)</script>', html)
         self.assertNotIn('<img src=x>', html)
         self.assertIn('&lt;script&gt;', html)
