@@ -81,7 +81,7 @@ def _root_chain_safe(path, home=None):
 def agent_workspace():
     """Resolve configured main agent via documented read-only OpenClaw CLI."""
     candidate = HOME / ".openclaw/bin/openclaw"
-    binary = str(candidate) if candidate.is_file() and not candidate.is_symlink() else shutil.which("openclaw")
+    binary = str(candidate) if candidate.is_file() and os.access(candidate,os.X_OK) else shutil.which("openclaw")
     if not binary:
         raise ValueError("OpenClaw agents CLI unavailable: Apply disabled")
     env = os.environ.copy()
