@@ -1,20 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.2-redirects1",
-  "from": "v0.7.2-overview2",
-  "notes": "Fix Scout approval, rejection, reset, publishing, verification and auto-setting buttons returning to Overview. Preserve Scout page filters/page and full-history context; section-aware error navigation. No publishing, limit or database changes.",
+  "release": "v0.7.3-pm1-foundation1",
+  "from": "v0.7.2-redirects1",
+  "notes": "PM1 Personality Lab: editable staged eight-trait sliders with private version history and restore, live non-LLM interpretation preview, read-only SOUL/IDENTITY metadata, authenticated save. No changes to actual OpenClaw identity files, prompts, permissions, publishing or activity limits.",
   "files": [
     {
-      "name": "bob_dashboard_return.py",
-      "source": "src/lib/bob/bob_dashboard_return.py"
+      "name": "bob_personality.py",
+      "source": "src/lib/bob/bob_personality.py"
     },
     {
-      "name": "bob_dashboard_compact.py",
-      "source": "src/lib/bob/bob_dashboard_compact.py"
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v073_pm1_personality_candidate.py",
+      "index": 1
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v072_post_redirect_candidate.py",
+      "builder": "scripts/build_v073_pm1_personality_candidate.py",
       "index": 0
     }
   ],
