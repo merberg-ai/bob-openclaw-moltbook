@@ -191,7 +191,7 @@ def change(db, ident, expected_sha, action, fields=None, reason=""):
         if item["state"] != "active":
             raise ValueError("Restore the memory before editing")
         updated = validate(fields)
-        reason = _text(reason, "Edit reason", 8, 240)
+        reason = _text(reason, "Edit reason", 1, 240)
         if all(updated[k] == item[k] for k in FIELDS):
             raise ValueError("No memory changes to save")
         item.update(updated)
@@ -215,6 +215,45 @@ def change(db, ident, expected_sha, action, fields=None, reason=""):
     _revision(db, item, action, reason)
     event(db, "bob_memory_" + action, ident + " v" + str(item["version"]))
     return ident
+
+
+# Only fixed validator text may reach the dashboard. Never echo raw input,
+# database exception details, query values, private paths or stored memory text.
+PUBLIC_ERRORS = frozenset((
+    "Invalid memory ID",
+    "Invalid memory revision token",
+    "Memory not found",
+    "Memory record integrity check failed",
+    "Memory changed; reload before editing",
+    "Restore the memory before editing",
+    "No memory changes to save",
+    "Memory was updated concurrently; reload",
+    "Memory state changed; reload before updating",
+    "Title must be 4-120 characters",
+    "Memory text must be 1-2400 characters",
+    "Source description must be 0-160 characters",
+    "Source URL must be 0-1000 characters",
+    "Edit reason must be 1-240 characters",
+    "Unsupported category or confidence",
+    "Source URL must be a short HTTPS link",
+    "Malformed source URL",
+    "Use an ordinary public HTTPS source URL",
+    "Incomplete memory fields",
+    "Unexpected memory create fields",
+    "Unexpected memory edit fields",
+    "Unexpected memory state fields",
+    "Unsupported memory action",
+    "Memory capacity reached; new entries are disabled until a later retention release",
+    "Duplicate memory form fields",
+    "Memory form size invalid",
+))
+
+
+def safe_error(exc):
+    """User-facing diagnosis without disclosure of untrusted values or SQL."""
+    if type(exc) is ValueError and str(exc) in PUBLIC_ERRORS:
+        return str(exc)
+    return "Unable to save memory. Reload the page and retry; existing data was not changed."
 
 
 def dispatch(db, form):
@@ -274,14 +313,20 @@ def _editor(csrf, item=None):
                _field("content", data["content"], "Memory / note", multiline=True, required=True, maxlength=2400),
                _field("source_url", data["source_url"], "Public HTTPS source URL (optional)", maxlength=1000)]
     if editing:
-        output.append(_select("operation", ("edit", "correct"), "edit"))
         output.append(_field("reason", "", "Why did this change? (required)", required=True, maxlength=240))
-        output.append('<p class="bmm-muted">Use Correct below when fixing inaccurate memory, '
-                      'or Save edit for ordinary refinements. Both keep revision history.</p>')
-    output.append('<div class="bmm-actions"><button type="submit">' +
-                  ("Save edit" if editing else "Add private memory") + '</button>')
+        output.append('<p class="bmm-muted">Change at least one memory field and explain why (1-240 characters). '
+                      'Save edit for refinements; Correct memory for inaccurate information. '
+                      'Both preserve all earlier versions.</p>')
+    output.append('<div class="bmm-actions">')
     if editing:
-        output.append('<a class="bmm-link secondary" href="/mind/memory">Cancel edit</a>')
+        # Only the clicked submit button contributes the operation field.
+        # There is deliberately no hidden/second operation control in edit mode.
+        output += ['<button type="submit" name="operation" value="edit">Save edit</button>',
+                   '<button type="submit" name="operation" value="correct" class="secondary">'
+                   'Correct memory</button>',
+                   '<a class="bmm-link secondary" href="/mind/memory">Cancel edit</a>']
+    else:
+        output.append('<button type="submit">Add private memory</button>')
     output.append('</div></form></section>')
     return "".join(output)
 

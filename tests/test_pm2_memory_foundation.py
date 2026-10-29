@@ -153,6 +153,56 @@ class MemoryTests(unittest.TestCase):
         self.assertIn("Restore it to active before editing", html)
         self.assertEqual(mm._get(self.db,a)["state"],"active")
 
+    def test_edit_page_submit_buttons_match_dispatch_without_duplicate_operation(self):
+        ident = mm.create(self.db, fields())
+        html = mm.page(self.db, {"edit":[ident]}, "synthetic-token", lambda t,b,p:b)
+        form = html.split('<form method="post" action="/mind/memory">',1)[1].split("</form>",1)[0]
+        self.assertNotIn('type="hidden" name="operation"',form)
+        self.assertNotIn('<select name="operation">',form)
+        self.assertIn('<button type="submit" name="operation" value="edit">Save edit</button>',form)
+        self.assertIn('name="operation" value="correct"',form)
+        self.assertIn('name="expected_sha"',form)
+        self.assertIn('name="reason"',form)
+        # Both actions pass exact field allowlists; short meaningful reasons now work.
+        payload = dict(fields(content="New detail after researching the claim."),
+                       csrf="synthetic-token", id=ident,
+                       expected_sha=self.current(ident)["sha256"],
+                       operation="edit", reason="fix")
+        self.assertEqual(mm.dispatch(self.db,payload),ident)
+        self.assertEqual(self.current(ident)["version"],2)
+        payload.update(content="Corrected detail with conflicting evidence.",
+                       expected_sha=self.current(ident)["sha256"],
+                       operation="correct", reason="New evidence")
+        self.assertEqual(mm.dispatch(self.db,payload),ident)
+        self.assertEqual(self.current(ident)["version"],3)
+        self.assertEqual([row[0] for row in self.db.execute(
+            "SELECT action FROM bob_memory_revisions WHERE memory_id=? ORDER BY version",
+            (ident,)).fetchall()], ["create","edit","correct"])
+
+    def test_safe_validation_errors_explain_rejections_without_leaks(self):
+        ident = mm.create(self.db, fields())
+        old = self.current(ident)
+        scenarios = (
+            (dict(fields(),csrf="token",operation="edit",id=ident,
+                  expected_sha=old["sha256"],reason="checked"),"No memory changes to save"),
+            (dict(fields(content="Actually updated"),csrf="token",operation="edit",id=ident,
+                  expected_sha=old["sha256"],reason=""),"Edit reason must be 1-240 characters"),
+            (dict(fields(content="Actually updated"),csrf="token",operation="edit",id=ident,
+                  expected_sha="0"*64,reason="changed"),"Memory changed; reload before editing"),
+        )
+        for form, expected in scenarios:
+            with self.subTest(expected=expected):
+                with self.assertRaises(ValueError) as err:
+                    mm.dispatch(self.db,form)
+                self.assertEqual(mm.safe_error(err.exception),expected)
+        self.assertEqual(self.current(ident)["version"],1)
+        self.assertEqual(mm.safe_error(ValueError("Secret note: password=my_secret")),
+                         "Unable to save memory. Reload the page and retry; existing data was not changed.")
+        self.assertEqual(mm.safe_error(sqlite3.OperationalError("PRIVATE SQL TABLE")),
+                         "Unable to save memory. Reload the page and retry; existing data was not changed.")
+        self.assertEqual(mm.safe_error(ValueError("Source URL must be a short HTTPS link")),
+                         "Source URL must be a short HTTPS link")
+
     def test_existing_auth_publish_handlers_unchanged(self):
         old, old_nav = baseline.build()
         new, nav = candidate.build()
@@ -164,6 +214,10 @@ class MemoryTests(unittest.TestCase):
         self.assertIn(b'/mind/memory',nav)
         self.assertNotIn(b'/mind/memory',old_nav)
         self.assertIn(b'def _save_memory(self):',new)
+        self.assertIn(b'memory_safe_error(exc)',new)
+        self.assertIn(b'No memory change was saved.',new)
+        self.assertIn(b'/mind/memory" if urlsplit(self.path).path == "/mind/memory"',new)
+        self.assertIn(b'No review decision was changed.',new)
         def methods(raw):
             tree=ast.parse(raw)
             cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="Handler")
