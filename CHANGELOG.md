@@ -1,6 +1,12 @@
 # Changelog
 
-## v0.7.3 pm1-foundation1 — Staged Personality Lab (installation pending)
+## v0.7.3 pm1-csp1 — Local JavaScript policy fix (installation pending)
+
+- [PR #16](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/16) passed CI and merged to `main`. Extends the existing System Status script/fetch CSP exception to **Overview** and **Bob's Mind · Personality**, so the local JS preview and Overview refresh can run.
+- Keeps inline/third-party scripts blocked and the rest of the dashboard's strict CSP unchanged. One generated Activity Manager file, no identity, database, approval, rate-limit or worker changes.
+- The operator confirmed `pm1-foundation1` installed, with persistent sliders and read-only identity inventory; the frozen 'Enable JavaScript' preview exposed the CSP issue.
+
+## v0.7.3 pm1-foundation1 — Staged Personality Lab (operator-verified; preview CSP fix released)
 
 - Adds **Bob's Mind → Personality** with eight 0–100 sliders and real-time non-LLM text interpretation.
 - Authenticated CSRF-protected profile save and revision/restore history in private SQLite, separate from publishing permissions.
