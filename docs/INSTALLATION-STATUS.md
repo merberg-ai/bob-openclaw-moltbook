@@ -33,4 +33,6 @@ A clean installer must **never** run the old v0.7.1/v0.7.2 pinned update scripts
 
 ## Git branch transition
 
-The installed updater currently pins its GitHub checkout to `feature/v0.7.1-navigation`. Merging that branch into `main` does not switch the already installed updater or the checked-out working branch. We should move new release authoring to `main` and migrate the updater's trusted checkout/branch in a **separate, explicit, guarded update**. Don't delete the feature branch while production is still pinned to it.
+The canonical source branch is now `main` (PR #5 was merged and the resulting tree was verified). The existing-host updater is installed and functional but is **still configured for `feature/v0.7.1-navigation` on the operator's host until the migration command is run**. The guarded one-time [main updater migration](MAIN-UPDATER-MIGRATION.md) creates a separate trusted `~/bob-main` checkout, re-pins the updater to `main`, and updates its private release registry without stopping services or touching SQLite.
+
+The owner must confirm `BOB UPDATE: up to date (v0.7.2-main-channel)` before treating the channel migration as complete. The historical feature branch remains available for recovery. This migration is an **upgrade-channel switch**, not a new-host installer.
