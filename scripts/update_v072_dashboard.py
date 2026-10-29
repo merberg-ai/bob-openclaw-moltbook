@@ -145,7 +145,7 @@ def check_http(authorization, *, updated=False):
     if updated:
         paths += ["/settings", "/system/status", "/api/system/status"]
     for path in paths:
-        conn = HTTPConnection("127.0.0.1", 18790, timeout=4)
+        conn = HTTPConnection("127.0.0.1", 18790, timeout=12 if path in ("/system/status", "/api/system/status") else 4)
         try:
             conn.request("GET", path, headers={
                 "Host": "127.0.0.1:18790", "Authorization": authorization})
@@ -187,6 +187,9 @@ def readiness():
         raise ValueError("live installation differs from approved v0.7.1")
     if not service_contract():
         raise ValueError("unexpected user-systemd service configuration")
+    auth_file = HOME / ".config/bob-system/lan-auth.json"
+    if auth_file.parent.is_symlink() or stat.S_IMODE(auth_file.parent.stat().st_mode) & 0o077:
+        raise ValueError("credential directory must be private for v0.7.2")
     auth = service_helper.authenticate()
     if not service_helper.service_active() or not check_http(auth):
         raise ValueError("existing authenticated dashboard unhealthy")
@@ -316,6 +319,8 @@ def main():
             outcome, backup = apply()
             print("v0.7.2 UPDATE:", outcome)
             print("Private database backup:", backup)
+            if outcome != "v0.7.2_installed":
+                return 1
         elif args.recover:
             print("v0.7.2 RECOVERY:", recover())
         else:
