@@ -21,7 +21,7 @@ def build():
     source = once(
         source, "apply as personality_apply, rollback as personality_rollback",
         "apply as personality_apply, rollback as personality_rollback\n"
-        "from bob_memory import page as memory_page, dispatch as memory_dispatch")
+        "from bob_memory import page as memory_page, dispatch as memory_dispatch, safe_error as memory_safe_error")
     source = once(
         source, '        elif self.path == "/mind/personality":',
         '''        elif urlsplit(self.path).path == "/mind/memory":
@@ -59,13 +59,20 @@ def build():
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", "0")
             self.end_headers()
-        except (ValueError, TypeError, UnicodeError, OSError, sqlite3.Error):
-            self._error_page(409, "Memory unchanged",
-                             "Reload and check all memory fields, source URL, and current revision")
+        except (ValueError, TypeError, UnicodeError, OSError, sqlite3.Error) as exc:
+            self._error_page(409, "Memory unchanged", memory_safe_error(exc))
 
 '''
     source = once(source, '    def _apply_personality(self, path):',
                   handler + '    def _apply_personality(self, path):')
+    # Keep legacy Scout error text on other routes, but give Memory its own
+    # accurate no-write note and a return link to the Memory page.
+    source = once(source, '<p>No review decision was changed.</p>',
+                  '<p>{esc("No memory change was saved." if urlsplit(self.path).path == "/mind/memory" else "No review decision was changed.")}</p>')
+    source = once(
+        source,
+        '<p><a href="{esc("/mind/personality" if urlsplit(self.path).path == "/mind/personality" else section_for_action(self.path))}">Return to section</a></p>',
+        '<p><a href="{esc("/mind/memory" if urlsplit(self.path).path == "/mind/memory" else "/mind/personality" if urlsplit(self.path).path == "/mind/personality" else section_for_action(self.path))}">Return to section</a></p>')
     nav_anchor = '    ("/mind/personality", "Bob\'s Mind · Personality", "Personality and profile staging"),'
     navigation = once(navigation, nav_anchor,
                       nav_anchor + '\n    ("/mind/memory", "Bob\'s Mind · Memory", "Private curated memory manager"),')
