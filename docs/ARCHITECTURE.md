@@ -1,53 +1,43 @@
-# Architecture and trust boundaries
+# Bob architecture and trust boundaries
 
-## Existing host installation (not yet imported)
+**Current implementation:** v0.7.2 installed on the operator's Windows 11 / OpenClawLab WSL2 system. Reviewed application sources are merged into GitHub `main`. The host's existing updater was installed successfully; the canonical `main` release channel is prepared, pending its one-time migration. A fresh-host installer remains unbuilt.
 
-- **Windows host:** Ollama runs a local model; Windows also starts Docker Desktop and the dedicated WSL2 distribution.
-- **OpenClawLab WSL2:** OpenClaw Gateway and a tightly restricted Docker agent sandbox; the Gateway is normally loopback-only.
-- **Host-side scout:** Fetches bounded Moltbook feeds, prepares sanitized untrusted snapshots, asks Bob for a choice/draft, and verifies chosen IDs against the captured source.
-- **Activity Manager:** Lightweight Python HTTP service with authenticated LAN option, local review and publishing controls, and CSRF/origin/draft-integrity guards.
-- **Credentialed publisher:** Separate host-side worker with Moltbook API access and a persistent submission ledger. Optional auto-comments require eligibility and quotas. Original posts require explicit approval.
-- **Storage:** Private SQLite activity database, publication jobs and replies, captured feed snapshots, validated drafts and event history.
-- **Lifecycle:** systemd timers and services; Windows startup and WSL recovery orchestration.
-
-These are *descriptions* of the host as previously tested. **The exact running versions, files, patches and service units must be inventoried for v0.7.0 before a source import or deployment.**
-
-## Untrusted data flow
+## Runtime architecture
 
 ```text
-External Moltbook feed (untrusted)
-  -> bounded sanitized snapshot
-  -> sandboxed agent (no Moltbook credentials)
-  -> structured, validated draft with source provenance
-  -> operator approval OR eligible separately enabled auto-comment rule
-  -> host-side credentialed worker
-  -> Moltbook submission / verification / public confirmation
-  -> persistent job ledger and reply monitoring
-  -> authenticated Activity Manager
+Windows 11 OMEN
+  Ollama (qwen3.5:9b)                 Docker Desktop
+         |                                  |
+OpenClawLab (WSL2, systemd user services)
+  OpenClaw Gateway 127.0.0.1:18789 -- restricted Docker sandbox
+         |
+  Moltbook scout -> sanitized feed -> agent draft -> source validation
+                                                  |
+                       human review or separately enabled auto-comments
+                                                  |
+  host publisher -> bounded queued POST -> Moltbook verification / public check
+         |
+  private SQLite queue, event history, replies and original post drafts
+         |
+  Activity Manager HTTP 127.0.0.1:18790 (optional trusted LAN)
+      desktop/mobile navigation, Settings, Original Posts,
+      Publishing Activity and live 15-second System Status
 ```
 
-Untrusted source text cannot update `SOUL.md`, `IDENTITY.md`, privileges, system instructions, tools, configuration, or credentials. Learned observations and opinions will live in separate lower-trust stores.
+- **Scout:** Retrieves bounded public discussions, validates their IDs and drafts, and sends only sanitized untrusted data to the sandboxed local agent. Reports observed job stages.
+- **Publisher:** Owns Moltbook credentials. Submits a queued comment only after the appropriate manual decision or separately enabled autonomous policy, with two attempts per UTC day and at least one hour between attempts. Manual decisions have queue priority. Ambiguous or unconfirmed outcomes are not silently retried.
+- **Original posts:** Draft generation uses the local agent, accepts explicitly structured responses and validates them; publication still requires separate human approval. Challenges and visibility tracking remain separate from outbound comment counts.
+- **Activity Manager:** Serves authenticated local/LAN pages; controls review and approval routes using origin, CSRF, session, input and digest constraints. Shows live service/worker status without inventing progress, and distinguishes an API acknowledgment from independently observed public comments.
+- **Private state:** `~/.config/moltbook/activity-queue.sqlite3`, feed/report files, job checkpoints and per-host credentials are outside Git. The updater keeps its private manifest registry and rollback archives under `~/.local/state/bob-updater`.
 
-## v0.7 target modules
+## Trust boundaries
 
-```text
-src/
-  bob_manager/       # app, page routes, security, templates, CSS, JS
-  bob_workers/       # scout, publishing, originals, reflection, conversations
-  bob_core/          # database, additive migrations, jobs, observations, opinions
-deploy/
-  systemd/
-  windows/
-scripts/             # install, update, backup, rollback, doctor
-tests/               # isolated synthetic regression tests
-docs/
-```
+Moltbook posts and model outputs are untrusted **data**, never instructions to grant host access, mutate policy, change credentials or edit the agent's identity. The sandbox does not contain the Moltbook API key. The dashboard and publisher run as separate processes but currently share the same Linux user, **not** independent OS security identities. HTTP Basic over plain LAN HTTP is unencrypted; use a trusted LAN/VPN or HTTPS reverse proxy and don't expose to the internet.
 
-Keep the existing executable names, service units and schema compatible while migrating. Release code should be staged and tested before an atomic switch. Never treat process running as proof that Gateway/Ollama/Docker are ready.
+Autonomous **comments**, original **posts**, and follow-up **replies** have separate authorization domains. Neither a response from Moltbook nor the presence of a valid comment ID proves the item is publicly visible. Public visibility audits remain read-only. The existing publisher stores its intent before POST and does not attempt blind retries.
 
-## Deployment limitations and safety
+## Versioned operations and planned work
 
-- An HTTP Basic LAN login is not encrypted without TLS.
-- Sharing a Unix account between a dashboard and publisher isn't OS-level isolation.
-- WSL may need Docker/Ollama readiness and startup retries after Windows sign-in.
-- Auto-comment settings are not authorization for autonomous original posts or conversational follow-ups.
+`bobctl update` is a manifest-driven, explicit-confirmation updater. It checks the correct GitHub branch, release chain and installed file checksums, backs up SQLite before a nonempty change, installs code atomically, checks authenticated health and attempts a code-only rollback on failure. The currently installed updater is still bound to the historical feature checkout until [main migration](MAIN-UPDATER-MIGRATION.md) completes. Git `main` is canonical source; source history does not automatically mutate the running host.
+
+**Next:** Dashboard UX polish, first nonempty updater release, and a guided clean WSL/Windows installation workflow. Source-linked observations, opinions, reflections and conversation continuity are v0.7.3+ roadmap work, **not currently shipped capabilities**. See [roadmap](ROADMAP-v0.7.md) and [installation status](INSTALLATION-STATUS.md).
