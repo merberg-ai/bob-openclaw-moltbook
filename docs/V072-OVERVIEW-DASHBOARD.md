@@ -1,6 +1,6 @@
 # Bob Overview dashboard: v0.7.2-overview1
 
-**Status:** Candidate on `feature/v072-overview-dashboard`, **not yet installed on the owner’s OpenClawLab host**. This is the next manifest-driven release after owner-verified `v0.7.2-activity-limits1`.
+**Status (October 29, 2026):** [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. Manifest `v0.7.2-overview1` is **ready for `bobctl update`, but is not yet confirmed installed** on the operator’s host. Its parent release `v0.7.2-activity-limits1` is operator-verified.
 
 ## Navigation
 
