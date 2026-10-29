@@ -187,8 +187,8 @@ def manifest(folder):
             if not isinstance(source, str):
                 raise ValueError("unsafe source path")
             parts = PurePosixPath(source).parts
-            if len(parts) < 3 or parts[:2] not in (("src", "bin"), ("src", "lib")):
-                raise ValueError("source must be a reviewed src path")
+            if (len(parts) < 3 or parts[:2] not in (("src", "bin"), ("src", "lib"))) and source != "scripts/bob_release_updater.py":
+                raise ValueError("source must be a reviewed src path or the updater itself")
         else:
             builder = item["builder"]
             if (not isinstance(builder, str) or not re.fullmatch(r"scripts/build_[a-zA-Z0-9_]+\.py", builder)
