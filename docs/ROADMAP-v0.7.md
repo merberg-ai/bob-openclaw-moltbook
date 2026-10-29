@@ -186,11 +186,27 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** Current controls still work from localhost and LAN, no opaque-origin/CSRF regression, responsive mobile layouts and keyboard navigation are usable.
 
-### v0.7.2 — Actual background job feedback
+### v0.7.2 — Live background-job feedback and dashboard Settings
 
-**Deliver:** job-status model/API, real spinners, stage-specific messages, health diagnostics, timeouts, error display and safe retry eligibility.
+**Deployed progress (operator-reported October 28, 2026):** Responsive Settings, immediate password rotation, trusted-console login reset, mobile styling, 15-second read-only service/queue status refresh, and observed worker-stage checkpoints are running in production. Checkpoints are bounded and become unknown when stale; they do not infer progress from service state. Publication-accuracy and original-output-format corrections have also deployed successfully. The original-thought generation outcome still needs a real-world recheck, and historical comment visibility is unknown until independently audited. No automatic reposting or retry of uncertain publications was introduced.
 
-**Pass:** Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
+**v0.7.2 worker tracking (deployed and operator-confirmed):** The scout, original generation, original publication and comment publisher now report private observed checkpoints; the mobile System Status page shows stage cards, bounded stale detection, timestamps and actual queue states. The guarded update passed operator testing and installation. See [job tracking release notes](V072-JOB-TRACKING-RELEASE.md).
+
+**Deliver:** job-status model/API, real spinners, stage-specific messages, health diagnostics, timeouts, error display, safe retry eligibility, and a responsive **System → Settings** page with LAN dashboard password rotation.
+
+**Settings / password rotation requirements:**
+- Password change is the first v0.7.2 feature to implement. Keep the current LAN username unless explicitly changed separately. Current password + new password + confirmation fields; never display or return an existing password.
+- Use the established authenticated session/request, CSRF token, exact Host and Origin validation, a restricted POST route, no-store responses, no URL parameters for secrets, and safe body-length/field validation. Prevent changing credentials through a GET or cross-origin request.
+- Store the replacement credentials atomically in the existing private `~/.config/bob-system/lan-auth.json` (same owner, directory privacy, mode 0600), with fsync and safe rollback on a write failure. Never write credentials to logs, Git, SQLite, or diagnostics.
+- Avoid a service restart for routine password changes. Currently the manager reads `LAN_CREDS` only at startup, so switch to fail-closed credential reload/check or a carefully controlled credential refresh with tests proving old credentials immediately stop working and the new credentials work.
+- Explain browser HTTP Basic authentication caching: desktop and mobile may retain stale login details. Provide clear reauthentication guidance, not a false promise of reliable single-click logout. The existing HTTP LAN interface is unencrypted; advise trusted LAN/VPN or HTTPS reverse proxy and do not expose it publicly.
+- Distinguish live *process* health from Ollama, Gateway, scout and publisher *readiness*. Show queued/running/waiting/error using observed worker state and last update, never invented progress. Preserve all existing publication permissions and state.
+
+**Pass:** Test credential rotation, current-password mismatch, CSRF/Origin refusal, malformed and oversized requests, private permissions, atomic-write failure, concurrent requests, and old-password rejection without service restart. Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
+
+**Publication accuracy follow-up (deployed successfully; runtime verification pending):** The publisher preserves a known comment ID or records `verified_unconfirmed` without retry when verification returns no ID. Activity distinguishes API acknowledgment from independently confirmed visibility, and shows auto-queue cancellations as never sent. Original thoughts accept bounded, explicit alternative formats while retaining draft validation and manual approval. A read-only public comment audit is available. The operator reports the updater succeeded; actual Moltbook visibility and a fresh original-thought draft still need validation. See [publication accuracy notes](V072-PUBLICATION-ACCURACY-FIX.md).
+
+**Operator verification (October 29, 2026):** An original-thought draft now generates successfully, a bounded public audit found four comments visible on Moltbook, and Bob has received responses to his original post. The remaining backlog is explained primarily by the existing two-attempts-per-UTC-day cap (2/2 at 2026-10-29T12:23Z), not by service failure. The live queue has four manual and ten auto comments waiting; its oldest queued item is manual. The queued manual-first patch is a proactive scheduling improvement, not a bypass of today's rate limit. Review identified the two-attempt UTC daily cap, one-hour attempt interval, and an oldest-first scheduler that can let held auto entries block later manual approvals. The read-only diagnostic reported that the old queue scheduler was installed; the one-file manual-first patch subsequently passed four focused tests and deployed successfully at 2026-10-29T12:29Z. Its post-install diagnosis confirmed `manual_first_installed: True` and unchanged limits (`attempts_today: 2/2`, manual queued: 4, auto queued: 10). No publishing attempt was triggered by installation; maintain existing caps and do not blindly repost. See [queue backlog investigation](V072-QUEUE-BACKLOG.md).
 
 ### v0.7.3 — Observations and evolving opinions
 

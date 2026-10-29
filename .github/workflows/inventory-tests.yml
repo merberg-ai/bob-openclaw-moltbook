@@ -42,6 +42,15 @@ on:
       - 'tests/test_import_verified_sources.py'
       - 'tests/test_live_source_regression.py'
       - 'src/**'
+      - 'webui/**'
+      - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
+      - 'tests/test_v071_ui_update.py'
+      - 'scripts/build_v071_manager_candidate.py'
+      - 'scripts/rehearse_v071_ui_update.py'
+      - 'scripts/preview_v071_ui.py'
+      - 'tests/test_preview_v071_ui.py'
       - '.github/workflows/inventory-tests.yml'
   pull_request:
     paths:
@@ -84,6 +93,15 @@ on:
       - 'tests/test_import_verified_sources.py'
       - 'tests/test_live_source_regression.py'
       - 'src/**'
+      - 'webui/**'
+      - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
+      - 'tests/test_v071_ui_update.py'
+      - 'scripts/build_v071_manager_candidate.py'
+      - 'scripts/rehearse_v071_ui_update.py'
+      - 'scripts/preview_v071_ui.py'
+      - 'tests/test_preview_v071_ui.py'
       - '.github/workflows/inventory-tests.yml'
 
 permissions:
@@ -99,6 +117,12 @@ jobs:
           python-version: '3.11'
       - name: Run offline synthetic baseline and backup tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Build integrated v0.7.1 manager candidate from pinned baseline
+        run: python3 scripts/build_v071_manager_candidate.py
+      - name: Rehearse versioned v0.7.1 UI package and code-only rollback
+        run: python3 scripts/rehearse_v071_ui_update.py
+      - name: Smoke read-only browser preview (synthetic data, disabled POST)
+        run: python3 scripts/preview_v071_ui.py --self-test
       - name: Run complete isolated release rehearsal after tests
         run: python3 scripts/rehearse_release_rollout.py
       - name: Run inert service-graph acceptance in disposable sandbox

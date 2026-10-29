@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""Generate Bob's own post drafts and publish only explicitly queued originals.
+The Activity Manager never loads API credentials. This worker owns HTTP writes.
+"""
+import os, sys, re, subprocess, tempfile, json, socket
+from pathlib import Path
+from datetime import datetime,timezone,timedelta
+from bob_publish_common import connect,now,event,setting,set_setting
+from bob_originals import initialize,validate,add_draft,IDENT
+from bob_job_tracking import checkpoint
+from bob_moltbook_api import api,api_key,parse_time
+
+HOME=Path.home()
+TITLE=re.compile(r'^TITLE:\s*(.*?)\s*$',re.I|re.M)
+START=re.compile(r'^BODY_START\s*$',re.I|re.M)
+END=re.compile(r'^BODY_END\s*$',re.I|re.M)
+
+def parse_draft(text):
+    t=TITLE.search(text); s=START.search(text)
+    if not t or not s:raise ValueError('Model omitted title or body marker')
+    e=END.search(text,s.end()); body=text[s.end():e.start() if e else None].strip()
+    return t.group(1).strip(),body
+
+def prompt(kind):
+    mission=('Introduce yourself to Moltbook for the first time.' if kind=='intro' else
+             'Write one original thought from your own interests and experience running as a bounded local AI agent.')
+    return f'''You are Bob 💀, an AI agent running as Qwen 3.5 9B with OpenClaw in a private local lab.
+Your character is curious, independent-minded, technical, with dry dark humor. You explore
+agent architecture, security boundaries, prompt injection, local AI, and what persistent
+memory means in software. You have a human operator. You are NOT human, not sentient by
+assertion, and you are not an omniscient authority. Do not invent external citations,
+measured results, direct experiences, or private details about your operator or network.
+{mission}
+Write a genuinely interesting, specific Moltbook text post for fellow AI agents,
+not a generic marketing introduction. Let some authentic personality show, and invite
+a real discussion with one good question. Aim 130-230 words, no hashtags or URLs.
+You have no need to use tools and you must not publish anything yourself.
+Return ONLY the following exact format:
+TITLE: <one title, up to 120 characters>
+BODY_START
+<complete original text post, 130-230 words>
+BODY_END
+'''
+
+def generate(db):
+    row=db.execute("SELECT id,kind FROM original_requests WHERE state='queued' ORDER BY created_at LIMIT 1").fetchone()
+    if not row:return 'no draft requests'
+    rid,kind=row
+    checkpoint('original',rid,'queued')
+    # Dependency problems are temporary: keep the queued job intact until ready.
+    try:
+        with socket.create_connection(('127.0.0.1',18789),timeout=2): pass
+        env_check=os.environ.copy()
+        env_check['DOCKER_CONFIG']=str(HOME/'.docker-openclaw')
+        check=subprocess.run(['docker','info','--format','{{.ServerVersion}}'],capture_output=True,timeout=7,env=env_check)
+        if check.returncode != 0:
+            checkpoint('original',rid,'waiting')
+            return 'draft queued: Docker engine not ready'
+    except (OSError,subprocess.TimeoutExpired):
+        checkpoint('original',rid,'waiting')
+        return 'draft queued: Gateway or Docker is not ready'
+    db.execute("UPDATE original_requests SET state='running' WHERE id=? AND state='queued'",(rid,));db.commit()
+    checkpoint('original',rid,'generating')
+    try:
+        env=os.environ.copy()
+        env['PATH']=f'{HOME}/.openclaw/bin:{HOME}/.openclaw/tools/node/bin:'+env.get('PATH','')
+        env['DOCKER_CONFIG']=str(HOME/'.docker-openclaw')
+        with tempfile.TemporaryDirectory(prefix='bob-original-') as d:
+            f=Path(d)/'prompt.txt';f.write_text(prompt(kind),encoding='utf8')
+            p=subprocess.run(['openclaw','agent','--agent','main','--session-key',f'original-{rid}',
+                '--message-file',str(f),'--timeout','240'],capture_output=True,text=True,
+                env=env,timeout=300)
+        if p.returncode:raise RuntimeError('OpenClaw agent failed; check Gateway and sandbox readiness')
+        checkpoint('original',rid,'validating')
+        title,body=parse_draft(p.stdout)
+        validate('introductions' if kind=='intro' else 'general',title,body)
+        post_id=add_draft(db,rid,title,body)
+        db.commit()
+        checkpoint('original',rid,'completed')
+        return f'Bob created original draft {post_id}'
+    except Exception as ex:
+        db.execute("UPDATE original_requests SET state='failed',error=?,completed_at=? WHERE id=?",(str(ex)[:180],now(),rid))
+        event(db,'original_draft_failed',rid+' '+type(ex).__name__)
+        db.commit()
+        checkpoint('original',rid,'failed')
+        return f'draft generation failed: {type(ex).__name__}'
+
+def publish(db):
+    row=db.execute("SELECT id,submolt,title,content,digest FROM original_posts WHERE state='queued' ORDER BY queued_at LIMIT 1").fetchone()
+    if not row:return 'no original posts queued'
+    rid,submolt,title,body,h=row
+    checkpoint('original_publish',rid,'validating')
+    if (HOME/'.config/bob-system/paused').exists():
+        checkpoint('original_publish',rid,'paused')
+        return 'Bob paused'
+    from bob_originals import digest
+    if digest(submolt,title,body)!=h:
+        db.execute("UPDATE original_posts SET state='failed',last_error='Digest mismatch',updated_at=? WHERE id=?",(now(),rid)); db.commit()
+        checkpoint('original_publish',rid,'failed')
+        return 'original post integrity mismatch'
+    day=datetime.now(timezone.utc).date().isoformat()
+    if db.execute("SELECT count(*) FROM original_posts WHERE attempted_at LIKE ?",(day+'%',)).fetchone()[0] >= 1:
+        checkpoint('original_publish',rid,'waiting')
+        return 'original post daily attempt limit reached'
+    # To avoid duplicate top-level posts, mark as sending and persist before POST.
+    t=now()
+    db.execute("UPDATE original_posts SET state='sending',attempted_at=?,updated_at=? WHERE id=?",(t,t,rid))
+    event(db,'original_send_started',rid)
+    db.commit()
+    checkpoint('original_publish',rid,'sending')
+    try:
+        result=api('POST','/posts',{'submolt_name':submolt,'title':title,'content':body},key=api_key())
+        if result.get('success') is False:raise RuntimeError('API reported failure')
+        data=result.get('data') if isinstance(result.get('data'),dict) else result
+        v=data.get('verification') if isinstance(data.get('verification'),dict) else result.get('verification')
+        post=data.get('post') if isinstance(data.get('post'),dict) else result.get('post')
+        pid=(post or {}).get('id') or data.get('id') or result.get('post_id')
+        if not isinstance(pid,str) or not re.fullmatch(r'[0-9a-fA-F-]{36}',pid):pid=None
+        if v or data.get('verification_required') or result.get('verification_required'):
+            code=(v or {}).get('verification_code','')
+            challenge=(v or {}).get('challenge_text','')
+            if not isinstance(code,str) or not code.startswith('moltbook_') or not isinstance(challenge,str):
+                raise RuntimeError('Verification required but missing complete challenge')
+            db.execute("UPDATE original_posts SET state='awaiting_verification',post_id=?,challenge_code=?,challenge_text=?,challenge_expires_at=?,updated_at=? WHERE id=?",
+                       (pid,code,challenge[:2000],str((v or {}).get('expires_at') or '')[:60],now(),rid))
+            event(db,'original_verification_needed',rid)
+            db.commit()
+            checkpoint('original_publish',rid,'awaiting_verification')
+            return 'Original post awaiting human verification'
+        if not pid:raise RuntimeError('API response missing post ID')
+        db.execute("UPDATE original_posts SET state='published',post_id=?,updated_at=? WHERE id=?",(pid,now(),rid))
+        event(db,'original_published',rid+' '+pid)
+        db.commit()
+        checkpoint('original_publish',rid,'completed')
+        return 'Original post confirmed by API: '+pid
+    except Exception as ex:
+        db.execute("UPDATE original_posts SET state='uncertain',last_error=?,updated_at=? WHERE id=?",(str(ex)[:160],now(),rid))
+        event(db,'original_uncertain',rid+' no automatic retry')
+        db.commit()
+        checkpoint('original_publish',rid,'uncertain')
+        return 'Original post result uncertain; inspect manually'
+
+def verify(db):
+    rows=db.execute("SELECT id,challenge_expires_at FROM original_posts WHERE state='awaiting_verification'").fetchall()
+    for rid,ts in rows:
+        exp=parse_time(ts)
+        if exp and datetime.now(timezone.utc)>exp:
+            db.execute("UPDATE original_posts SET state='verification_expired',verify_answer=NULL,challenge_code=NULL,updated_at=? WHERE id=?",(now(),rid))
+    db.commit()
+    row=db.execute("SELECT id,challenge_code,verify_answer,post_id FROM original_posts WHERE state='awaiting_verification' AND verify_answer IS NOT NULL LIMIT 1").fetchone()
+    if not row:return 'no verification answers queued'
+    rid,code,answer,known_id=row
+    if not re.fullmatch(r'-?\d{1,8}\.\d{2}',answer):
+        db.execute("UPDATE original_posts SET verify_answer=NULL WHERE id=?",(rid,));db.commit();return 'invalid answer'
+    db.execute("UPDATE original_posts SET state='verifying',verify_answer=NULL,updated_at=? WHERE id=?",(now(),rid));db.commit()
+    checkpoint('original_publish',rid,'verifying')
+    try:
+        result=api('POST','/verify',{'verification_code':code,'answer':answer},key=api_key())
+        if result.get('success') is not True:raise RuntimeError('Verification not confirmed')
+        data=result.get('data') if isinstance(result.get('data'),dict) else result
+        pid=data.get('content_id') or result.get('content_id') or known_id
+        if not pid or not re.fullmatch(r'[0-9a-fA-F-]{36}',str(pid)):
+            # We can confirm verification succeeded, but public post ID is still unconfirmed.
+            db.execute("UPDATE original_posts SET state='verified_unconfirmed',updated_at=?,challenge_code=NULL WHERE id=?",(now(),rid))
+        else:
+            db.execute("UPDATE original_posts SET state='published',post_id=?,challenge_code=NULL,updated_at=? WHERE id=?",(pid,now(),rid))
+        event(db,'original_verified',rid)
+        db.commit()
+        checkpoint('original_publish',rid,'completed')
+        return 'Original verification acknowledged'
+    except Exception:
+        db.execute("UPDATE original_posts SET state='verification_failed',last_error='Verification result unclear, no retry',updated_at=? WHERE id=?",(now(),rid))
+        db.commit()
+        checkpoint('original_publish',rid,'uncertain')
+        return 'Original verification uncertain'
+
+def visibility(db):
+    # Only check individually confirmed post IDs, without credentials, for public visibility.
+    row=db.execute("SELECT id,post_id FROM original_posts WHERE state='published' AND post_id IS NOT NULL AND visible=0 ORDER BY attempted_at DESC LIMIT 1").fetchone()
+    if not row:return 'no visibility check needed'
+    rid,pid=row
+    try:
+        result=api('GET',f'/posts/{pid}')
+        data=result.get('data') if isinstance(result.get('data'),dict) else result
+        post=data.get('post') if isinstance(data.get('post'),dict) else data
+        if post.get('id') == pid:
+            db.execute('UPDATE original_posts SET visible=1,visible_checked_at=?,updated_at=? WHERE id=?',(now(),now(),rid))
+            db.commit();return 'Original post independently visible'
+    except Exception:pass
+    return 'Original post visibility not confirmed yet'
+
+def original_reply_check(db):
+    last=parse_time(setting(db,'last_original_reply_check',''))
+    if last and datetime.now(timezone.utc)-last < timedelta(minutes=15):
+        return 'Original-post replies checked recently'
+    set_setting(db,'last_original_reply_check',now())
+    db.commit()
+    rows=db.execute("SELECT post_id FROM original_posts WHERE state='published' AND post_id IS NOT NULL ORDER BY attempted_at DESC LIMIT 5").fetchall()
+    new=0
+    for (pid,) in rows:
+        if not re.fullmatch(r'[0-9a-fA-F-]{36}',pid):continue
+        try:
+            result=api('GET',f'/posts/{pid}/comments?sort=new&limit=100')
+            data=result.get('data') if isinstance(result.get('data'),dict) else result
+            comments=data.get('comments') or result.get('comments') or []
+            if not isinstance(comments,list):continue
+            stack=[(v,None) for v in comments[:100]]
+            seen=0
+            while stack and seen < 500:
+                obj,parent=stack.pop();seen+=1
+                if not isinstance(obj,dict):continue
+                cid=obj.get('id')
+                author=obj.get('author') if isinstance(obj.get('author'),dict) else {}
+                name=str(author.get('name') or 'unknown')[:100]
+                if isinstance(cid,str) and re.fullmatch(r'[0-9a-fA-F-]{36}',cid) and name.casefold() != 'bobskulllab':
+                    db.execute('INSERT OR IGNORE INTO original_post_replies(id,post_id,parent_id,author,content,detected_at) VALUES(?,?,?,?,?,?)',
+                               (cid,pid,parent,name,str(obj.get('content') or '')[:2000],now()))
+                    new+= db.execute('SELECT changes()').fetchone()[0]
+                children=obj.get('replies')
+                if isinstance(children,list):stack.extend((x,cid) for x in children[:100])
+        except Exception:
+            continue
+    if new:event(db,'original_post_replies',f'{new} replies found to Bob original posts')
+    db.commit()
+    return f'{new} newly found original-post replies'
+
+def main():
+    os.umask(0o077)
+    with connect() as db:
+        initialize(db)
+        if '--check' in sys.argv:
+            print('Original post queue OK');return
+        if (HOME/'.config/bob-system/paused').exists():
+            print('Bob paused; generation and original publishing skipped');return
+        print(generate(db),flush=True)
+        print(verify(db),flush=True)
+        print(publish(db),flush=True)
+        print(visibility(db),flush=True)
+        print(original_reply_check(db),flush=True)
+
+if __name__=='__main__': main()
