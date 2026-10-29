@@ -329,12 +329,13 @@ def panel(db,csrf,*,resolver=agent_workspace,state=STATE):
         diff=p["diff"] or "(No change to managed style block)"
         current_hash=p["before_sha"]
         action=(
-          '<form method="post" action="/mind/personality/apply">'
+          '<form class="bpm-confirm" method="post" action="/mind/personality/apply">'
           '<input type="hidden" name="csrf" value="'+esc(csrf)+'">'
           '<input type="hidden" name="expected_before" value="'+esc(current_hash)+'">'
           '<input type="hidden" name="expected_profile" value="'+esc(p["profile_sha"])+'">'
-          '<label>To apply, type APPLY BOB: <input name="confirmation" maxlength="20" '
-          'autocomplete="off" required></label> '
+          '<label for="bpm-apply-confirm">To apply, type APPLY BOB:'
+          '<input id="bpm-apply-confirm" type="text" name="confirmation" maxlength="20" '
+          'autocomplete="off" spellcheck="false" required></label>'
           '<button type="submit"'+(' disabled' if p["same"] else '')+'>Apply to Bob</button>'
           '</form>')
         root_desc="Main agent workspace verified by OpenClaw CLI; only SOUL.md managed block will change."
@@ -350,11 +351,12 @@ def panel(db,csrf,*,resolver=agent_workspace,state=STATE):
             and record["root"]==str(p["root"])
             and record["after"]==p["before_sha"]):
         rollback_form=(
-          '<form method="post" action="/mind/personality/rollback">'
+          '<form class="bpm-confirm" method="post" action="/mind/personality/rollback">'
           '<input type="hidden" name="csrf" value="'+esc(csrf)+'">'
           '<input type="hidden" name="expected_sha" value="'+esc(record["after"])+'">'
-          '<label>Type ROLL BACK: <input name="confirmation" maxlength="20" '
-          'autocomplete="off" required></label> '
+          '<label for="bpm-rollback-confirm">Type ROLL BACK:'
+          '<input id="bpm-rollback-confirm" type="text" name="confirmation" maxlength="20" '
+          'autocomplete="off" spellcheck="false" required></label>'
           '<button type="submit" class="secondary">Restore previous SOUL.md</button>'
           '</form>')
     return (
