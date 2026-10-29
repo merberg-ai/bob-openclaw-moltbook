@@ -74,10 +74,10 @@ class VerificationStateTests(unittest.TestCase):
     def test_verified_without_comment_id_is_not_published(self):
         with sqlite3.connect(":memory:") as db:
             db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, challenge_code TEXT, "
-                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT)")
-            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT, attempted_at TEXT)")
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?)",
                        ("20261029T020000Z", "awaiting_verification", "moltbook_test",
-                        "15.00", None, None, "2026-10-29"))
+                        "15.00", None, None, "2026-10-29", "2026-10-29T02:00:00Z"))
             with patch.object(self.publisher, "api", return_value={"success": True, "data": {}}), \
                  patch.object(self.publisher, "api_key", return_value="test"), \
                  patch.object(self.publisher, "event"), \
@@ -92,10 +92,10 @@ class VerificationStateTests(unittest.TestCase):
         confirmed = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
         with sqlite3.connect(":memory:") as db:
             db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, challenge_code TEXT, "
-                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT)")
-            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                       "verify_answer TEXT, challenge_expires_at TEXT, comment_id TEXT, updated_at TEXT, attempted_at TEXT)")
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?)",
                        ("20261029T020000Z", "awaiting_verification", "moltbook_test",
-                        "15.00", None, confirmed, "2026-10-29"))
+                        "15.00", None, confirmed, "2026-10-29", "2026-10-29T02:00:00Z"))
             with patch.object(self.publisher, "api", return_value={"success": True, "data": {}}), \
                  patch.object(self.publisher, "api_key", return_value="test"), \
                  patch.object(self.publisher, "event"), \
