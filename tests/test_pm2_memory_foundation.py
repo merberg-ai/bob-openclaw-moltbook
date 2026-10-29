@@ -107,7 +107,7 @@ class MemoryTests(unittest.TestCase):
                     dict(category="command"), dict(title="<\x00malformed>")):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 mm.create(self.db, fields(**bad))
-        self.assertEqual(self.db.execute("SELECT count(*) FROM bob_memories").fetchone()[0], 0)
+        self.assertIsNone(self.db.execute("SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'bob_memories\'").fetchone())
 
     def test_dispatch_requires_exact_bounded_fields(self):
         post = dict(fields(), csrf="dummy", operation="create")
