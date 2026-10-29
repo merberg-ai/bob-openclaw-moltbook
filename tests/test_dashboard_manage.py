@@ -154,6 +154,47 @@ class QueueManagerTests(unittest.TestCase):
         self.assertIn("Review: pending", html)
         self.assertIn("Publication: queued (auto)", html)
 
+    def test_archived_scout_checkboxes_submit_only_to_restore_form(self):
+        archived_id=self.records[0]["run_id"]
+        active_id=self.records[1]["run_id"]
+        self.db.execute("INSERT INTO dashboard_hidden VALUES (?,?,?)",
+                        ("scout", archived_id, "2026-10-29T02:00:00Z"))
+        archived_key=self.selection("scout",archived_id)
+        active_key=self.selection("scout",active_id)
+        html=mgr.page(self.db,self.records,state_fn,
+                      {"tab":["scout"],"state":["pending"],"show":["all"]},
+                      "synthetic-csrf",lambda title,content,route:content)
+        self.assertIn('form="bqm-restore" value="'+archived_key+'"',html)
+        self.assertIn('name="selected" value="'+active_key+'"',html)
+        self.assertIn('<form id="bqm-restore"',html)
+        self.assertIn('name="operation" value="restore"',html)
+        self.assertIn('Restore selected archived',html)
+        self.assertIn('Apply to active selected',html)
+        self.assertNotIn('<option value="restore">',html)
+        # The server guard is still authoritative, even for forged submissions.
+        with self.assertRaisesRegex(ValueError,"restore archived item"):
+            mgr.apply_batch(self.db,self.records,state_fn,"scout","reject",
+                            [archived_key],"")
+        self.assertEqual(self.db.execute("SELECT count(*) FROM decisions").fetchone()[0],0)
+        self.assertEqual(mgr.apply_batch(self.db,self.records,state_fn,
+                                         "scout","restore",[archived_key],""),1)
+        self.assertEqual(mgr.apply_batch(self.db,self.records,state_fn,
+                                         "scout","reject",[archived_key],""),1)
+
+    def test_archive_visibility_keeps_one_form_for_each_eligible_action(self):
+        self.db.execute("INSERT INTO dashboard_hidden VALUES (?,?,?)",
+                        ("scout",self.records[0]["run_id"],"2026-10-29T02:00:00Z"))
+        render=lambda show:mgr.page(
+            self.db,self.records,state_fn,{"tab":["scout"],"show":[show]},
+            "synthetic-csrf",lambda title,content,route:content)
+        active=render("active")
+        self.assertIn("Apply to active selected",active)
+        self.assertNotIn('id="bqm-restore"',active)
+        archived=render("archived")
+        self.assertIn('id="bqm-restore"',archived)
+        self.assertNotIn("Apply to active selected",archived)
+        self.assertIn('form="bqm-restore"',archived)
+
     def test_auto_queued_pending_can_be_reviewed_but_not_queued_twice(self):
         rid = self.records[0]["run_id"]
         key = self.selection("scout", rid)
