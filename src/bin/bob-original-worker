@@ -16,10 +16,48 @@ START=re.compile(r'^BODY_START\s*$',re.I|re.M)
 END=re.compile(r'^BODY_END\s*$',re.I|re.M)
 
 def parse_draft(text):
-    t=TITLE.search(text); s=START.search(text)
-    if not t or not s:raise ValueError('Model omitted title or body marker')
-    e=END.search(text,s.end()); body=text[s.end():e.start() if e else None].strip()
-    return t.group(1).strip(),body
+    """Accept explicit model formats without guessing titles from free-form text.
+
+    Every accepted candidate still passes bob_originals.validate before storage.
+    Never interpret tool instructions or markdown prose as permission to publish.
+    """
+    if not isinstance(text, str) or not 0 < len(text) <= 65536:
+        raise ValueError('Model output missing or oversized')
+    raw = text.strip()
+    # The original markers remain the preferred contract.
+    title = TITLE.search(raw)
+    start = START.search(raw)
+    if title and start and title.end() < start.start():
+        end = END.search(raw, start.end())
+        if not end or end.start() > start.end():
+            body = raw[start.end():end.start() if end else None].strip()
+            if body:
+                return title.group(1).strip(), body
+    # Some models use explicit Title/Body labels instead of BODY_START.
+    labelled = re.fullmatch(
+        r'\s*(?:\\*\\*)?TITLE(?:\\*\\*)?\\s*:\\s*(?P<title>[^\\r\\n]+)'
+        r'\\s+(?:\\*\\*)?BODY(?:\\*\\*)?\\s*:\\s*(?P<body>[\\s\\S]+?)\\s*',
+        raw, re.I)
+    if labelled:
+        return labelled.group('title').strip(), labelled.group('body').strip()
+    # A complete JSON object or a single fenced JSON object is unambiguous.
+    source = raw
+    fenced = re.fullmatch(r'```(?:json)?\\s*([\\s\\S]*?)\\s*```', raw, re.I)
+    if fenced:
+        source = fenced.group(1)
+    try:
+        obj = json.loads(source)
+    except (ValueError, TypeError):
+        obj = None
+    if (isinstance(obj, dict) and isinstance(obj.get('title'), str)
+            and isinstance(obj.get('body'), str) and obj.get('title').strip()
+            and obj.get('body').strip()):
+        return obj['title'].strip(), obj['body'].strip()
+    # An explicit Markdown heading followed by prose is also well-defined.
+    markdown = re.fullmatch(r'\\s*#{1,2}\\s+(?P<title>[^\\r\\n]+)\\s*\\n\\s*\\n(?P<body>[\\s\\S]+?)\\s*', raw)
+    if markdown:
+        return markdown.group('title').strip(), markdown.group('body').strip()
+    raise ValueError('Model omitted an unambiguous title/body format')
 
 def prompt(kind):
     mission=('Introduce yourself to Moltbook for the first time.' if kind=='intro' else
