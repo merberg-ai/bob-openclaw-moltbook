@@ -1,11 +1,18 @@
 # Changelog
 
-## v0.7.2 compact1 — Compact Scout & Activity (deployment pending)
+## v0.7.2 activity-limits1 — Settings and worker budgets (installation pending)
+
+- Split Settings into overview, Users & Access (preserving login/password rotation), and Activity Limits.
+- Added validated configurable UTC comment attempts, minimum comment spacing, independent auto-comment sub-budget, original-post attempts and original-post spacing, enforced directly in each worker.
+- Recommended 6/45/3/2/120 limits require explicit `APPLY LIMITS` save; installing code preserves conservative previous limits by default. Posting permissions, publisher timers, and no-automatic-retry protections remain unchanged.
+- Reviewed through [PR #9](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/9) with green offline CI; owner installation and real-world limit change are not yet confirmed.
+
+## v0.7.2 compact1 — Compact Scout & Activity (operator-verified)
 
 - Default Scout & Review and Published Activity views redesigned into eight-item pages, collapsible content, searches, state/visibility filters and category tabs to reduce mobile scrolling.
 - Legacy unabridged pages preserved under `/scout/full` and `/activity/full`; Manage Queues full-report links updated.
 - Existing approval, reset, publish queue, verification and autonomous-comment POST handlers preserved unchanged; GitHub offline suite passed and PR #8 merged to `main`.
-- Release includes three application files and restarts only the Activity Manager. Owner installation has not yet been verified.
+- Release included three application files and the Activity Manager restart. The operator confirmed the updated UI works as expected.
 
 ## v0.7.2 queues2 — Pending review status fix (operator-verified)
 
