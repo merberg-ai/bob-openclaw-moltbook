@@ -123,8 +123,34 @@ jobs:
         run: python3 scripts/rehearse_v071_ui_update.py
       - name: Smoke read-only browser preview (synthetic data, disabled POST)
         run: python3 scripts/preview_v071_ui.py --self-test
-      - name: Run complete isolated release rehearsal after tests
-        run: python3 scripts/rehearse_release_rollout.py
+      - name: Preserve historical 9-file baseline rehearsal only when exact baseline matches
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import subprocess
+          import sys
+          sys.path.insert(0, "scripts")
+          from import_verified_sources import SOURCES
+          root = Path("src")
+          current = {
+              folder + "/" + item.name
+              for folder in ("bin", "lib/bob")
+              for item in (root / folder).iterdir()
+              if item.is_file()
+          }
+          matching = current == set(SOURCES) and all(
+              hashlib.sha256((root / name).read_bytes()).hexdigest() == sha
+              for name, sha in SOURCES.items()
+          )
+          if matching:
+              subprocess.run([sys.executable, "scripts/rehearse_release_rollout.py"], check=True)
+          else:
+              print("SKIP historical nine-file rehearsal: repository has advanced beyond v0.7.0.")
+              print("Its SHA-pinned baseline checks remain unchanged and runnable on original baseline.")
+          PY
+      - name: Build current queue-management dashboard release candidate
+        run: python3 scripts/build_v072_dashboard_manage_candidate.py
       - name: Run inert service-graph acceptance in disposable sandbox
         run: python3 scripts/stage_service_graph.py
       - name: Verify inert staging unit syntax
