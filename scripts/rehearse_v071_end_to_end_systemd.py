@@ -149,23 +149,35 @@ def run(scenario):
         installer.install(root)
         try:
             if scenario != "restart-failure" and not start(root, "candidate", first):
-                raise RuntimeError("candidate transient health failed")
+                raise RuntimeError("candidate_health_or_active_state")
             candidate_ok = scenario != "restart-failure"
         finally:
             if scenario != "restart-failure":
-                stop(first)
+                try:
+                    stop(first)
+                except RuntimeError as exc:
+                    raise RuntimeError("candidate_unit_cleanup") from exc
         (root / "port").unlink(missing_ok=True)
         if scenario == "healthy" and candidate_ok:
             installer.finish(root)
             outcome, baseline_ok = "candidate_healthy", "not_needed"
         else:
-            installer.recover(root)
             try:
-                if not start(root, "baseline", second):
-                    raise RuntimeError("baseline transient recovery failed")
-                baseline_ok = True
+                installer.recover(root)
+            except (OSError, ValueError, RuntimeError) as exc:
+                raise RuntimeError("file_rollback_failed") from exc
+            try:
+                try:
+                    if not start(root, "baseline", second):
+                        raise RuntimeError("baseline_health_or_active_state")
+                    baseline_ok = True
+                except (OSError, ValueError, RuntimeError) as exc:
+                    raise RuntimeError("baseline_start_or_health") from exc
             finally:
-                stop(second)
+                try:
+                    stop(second)
+                except RuntimeError as exc:
+                    raise RuntimeError("baseline_unit_cleanup") from exc
             outcome = "baseline_recovered"
         manager, nav = installer.files(root)
         base, candidate, navigation = installer.sealed(root)
@@ -201,7 +213,12 @@ def main():
         report = run(args.scenario)
     except (OSError, RuntimeError, ValueError, AssertionError, sqlite3.Error,
             subprocess.TimeoutExpired) as exc:
+        code = str(exc) if isinstance(exc, RuntimeError) and str(exc) in {
+            "candidate_health_or_active_state", "candidate_unit_cleanup",
+            "file_rollback_failed", "baseline_start_or_health",
+            "baseline_unit_cleanup"} else "unclassified"
         print("v0.7.1 END-TO-END SYSTEMD INSTALL: REFUSED", type(exc).__name__)
+        print("safe_failure_phase:", code)
         return 1
     print("v0.7.1 END-TO-END SYSTEMD INSTALL: PASS")
     for k, v in report.items():
