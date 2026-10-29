@@ -1,44 +1,43 @@
-# Operations and v0.7.0 baseline checklist
+# Bob operator guide (v0.7.2)
 
-**Do not install from this repository yet.** The first actionable milestone is to capture a reproducible, sanitized baseline from the currently working OpenClawLab host.
+**Current state, October 29, 2026:** The owner's OpenClawLab (WSL2) host is running the verified v0.7.2 Activity Manager, working original-thought drafting, observed worker stages and manually prioritized comment publication. The reusable `bobctl update` command was installed and confirmed up to date. **Its one-time move from the historical feature branch to canonical `main` is prepared but still requires host execution.** See [main migration](MAIN-UPDATER-MIGRATION.md).
 
-## Read-only checks
+## Routine operator commands
 
-On the existing OpenClawLab system:
+Run from the `openclaw` account inside OpenClawLab:
 
-```bash
-~/.local/bin/bobctl status
-~/.local/bin/bobctl doctor
-curl -fsS http://127.0.0.1:18790/healthz
-systemctl --user list-timers --all
-systemctl --user cat openclaw-gateway.service bob-activity-manager.service
-```
+| Command | Effect |
+| --- | --- |
+| `bobctl status` | Service overview and publication-state counts |
+| `bobctl doctor` | Read-only Docker, local Ollama, Gateway and Activity Manager readiness |
+| `bobctl publisher-status` | Read-only publisher state counts and timer status |
+| `bobctl publisher-logs` | Recent user-systemd publisher logs |
+| `bobctl update --check` | Fast-forward the trusted Git checkout and report pending release, **no application deployment** |
+| `bobctl update` | Show an available reviewed release and request typed `UPDATE` before any live code update |
+| `bobctl update --recover` | Recover an **interrupted** updater transaction only, with explicit approval |
 
-Do not paste full live config, environment values, API keys or credentials into an issue.
+`bobctl publisher-run` is **not a diagnostic command**: it invokes the publisher and might attempt a real Moltbook comment when eligible. Use it only after explicitly deciding to publish.
 
-## Host baseline process
+The Activity Manager normally runs on `127.0.0.1:18790`, with the operator-configured trusted-LAN binding for other devices. Keep its HTTP Basic login on a trusted LAN/VPN, or terminate HTTPS at a properly configured reverse proxy; do not expose unencrypted credentials publicly.
 
-1. Capture the *exact* live executable files, SHA-256 hashes, service files, drop-ins, timers, and SQLite schema version in a private staging location.
-2. Make a **SQLite online backup** using `sqlite3.Connection.backup()` and verify it. Preserve all publishing states, reviews, quotas and verification records.
-3. Compare host files to the v0.6 reference bundle and later fixes; record differences without overwriting the host.
-4. Select canonical sanitized source and test fixtures, removing secrets, machine-specific settings, memory, personal data and logs.
-5. Run legacy v0.5/v0.6 regression tests including the LAN `Origin: null` request case, CSRF checks, and comment/original publication paths against temporary databases.
-6. Add version identifiers and a reproducible CI test suite. Tag the verified baseline **only after** acceptance.
-7. Implement and demonstrate `bobctl update --dry-run`, pinned-release update and rollback in staging before touching production.
-8. During a real upgrade, preserve current auto-mode decisions and avoid surprise publish actions.
+## Publication and queue safety
 
-## Mandatory acceptance gates
+Comment attempts are rate limited to **two per UTC day** and at least **one hour apart**, shared by manual and eligible automatic comments. In late October 2026, the owner confirmed these limits, four public comments visible to a read-only audit, a successful original-thought draft, and live manual-first queue ordering. When the daily cap is exhausted, additional jobs stay queued until the next permitted window. `cancelled` automatic comments were canceled while queued during prior auto-posting toggles; they are not proof of failed network submissions.
 
-- LAN and localhost login, approvals, rejections and autonomous toggle work; no CSRF regression.
-- Scouting and original generation produce source-validated data, not fabricated post IDs.
-- Worker states, challenges and ambiguous results are preserved; uncertain publication requests are not blindly retried.
-- Approved original posts still need an explicit Publish action.
-- Reboot recovery, Docker sandbox restrictions, Gateway readiness and Ollama integration remain stable.
-- An operator can stop/pause autonomous activity and have that decision respected.
-- Rollback restores running code safely without discarding new database writes.
+`scripts/diagnose_comment_queue.py` in the GitHub checkout reports paused/auto mode, queue breakdown and the current rate limiter without database writes or Moltbook calls. `scripts/audit_comment_visibility.py` performs a bounded public listing check and never retries a possible duplicate. An API challenge acknowledgment without a confirmed comment ID is **not** labeled publicly visible; verification uncertainty does not authorize a repost.
 
-## Future operations commands
+Original thoughts remain draft-first and require separate human review before publication. Optional autonomous comment permission does not authorize original posts or conversation follow-ups.
 
-Planned, **not yet implemented in this repository**: `bobctl version`, `bobctl check-update`, `bobctl update --dry-run`, `bobctl update`, `bobctl rollback`.
+## Releases, recovery and backups
 
-Use versioned releases, content checksums, durable backups, additive migrations, atomic deployment and health checks. Never pipe mutable `main` directly into a production shell.
+- `main` is the canonical reviewed source branch, and [`releases/current.json`](../releases/current.json) is the release manifest.
+- Migrate the already-installed updater once using [main migration instructions](MAIN-UPDATER-MIGRATION.md). Do not delete the old feature checkout before checking the new channel.
+- Subsequent reviewed releases use `bobctl update`, not historical version-specific patch scripts.
+- The updater checks stored code hashes, creates and verifies a private SQLite backup before a nonempty release, performs atomic code swaps, and verifies the authenticated dashboard; it attempts code-only rollback on failure. It never invokes the publisher or resets posting records.
+- A new-host Windows/WSL/OpenClawLab installer is **not yet available**; do not run the historical pinned upgrade scripts on a clean host. See [installation status](INSTALLATION-STATUS.md).
+
+Do not paste passwords, API tokens, systemd environment files, `~/.config/moltbook/` databases or private report contents into GitHub issues. The web dashboard is not a new security identity: the publisher and dashboard still share an OS user on this host.
+
+## Before starting v0.7.3
+
+Finish the channel migration, collect and implement a small reviewed batch of dashboard tweaks, and use that batch to verify the **first nonempty manifest-driven update**. The v0.7.3 observations and opinion-learning features are not yet shipped and must remain distinct from authority to publish.
