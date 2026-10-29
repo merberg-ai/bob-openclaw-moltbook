@@ -1,12 +1,12 @@
 # Bob update workflow (`bobctl update`)
 
-**Working system:** Bob v0.7.2 on the owner's existing OpenClawLab WSL2 installation. The manifest-driven updater has been bootstrapped and was confirmed to report `up to date`. As of October 29, 2026, the **installed updater still points at the historical `feature/v0.7.1-navigation` checkout**. The canonical `main` migration is prepared in GitHub and awaits the owner's one-time execution.
+**Working system:** Bob v0.7.2 on the owner's existing OpenClawLab WSL2 installation. The manifest-driven updater has been bootstrapped and was confirmed to report `up to date`. The operator reports that the **canonical `main` migration completed successfully** on October 29, 2026; the existing-host updater now follows `main`.
 
-## Moving the installed updater to `main`
+## Completed one-time migration to `main`
 
-Follow the [one-command, three-test main migration](MAIN-UPDATER-MIGRATION.md). It creates a separate `~/bob-main` checkout, pins and verifies the exact installed updater, and changes the updater's trusted branch, private checkout pointer and release registry. It does not restart Bob or modify the publication database.
+The operator completed the [three-test main migration](MAIN-UPDATER-MIGRATION.md). It creates a separate `~/bob-main` checkout, pins and verifies the exact installed updater, and changes the updater's trusted branch, private checkout pointer and release registry. It does not restart Bob or modify the publication database.
 
-After migration, verify:
+Expected migration validation output (reported successful by operator):
 
 ```text
 BOB MAIN MIGRATION: main_channel_installed
@@ -15,7 +15,7 @@ BOB UPDATE: up to date (v0.7.2-main-channel)
 
 **Do not rerun the original v0.7.2 updater bootstrap** on a working installation. That script is retained as historical release material.
 
-## Regular updates after migration
+## Regular updates from `main`
 
 ```bash
 bobctl update --check
