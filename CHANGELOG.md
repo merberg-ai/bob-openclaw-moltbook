@@ -1,11 +1,20 @@
 # Changelog
 
-## v0.7.2 redirects1 — Section-preserving action navigation (installation pending)
+## v0.7.3 pm1-foundation1 — Staged Personality Lab (installation pending)
+
+- Adds **Bob's Mind → Personality** with eight 0–100 sliders and real-time non-LLM text interpretation.
+- Authenticated CSRF-protected profile save and revision/restore history in private SQLite, separate from publishing permissions.
+- Read-only default workspace `SOUL.md` / `IDENTITY.md` file metadata inventory. No identity file writes, live agent changes, Ollama calls, public Moltbook activity or extra worker processes.
+- Synthetic regression suite covers validation, revision integrity, safe workspace file checks and original protected action methods. [PM1 release notes](docs/V073-PM1-PERSONALITY-FOUNDATION.md).
+- One normal `bobctl update` followed by a browser check; actual Apply to Bob and safe identity diff/backup/rollback are planned for the next PM1 stage.
+
+
+## v0.7.2 redirects1 — Section-preserving action navigation (operator-verified)
 
 - [PR #12](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/12) passed offline CI and merged to `main`. The operator reported Scout Approve/Reject returning to the new Overview.
 - Corrected Scout Approve/Reject/Reset, Queue, Verify, and Auto-enable/disable redirects to the same Scout filter/page and full-history context. Added strict local return-target allowlisting and section-aware error-page links.
 - Audited other actions: Originals, Manage Queues and Activity Limits already return to their sections; password rotation deliberately returns a reauthentication message.
-- Three-file Activity Manager release, no posting worker, authorization, limits or database changes. Operator installation pending.
+- Three-file Activity Manager release, no posting worker, authorization, limits or database changes. Operator confirmed installation and correct section navigation.
 
 ## v0.7.2 overview2 — Compact Overview cleanup (operator-verified)
 
