@@ -210,7 +210,7 @@ JS = r"""'use strict';
     }
     preview.textContent='Illustrative tone guidance (not a generated Bob reply):\n'+traits.join('\n')
        +'\n\nCuriosity and openness encourage exploration, not unsupported certainty. '
-       +'These settings are staged until a later, separately reviewed Apply to Bob phase.';
+       +'Save the profile, then use the separate Apply to Bob control to change future agent sessions.';
   }
   inputs.forEach(x=>x.addEventListener('input',draw));
   draw();
@@ -255,9 +255,9 @@ def page(db, csrf, wrap):
         '</li>' for item in identity)
     body=(CSS+'<div class="bpm" id="bob-personality">'
           '<p class="bpm-intro">Adjust Bob’s social and intellectual style. The sliders are editable and '
-          'saved privately with history. They do not yet alter OpenClaw prompts.</p>'
-          '<div class="bpm-notice"><b>Staging only:</b> Saving here does not change Bob’s live personality. '
-          'First we verify the actual workspace, then add a separate safe Apply &amp; Rollback step.</div>'
+          'saved privately with history. Saving alone does not alter OpenClaw prompts.</p>'
+          '<div class="bpm-notice"><b>Two separate steps:</b> Save your slider profile first, then review '
+          'the exact proposed SOUL.md change under Apply personality to Bob. Use rollback to undo.</div>'
           '<section class="bpm-panel"><div class="bpm-head"><h2>Personality controls</h2>'
           '<span class="bpm-muted">Eight traits · 0–100 · increments of five</span></div>'
           '<form method="post" action="/mind/personality">'
