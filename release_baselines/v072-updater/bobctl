@@ -1,0 +1,515 @@
+#!/usr/bin/env python3
+"""Bob System Manager v0.5. No network credentials or publishing privileges.
+
+This controller runs as the 'openclaw' user in the OpenClawLab WSL distro.
+Moltbook API keys and approved drafts are never opened by this program.
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import shutil
+import socket
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+HOME = Path.home()
+BIN = HOME / ".local/bin"
+GATEWAY = "openclaw-gateway.service"
+MANAGER = "bob-activity-manager.service"
+SCOUT = "bob-moltbook-scout.service"
+TIMER = "bob-moltbook-scout.timer"
+RECOVERY_TIMER = "bob-startup-reconcile.timer"
+PAUSE_MARKER = HOME / ".config/bob-system/paused"
+GATEWAY_PORT = 18789
+MANAGER_PORT = 18790
+MODEL = "qwen3.5:9b"
+IMAGE = "openclaw-sandbox:trixie-slim"
+OPENCLAW = str(HOME / ".openclaw/bin/openclaw")
+
+# Use a private, helper-free docker client config. The Windows credential
+# helper cannot be executed in this deliberately isolated WSL distro.
+os.environ["DOCKER_CONFIG"] = str(HOME / ".docker-openclaw")
+os.environ["PATH"] = f"{HOME}/.openclaw/bin:{HOME}/.openclaw/tools/node/bin:" + os.environ.get("PATH", "")
+
+
+def run(argv, timeout=15, *, check=False, quiet=False):
+    try:
+        return subprocess.run(argv, text=True, capture_output=True,
+                              timeout=timeout, check=check)
+    except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError) as exc:
+        if check:
+            raise RuntimeError(f"{argv[0]} unavailable or timed out: {exc}") from exc
+        return subprocess.CompletedProcess(argv, 124, "", str(exc))
+
+
+def service_state(unit, user=True):
+    argv = ["systemctl"] + (["--user"] if user else []) + ["is-active", unit]
+    result = run(argv, timeout=4)
+    return result.stdout.strip() or result.stderr.strip() or "unknown"
+
+
+def legacy_active():
+    return service_state(TIMER, user=False) == "active"
+
+
+def user_timer_enabled():
+    p = run(["systemctl", "--user", "is-enabled", TIMER], timeout=4)
+    return p.returncode == 0 and p.stdout.strip() == "enabled"
+
+
+def has_docker_cli():
+    return bool(shutil.which("docker"))
+
+
+def check_docker():
+    if not has_docker_cli():
+        return False, "docker CLI missing (check Docker Desktop WSL integration)"
+    if not Path("/var/run/docker.sock").exists():
+        return False, "Docker socket missing (start Docker Desktop/WSL integration)"
+    p = run(["docker", "info", "--format", "{{.ServerVersion}}"], timeout=8)
+    if p.returncode:
+        return False, "docker info failed (Desktop not ready, or socket permissions)"
+    return True, "Docker Desktop engine " + p.stdout.strip()[:60]
+
+
+def check_image():
+    if not has_docker_cli():
+        return False, "docker CLI unavailable"
+    p = run(["docker", "image", "inspect", "--format", "{{.Id}}", IMAGE], timeout=8)
+    return (True, f"sandbox image {IMAGE} available") if p.returncode == 0 else (False, f"sandbox image {IMAGE} missing")
+
+
+def fetch_json(url, timeout=3, max_bytes=512 * 1024):
+    # Local-only URLs hard-coded below. No redirects or external user URLs.
+    with urllib.request.urlopen(url, timeout=timeout) as resp:
+        if resp.status != 200:
+            raise ValueError("HTTP status is not 200")
+        raw = resp.read(max_bytes + 1)
+        if len(raw) > max_bytes:
+            raise ValueError("response too large")
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError("unexpected JSON response")
+    return data
+
+
+def check_ollama():
+    try:
+        data = fetch_json("http://127.0.0.1:11434/api/tags", timeout=3)
+        models = data.get("models")
+        if not isinstance(models, list):
+            return False, "Ollama response has no models list"
+        names = [m.get("name") or m.get("model") for m in models if isinstance(m, dict)]
+        if MODEL not in names:
+            return False, f"Ollama reachable, but model {MODEL} not listed"
+        return True, f"Ollama reachable; {MODEL} installed"
+    except (OSError, ValueError, urllib.error.URLError, TimeoutError) as exc:
+        return False, f"Ollama not ready ({type(exc).__name__})"
+
+
+def tcp_listening(port):
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1.5):
+            return True
+    except OSError:
+        return False
+
+
+def check_gateway(full=True):
+    if service_state(GATEWAY) != "active":
+        return False, "OpenClaw Gateway systemd user service not active"
+    if not tcp_listening(GATEWAY_PORT):
+        return False, "Gateway not listening on 127.0.0.1:18789"
+    if not full:
+        return True, "Gateway listening; full health not checked"
+    p = run([OPENCLAW, "health"], timeout=24)
+    if p.returncode:
+        return False, "OpenClaw health command failed; check bobctl gateway-logs"
+    return True, "OpenClaw health passed"
+
+
+def check_manager():
+    if service_state(MANAGER) != "active":
+        return False, "Activity Manager service not active"
+    try:
+        data = fetch_json("http://127.0.0.1:18790/healthz", timeout=2, max_bytes=4096)
+        if data.get("ok") is True and data.get("publishes") is False:
+            return True, f"Activity Manager v{data.get('version', '?')} ready (local-only approval)"
+        return False, "Activity Manager returned unexpected health data"
+    except (OSError, ValueError, urllib.error.URLError, TimeoutError):
+        return False, "Activity Manager service active but HTTP health failed"
+
+
+def dependency_checks(*, full_gateway=True):
+    # Ensure user-facing output is actionable, not a wall of exception details.
+    d_ok, d_msg = check_docker()
+    image_ok, image_msg = check_image() if d_ok else (False, "can't inspect sandbox image until Docker works")
+    ollama_ok, ollama_msg = check_ollama()
+    gateway_ok, gateway_msg = check_gateway(full=full_gateway)
+    return [("Docker", d_ok, d_msg), ("Sandbox", image_ok, image_msg),
+            ("Ollama", ollama_ok, ollama_msg), ("Gateway", gateway_ok, gateway_msg)]
+
+
+def scout_ready(verbose=True):
+    # This command also serves as systemd ExecCondition; exit 1 => skip run
+    # without falsely marking it as a failure. No HTTP Moltbook calls here.
+    checks = dependency_checks(full_gateway=True)
+    bad = [(name, detail) for name, ok, detail in checks if not ok]
+    if bad:
+        if verbose:
+            print("SCOUT SKIPPED: dependencies are not ready:", flush=True)
+            for name, detail in bad:
+                print(f"  {name}: {detail}", flush=True)
+        return 1
+    if verbose:
+        print("SCOUT READY: Docker, sandbox image, Ollama, and Gateway healthy", flush=True)
+    return 0
+
+
+def paused():
+    return PAUSE_MARKER.exists()
+
+
+def set_paused(value):
+    if value:
+        PAUSE_MARKER.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        PAUSE_MARKER.write_text("Paused by bobctl stop; resume with bobctl start.\n")
+        PAUSE_MARKER.chmod(0o600)
+    else:
+        PAUSE_MARKER.unlink(missing_ok=True)
+
+
+def reconcile():
+    """Idempotent, bounded startup recovery. Never opens Moltbook credentials.
+
+    Missing host dependencies are expected after Windows sign-in, so return 0;
+    the next timer activation retries. Never overrides an explicit bobctl stop.
+    """
+    if paused():
+        print("RECOVERY PAUSED by user: run bobctl start to resume", flush=True)
+        return 0
+    if not ctl("start", MANAGER):
+        print("RECOVERY: Manager service could not start; will retry", flush=True)
+        return 0
+    docker_ok, docker_msg = check_docker()
+    image_ok, image_msg = check_image() if docker_ok else (False, "Docker not ready")
+    ollama_ok, ollama_msg = check_ollama()
+    if not all([docker_ok, image_ok, ollama_ok]):
+        print("RECOVERY WAITING for dependencies:", flush=True)
+        for label, ok, msg in (("Docker", docker_ok, docker_msg),
+                                ("Sandbox", image_ok, image_msg),
+                                ("Ollama", ollama_ok, ollama_msg)):
+            if not ok:
+                print(f"  {label}: {msg}", flush=True)
+        return 0
+    if not ctl("start", GATEWAY):
+        print("RECOVERY: Gateway service could not start; will retry", flush=True)
+        return 0
+    gateway_ok, gateway_msg = check_gateway(full=True)
+    if not gateway_ok:
+        # Gateway startup may take 10+ seconds; next periodic check retries.
+        print(f"RECOVERY WAITING for Gateway: {gateway_msg}", flush=True)
+        return 0
+    if legacy_active():
+        print("RECOVERY: Legacy root timer active; not enabling duplicate user timer", flush=True)
+        return 0
+    if not user_timer_enabled():
+        if not ctl("enable", "--now", TIMER):
+            print("RECOVERY: Could not enable user scout timer; will retry", flush=True)
+            return 0
+    elif service_state(TIMER) != "active":
+        if not ctl("start", TIMER):
+            print("RECOVERY: Scout timer inactive; will retry", flush=True)
+            return 0
+    print("RECOVERY READY: Docker, sandbox, Ollama, Gateway, Manager, scout timer", flush=True)
+    return 0
+
+
+def status():
+    print("Bob System Manager v0.5")
+    print("-" * 46)
+    for label, unit in (("Gateway", GATEWAY), ("Activity Manager", MANAGER),
+                        ("Scout user timer", TIMER)):
+        print(f"{label:19} {service_state(unit)}")
+    print(f"Scout legacy timer   {service_state(TIMER, user=False)}")
+    print(f"Startup recovery      {service_state(RECOVERY_TIMER)}")
+    print(f"Auto-recovery         {'PAUSED by user' if paused() else 'ENABLED'}")
+    d_ok, d_msg = check_docker()
+    o_ok, o_msg = check_ollama()
+    g_ok, g_msg = check_gateway(full=False)
+    m_ok, m_msg = check_manager()
+    for label, ok, msg in (("Docker", d_ok, d_msg), ("Ollama", o_ok, o_msg),
+                            ("Gateway socket", g_ok, g_msg), ("Manager HTTP", m_ok, m_msg)):
+        print(f"{label:19} {'OK' if ok else 'NOT READY'}: {msg}")
+    if legacy_active() and user_timer_enabled():
+        print("WARNING: BOTH system and user scouting timers enabled; disable the legacy timer.")
+    elif legacy_active():
+        print("Scout uses old system timer. One-time migration: bobctl migrate-timer")
+    print("Dashboard: http://127.0.0.1:18790/")
+    publisher_status()
+    return 0
+
+
+def doctor():
+    print("Bob v0.4 dependency diagnostics (read-only)")
+    print("-" * 46)
+    checks = dependency_checks(full_gateway=True)
+    m_ok, m_msg = check_manager()
+    checks.append(("Manager", m_ok, m_msg))
+    if not (HOME / ".docker-openclaw/config.json").is_file():
+        checks.append(("Docker config", False, "missing helper-free ~/.docker-openclaw/config.json"))
+    else:
+        checks.append(("Docker config", True, "private Docker client config exists"))
+    for label, ok, detail in checks:
+        print(f"{'PASS' if ok else 'FAIL'} {label:15} {detail}")
+    lt = legacy_active()
+    ut = service_state(TIMER) == "active"
+    print(f"INFO Scout timers: user={'active' if ut else 'inactive'}, legacy={'active' if lt else 'inactive'}")
+    print(f"INFO Startup recovery: {service_state(RECOVERY_TIMER)}; user-paused: {paused()}")
+    if lt and ut:
+        print("FAIL Two active scouting timers: run 'bobctl migrate-timer' to disable legacy timer")
+        return 1
+    if lt:
+        print("INFO To eliminate sudo for timer controls: bobctl migrate-timer")
+    failed = any(not ok for _, ok, _ in checks)
+    print("RESULT: " + ("dependencies need attention" if failed else "all runtime checks passed"))
+    return 1 if failed else 0
+
+
+def ctl(*args):
+    cmd = ["systemctl", "--user", *args]
+    p = run(cmd, timeout=25)
+    if p.returncode:
+        print(f"ERROR: {' '.join(cmd)}: {p.stderr.strip() or p.stdout.strip()}", file=sys.stderr)
+        return False
+    return True
+
+
+def wait_for_gateway(seconds=65):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        ok, _ = check_gateway(full=True) if tcp_listening(GATEWAY_PORT) else (False, "warming up")
+        if ok:
+            return True
+        time.sleep(2)
+    return False
+
+
+def start():
+    set_paused(False)
+    print("Starting Bob services...", flush=True)
+    if not ctl("start", MANAGER):
+        return 1
+    docker_ok, docker_msg = check_docker()
+    image_ok, image_msg = check_image() if docker_ok else (False, "Docker not ready")
+    ollama_ok, ollama_msg = check_ollama()
+    if not docker_ok or not image_ok or not ollama_ok:
+        print("Host dependencies are not ready; Activity Manager remains available:")
+        if not docker_ok:
+            print("  Docker:", docker_msg)
+        elif not image_ok:
+            print("  Sandbox:", image_msg)
+        if not ollama_ok:
+            print("  Ollama:", ollama_msg)
+        print("Fix the indicated dependency, then run 'bobctl start' again.")
+        return 1
+    if not ctl("start", GATEWAY):
+        return 1
+    print("Checking Gateway readiness...", flush=True)
+    if not wait_for_gateway():
+        print("Gateway not ready; inspect 'bobctl gateway-logs'", file=sys.stderr)
+        return 1
+    if legacy_active():
+        print("Legacy system scout timer remains active. To manage it without sudo:")
+        print("  bobctl migrate-timer")
+    else:
+        if not ctl("enable", "--now", TIMER):
+            return 1
+    print("Bob is ready. Dashboard: http://127.0.0.1:18790/")
+    return 0
+
+
+def stop():
+    set_paused(True)
+    # Stop schedule before Gateway so no new scout launches during shutdown.
+    print("Stopping Bob services (does not stop Docker Desktop or Ollama)...")
+    ok = ctl("stop", TIMER)
+    if legacy_active():
+        print("Stopping the legacy system scout timer requires sudo:")
+        p = run(["sudo", "systemctl", "stop", TIMER], timeout=65)
+        if p.returncode:
+            print("Please run: sudo systemctl stop bob-moltbook-scout.timer", file=sys.stderr)
+            ok = False
+    for svc in (MANAGER, GATEWAY):
+        ok = ctl("stop", svc) and ok
+    return 0 if ok else 1
+
+
+def restart():
+    set_paused(False)
+    print("Restarting Bob services...")
+    if not ctl("restart", MANAGER):
+        return 1
+    docker_ok, docker_msg = check_docker()
+    image_ok, image_msg = check_image() if docker_ok else (False, "Docker not ready")
+    ollama_ok, ollama_msg = check_ollama()
+    if not docker_ok or not image_ok or not ollama_ok:
+        print("Cannot restart Gateway safely until dependencies are ready.")
+        print(docker_msg, ";", image_msg, ";", ollama_msg)
+        return 1
+    if not ctl("restart", GATEWAY):
+        return 1
+    if not wait_for_gateway():
+        print("Gateway restart timed out. Check 'bobctl gateway-logs'.", file=sys.stderr)
+        return 1
+    if legacy_active():
+        print("Legacy timer still in use; see 'bobctl migrate-timer'.")
+    else:
+        if not ctl("enable", "--now", TIMER):
+            return 1
+    print("Bob services healthy after restart.")
+    return 0
+
+
+def migrate_timer():
+    """One privileged transition, then all timer actions are user-level."""
+    if os.geteuid() == 0:
+        print("Run this command as openclaw, not as root (it requests sudo when needed).")
+        return 2
+    # Never launch a second timer before disabling the original.
+    if legacy_active():
+        print("Disabling the old SYSTEM scouting timer (one sudo authorization)...")
+        cmd = ["sudo", "systemctl", "disable", "--now", TIMER]
+        try:
+            subprocess.run(cmd, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("Could not disable the system timer. No second timer was enabled.", file=sys.stderr)
+            return 1
+        if legacy_active():
+            print("Old timer still active; refusing to start a duplicate.", file=sys.stderr)
+            return 1
+    print("Enabling the USER scouting timer with preflight protection...")
+    if not ctl("daemon-reload") or not ctl("enable", "--now", TIMER):
+        print("New timer could not start. Restore old timer with:", file=sys.stderr)
+        print("  sudo systemctl enable --now bob-moltbook-scout.timer", file=sys.stderr)
+        return 1
+    print("Migration done. Future bobctl start/stop/restart won't need sudo for scouting.")
+    return 0
+
+
+def scout_now(retry=False):
+    if scout_ready(verbose=True):
+        return 1
+    if retry:
+        print("Retrying most recent failed saved feed...")
+        p = subprocess.run([str(BIN / "bob-moltbook-scout"), "--retry-latest"])
+        return p.returncode
+    if legacy_active():
+        print("Legacy system scout service is still active: this one manual run needs sudo.")
+        p = subprocess.run(["sudo", "systemctl", "start", SCOUT])
+        return p.returncode
+    if not ctl("start", SCOUT):
+        return 1
+    print("Scout run requested. See bobctl scout-logs or refresh the dashboard.")
+    return 0
+
+
+def logs(which):
+    lookup = {
+        "gateway": (True, GATEWAY),
+        "manager": (True, MANAGER),
+        "scout": (not legacy_active(), SCOUT),
+    }
+    user, unit = lookup[which]
+    command = ["journalctl"] + (["--user"] if user else []) + ["-u", unit, "-n", "60", "--no-pager", "-l"]
+    p = subprocess.run(command)
+    return p.returncode
+
+
+def publisher_status():
+    print('Publisher job states:')
+    import sqlite3
+    db = HOME / '.config/moltbook/activity-queue.sqlite3'
+    if not db.exists():
+        print('  No publication queue database yet')
+        return 0
+    with sqlite3.connect(db,timeout=4) as conn:
+        try:
+            print('  auto enabled:', (conn.execute("SELECT value FROM publish_settings WHERE name='auto_enabled'").fetchone() or ['0'])[0])
+            for state,amount in conn.execute('SELECT state,count(*) FROM publish_jobs GROUP BY state ORDER BY state'):
+                print(f'  {state:24} {amount}')
+        except sqlite3.OperationalError:
+            print('  v0.5 publisher tables not installed yet')
+    print('  service:',service_state('bob-moltbook-publisher.timer'))
+    return 0
+
+
+def help_text():
+    print("""Bob System Manager v0.5
+Usage: bobctl COMMAND
+
+  status          Show service states and basic runtime connectivity
+  doctor          Check Docker, sandbox image, Ollama, Gateway, Manager
+  reconcile       Noninteractive startup recovery; respects manual pause
+  start           Start services; wait for Gateway readiness before scout timer
+  stop            Pause auto-recovery; stop scout timer, manager, gateway
+  restart         Restart manager and gateway; wait for readiness
+  migrate-timer   One-time migration from root timer to guarded user timer
+  scout-now       Run an immediate scouting mission, if dependencies ready
+  scout-retry     Retry a saved failed feed, if dependencies ready
+  scout-ready     Quiet/fast preflight for the scheduled scouting service
+  publisher-status Show queued/published states (no secrets)
+  publisher-run   Ask the publisher worker to process queue once
+  publisher-logs  Latest publisher worker logs
+  gateway-logs    Latest Gateway logs
+  manager-logs    Latest Activity Manager logs
+  scout-logs      Latest scouting logs
+  help            Show this help
+
+Old v0.2 aliases: manager-start/manager-stop/manager-restart,
+                   gateway-start/gateway-stop
+
+Nothing here publishes to Moltbook or opens Moltbook API credentials.
+""")
+
+
+def main(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    name = args[0] if args else "help"
+    if len(args) > 1:
+        help_text()
+        return 2
+    if name in ("help", "-h", "--help"):
+        help_text(); return 0
+    if name == "publisher-status": return publisher_status()
+    if name == "publisher-run": return 0 if ctl('start','bob-moltbook-publisher.service') else 1
+    if name == "publisher-logs":
+        return subprocess.run(['journalctl','--user','-u','bob-moltbook-publisher.service','-n','60','--no-pager','-l']).returncode
+    if name == "status": return status()
+    if name == "doctor": return doctor()
+    if name == "reconcile": return reconcile()
+    if name == "scout-ready": return scout_ready(verbose=True)
+    if name == "start": return start()
+    if name == "stop": return stop()
+    if name == "restart": return restart()
+    if name == "migrate-timer": return migrate_timer()
+    if name == "scout-now": return scout_now()
+    if name == "scout-retry": return scout_now(retry=True)
+    if name.endswith("-logs") and name.removesuffix("-logs") in {"gateway", "manager", "scout"}:
+        return logs(name.removesuffix("-logs"))
+    if name in {"manager-start", "manager-stop", "manager-restart"}:
+        return 0 if ctl(name.split("-")[1], MANAGER) else 1
+    if name in {"gateway-start", "gateway-stop"}:
+        return 0 if ctl(name.split("-")[1], GATEWAY) else 1
+    print(f"Unknown command: {name}", file=sys.stderr)
+    help_text()
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
