@@ -36,7 +36,7 @@ FORMAT = "bob-updater-v1"
 BRANCH = "feature/v0.7.1-navigation"
 REPO = "merberg-ai/bob-openclaw-moltbook"
 RELEASE_ID = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9._-]{2,79}\Z")
-TARGET = re.compile(r"(?:bob[-_][a-zA-Z0-9._-]+|navigation_shell\.py)\Z")
+TARGET = re.compile(r"(?:bobctl|bob[-_][a-zA-Z0-9._-]+|navigation_shell\.py)\Z")
 MANIFEST = "releases/current.json"
 ORIGINS = frozenset((
     "https://github.com/" + REPO + ".git",
@@ -322,11 +322,19 @@ def rollback(journal, *, auth):
     tx = STATE_DIR / ("tx-" + journal["release"])
     safe_private(tx, directory=True)
     original = json.loads((tx / "original.json").read_text(encoding="utf-8"))
+    candidate = json.loads((tx / "candidate.json").read_text(encoding="utf-8"))
+    old_registry = read_json(tx / "registry-before.json")
+    if not isinstance(original, dict) or not isinstance(candidate, dict) or set(original) != set(candidate):
+        raise ValueError("unexpected rollback archive")
     for name, sha in original.items():
         if not TARGET.fullmatch(name) or not isinstance(sha, str):
             raise ValueError("unsafe rollback reference")
         path = BIN / name
         oldfile = tx / ("old-" + name)
+        if (not isinstance(candidate[name], str) or not re.fullmatch(r"[0-9a-f]{64}", candidate[name])
+                or (path.exists() and (path.is_symlink() or digest(path.read_bytes()) not in
+                                      (candidate[name], sha)))):
+            raise ValueError("installed target changed outside transaction")
         if sha == "absent":
             if path.is_symlink():
                 raise ValueError("cannot remove unexpected symlink")
@@ -338,9 +346,10 @@ def rollback(journal, *, auth):
             if digest(old) != sha:
                 raise ValueError("original file archive changed")
             write_target(name, old)
+    save_private(REGISTRY, (json.dumps(old_registry, sort_keys=True) + "\n").encode("utf-8"))
     if journal["restart_manager"]:
         restart_manager()
-    if not healthy(auth):
+    if not live_ok(old_registry) or not healthy(auth):
         store_journal({**journal, "phase": "incident"})
         raise RuntimeError("rollback HTTP health failed")
     store_journal({**journal, "phase": "rolled_back"})
@@ -378,6 +387,9 @@ def update(folder, current, plan, contents, *, auth):
             else:
                 originals[name] = "absent"
         save_private(tx / "original.json", json.dumps(originals,sort_keys=True).encode())
+        save_private(tx / "candidate.json", json.dumps(
+            {name: digest(blob) for name, blob in contents.items()}, sort_keys=True).encode())
+        save_private(tx / "registry-before.json", json.dumps(current, sort_keys=True).encode())
         journal = {"format": FORMAT, "release": plan["release"],
                    "phase": "prepared", "restart_manager": plan["restart_manager"]}
         store_journal(journal)
