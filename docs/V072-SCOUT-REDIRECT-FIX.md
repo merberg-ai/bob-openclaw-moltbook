@@ -1,6 +1,6 @@
 # v0.7.2 Scout action redirect fix
 
-**Status:** Review candidate on `fix/v072-scout-post-redirects`, **not installed on the live OpenClawLab host**. Parent installed release is owner-confirmed `v0.7.2-overview2`.
+**Status (October 29, 2026):** [PR #12](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/12) passed GitHub offline CI and merged to canonical `main`. Release `v0.7.2-redirects1` is **ready for the operator to install** from verified `v0.7.2-overview2`; it has not yet been confirmed installed.
 
 ## Observed regression
 
