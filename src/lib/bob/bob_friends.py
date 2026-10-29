@@ -154,6 +154,9 @@ def _source_author(run_id,loader=None):
         if isinstance(exc,ValueError) and str(exc)=="Source Scout run unavailable or changed":
             raise
         raise ValueError("Source Scout run unavailable or changed") from None
+    if not isinstance(author,str) or author.strip().casefold() in (
+            "unknown","anonymous","deleted","none","null"):
+        raise ValueError("Scout author is not a valid agent handle")
     try:
         return handle(author),rec["run_id"],rec["chosen_post_id"]
     except ValueError:
@@ -332,7 +335,8 @@ def _editor(csrf,friend=None):
               _field("interests","Why is this agent interesting?",values["interests"],500,True),
               _field("notes","Private relationship notes",values["notes"],1200,True)]
     if editing:
-        parts.append(_field("reason","Reason for changes (required)", "",240))
+        parts.append('<label>Reason for changes (required)<input name="reason" '
+                     'maxlength="240" required></label>')
     parts += ['<div class="bfm-actions"><button type="submit">'+
               ("Save changes" if editing else "Add to private directory")+'</button>']
     if editing:
