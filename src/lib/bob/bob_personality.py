@@ -179,6 +179,13 @@ CSS = """<style>
 .bpm-preview{background:#101d2d;border:1px solid #335477;border-radius:11px;padding:15px;
  color:#d4e6f8;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.89rem;line-height:1.55}
 .bpm-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bpm-confirm{display:flex;gap:12px 18px;align-items:flex-end;flex-wrap:wrap;margin:16px 0 0}
+.bpm-confirm label{display:grid;gap:8px;flex:1 1 240px;max-width:400px;font-size:.9rem;font-weight:650}
+.bpm-confirm input[type=text]{width:100%;min-height:44px;box-sizing:border-box;padding:10px 12px;
+ background:#0e1b2b;color:#f0f5ff;border:1px solid #506b8c;border-radius:9px;font:inherit}
+.bpm-confirm input[type=text]:focus-visible{outline:2px solid #87c5ff;outline-offset:2px}
+.bpm-confirm button{flex:0 0 auto}
+.bpm button:disabled{opacity:.55;cursor:not-allowed}
 .bpm button{cursor:pointer;border-radius:10px;border:1px solid #79a9df;background:#265d90;
  color:#fff;min-height:44px;padding:10px 16px;font:inherit;font-weight:700}
 .bpm button.secondary{background:#23354b;border-color:#536e8a}
@@ -190,6 +197,7 @@ CSS = """<style>
 .bpm-table button{min-height:38px;padding:7px 11px;font-size:.82rem}
 .bpm[aria-busy=true]{opacity:.8}
 @media(max-width:690px){.bpm-grid{grid-template-columns:1fr;gap:17px}
+.bpm-confirm{align-items:stretch}.bpm-confirm label,.bpm-confirm button{flex-basis:100%;max-width:none;width:100%}
 .bpm-table th:nth-child(2),.bpm-table td:nth-child(2){display:none}}
 @media(prefers-reduced-motion:reduce){.bpm *{animation:none!important;transition:none!important}}
 </style>"""

@@ -224,7 +224,7 @@ def page(db, records, status_fn, params, csrf, wrap):
     parts.append(f'<p class="bqm-info"><strong>{total}</strong> matching · '
                  f'{pending} awaiting review ({pending_hidden} archived) · '
                  f'{archived} archived total · Page {current} of {last}. '
-                 'Select up to 10 items on this page.</p>')
+                 'Select up to 10 items on this page. Archived selections use their own restore action.</p>')
     parts.append('<form class="bqm-bulk" action="/manage/bulk" method="post">'
                  f'<input type="hidden" name="csrf" value="{e(csrf)}">'
                  f'<input type="hidden" name="tab" value="{e(tab)}">'
@@ -234,6 +234,8 @@ def page(db, records, status_fn, params, csrf, wrap):
                  f'<input type="hidden" name="page" value="{current}">')
     for item in visible:
         label = e(item["label"])
+        target_form = ' form="bqm-restore"' if item["hidden"] else ""
+        select_label = ("Restore archived " if item["hidden"] else "Select ") + label
         badges = (f'<span class="bqm-flag">{e("Review: " + item["status"] if tab == "scout" else item["status"])}</span>'
                   + (f'<span class="bqm-flag">Publication: {e(item["publication_state"])}'
                      + (f' ({e(item["mode"])})' if item["mode"] else '') + '</span>'
@@ -242,8 +244,8 @@ def page(db, records, status_fn, params, csrf, wrap):
                   + (f'<span class="bqm-flag">{e(item["mode"])}</span>'
                      if tab == "activity" and item["mode"] else ''))
         parts.append('<article class="bqm-item"><div class="bqm-item-head">'
-                     f'<label class="bqm-check"><input type="checkbox" name="selected" '
-                     f'value="{e(item["id"])}:{e(item["digest"])}" aria-label="Select {label}"></label>'
+                     f'<label class="bqm-check"><input type="checkbox" name="selected"{target_form} '
+                     f'value="{e(item["id"])}:{e(item["digest"])}" aria-label="{select_label}"></label>'
                      f'<div class="bqm-item-main"><h2>{label}</h2>{badges}'
                      f'<p class="bqm-info">{e(item["meta"])}</p>'
                      f'<details><summary>Read full content</summary><pre>{e(item["summary"])}</pre></details>'
@@ -251,18 +253,42 @@ def page(db, records, status_fn, params, csrf, wrap):
                      '</div></div></article>')
     if not visible:
         parts.append('<p class="bqm-info">No matching items on this page.</p>')
-    parts.append('<section class="bqm-actionbar"><strong>Apply to selected items</strong>'
-                 '<p class="bqm-info">Approval/rejection is recorded locally. '
-                 'Queue means request a future publication, not publish immediately. '
-                 'Ineligible, stale or changed selections are refused together.</p>'
-                 '<div class="bqm-actionbar-grid"><label>Operation<select name="operation">')
-    names={"approve":"Approve drafts","reject":"Reject drafts","queue":"Queue approved for publishing",
-           "archive":"Archive / hide","restore":"Restore from archive"}
-    for op in ALLOWED[tab]:
-        parts.append(f'<option value="{e(op)}">{e(names[op])}</option>')
-    parts.append('</select></label><label>For Queue only, type QUEUE plus count '
-                 '<input name="confirmation" autocomplete="off" maxlength="16" placeholder="e.g. QUEUE 2"></label>'
-                 '<button type="submit">Apply to selected</button></div></section></form>')
+    if any(not item["hidden"] for item in visible):
+        parts.append('<section class="bqm-actionbar"><strong>Apply to active selected items</strong>'
+                     '<p class="bqm-info">Approve or reject only active pending drafts; queue only '
+                     'approved drafts without an existing publication job. '
+                     'Queue records a future publication intent, not an immediate post. '
+                     'Archived selections are excluded and can be restored separately below.</p>'
+                     '<div class="bqm-actionbar-grid"><label>Operation<select name="operation">')
+        names={"approve":"Approve drafts","reject":"Reject drafts","queue":"Queue approved for publishing",
+               "archive":"Archive / hide"}
+        for op in ALLOWED[tab]:
+            if op == "restore":
+                continue
+            parts.append(f'<option value="{e(op)}">{e(names[op])}</option>')
+        parts.append('</select></label><label>For Queue only, type QUEUE plus count '
+                     '<input name="confirmation" autocomplete="off" maxlength="16" placeholder="e.g. QUEUE 2"></label>'
+                     '<button type="submit">Apply to active selected</button></div></section>')
+    parts.append('</form>')
+    if any(item["hidden"] for item in visible):
+        # Archived checkboxes above use the HTML form attribute to belong to this
+        # separate form even though they appear inside the active-items form.
+        # Server-side checksum, status, CSRF and atomicity guards remain unchanged.
+        parts.append('<form id="bqm-restore" class="bqm-bulk" action="/manage/bulk" method="post">'
+                     f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+                     f'<input type="hidden" name="tab" value="{e(tab)}">'
+                     f'<input type="hidden" name="state" value="{e(state)}">'
+                     f'<input type="hidden" name="show" value="{e(show)}">'
+                     f'<input type="hidden" name="q" value="{e(q)}">'
+                     f'<input type="hidden" name="page" value="{current}">'
+                     '<input type="hidden" name="operation" value="restore">'
+                     '<input type="hidden" name="confirmation" value="">'
+                     '<section class="bqm-actionbar"><strong>Restore archived selected</strong>'
+                     '<p class="bqm-info">Archived drafts must be restored before approval or rejection. '
+                     'Select archived items above, then restore them here. This does not publish anything '
+                     'or change their review decision.</p>'
+                     '<button type="submit">Restore selected archived</button>'
+                     '</section></form>')
     parts.append('<nav class="bqm-pages" aria-label="Result pages">')
     if current>1:
         parts.append(f'<a href="{e(href(current-1))}">Previous page</a>')

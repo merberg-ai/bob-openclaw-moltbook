@@ -151,6 +151,20 @@ class ApplyTests(unittest.TestCase):
         self.assertIn("APPLY BOB",html)
         self.assertNotIn("Never disclose credentials",html)
 
+    def test_confirmations_use_thematic_responsive_forms(self):
+        html=app.panel(self.db,"synthetic-csrf",
+                       resolver=lambda:self.workspace,state=self.state)
+        self.assertIn('class="bpm-confirm"',html)
+        self.assertIn('id="bpm-apply-confirm" type="text"',html)
+        self.assertIn('name="confirmation" maxlength="20"',html)
+        self.assertIn('.bpm-confirm input[type=text]',mind.CSS)
+        self.assertIn('.bpm-confirm label,.bpm-confirm button',mind.CSS)
+        self.do_apply()
+        applied=app.panel(self.db,"synthetic-csrf",
+                          resolver=lambda:self.workspace,state=self.state)
+        self.assertIn('id="bpm-rollback-confirm" type="text"',applied)
+        self.assertEqual(applied.count('class="bpm-confirm"'),2)
+
     def test_generated_manager_only_adds_guarded_new_actions(self):
         new,nav=candidate.build()
         old,old_nav=before.build()
