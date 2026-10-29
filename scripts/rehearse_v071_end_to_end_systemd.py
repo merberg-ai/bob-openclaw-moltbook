@@ -121,13 +121,17 @@ def start(root: Path, release: str, name: str):
     result = subprocess.run(cmd, capture_output=True, text=True,
                             timeout=12, check=False, env=units.command_env())
     if result.returncode:
-        raise ValueError("transient start rejected")
+        raise RuntimeError("transient_launch_refused")
     for _ in range(20):
         if probe(root, release):
             status = units.systemctl("show", name, "--property=ActiveState", "--no-pager")
-            return status.returncode == 0 and status.stdout.strip() == "ActiveState=active"
+            if status.returncode != 0 or status.stdout.strip() != "ActiveState=active":
+                raise RuntimeError("transient_inactive_after_health")
+            return True
         time.sleep(0.2)
-    return False
+    if not (root / "port").exists():
+        raise RuntimeError("transient_child_no_port")
+    raise RuntimeError("transient_http_probe_failed")
 
 
 def stop(name: str):
@@ -172,6 +176,10 @@ def run(scenario):
                         raise RuntimeError("baseline_health_or_active_state")
                     baseline_ok = True
                 except (OSError, ValueError, RuntimeError) as exc:
+                    if isinstance(exc, RuntimeError) and str(exc) in {
+                        "transient_launch_refused", "transient_inactive_after_health",
+                        "transient_child_no_port", "transient_http_probe_failed"}:
+                        raise
                     raise RuntimeError("baseline_start_or_health") from exc
             finally:
                 try:
@@ -216,7 +224,9 @@ def main():
         code = str(exc) if isinstance(exc, RuntimeError) and str(exc) in {
             "candidate_health_or_active_state", "candidate_unit_cleanup",
             "file_rollback_failed", "baseline_start_or_health",
-            "baseline_unit_cleanup"} else "unclassified"
+            "baseline_unit_cleanup", "transient_launch_refused",
+            "transient_inactive_after_health", "transient_child_no_port",
+            "transient_http_probe_failed"} else "unclassified"
         print("v0.7.1 END-TO-END SYSTEMD INSTALL: REFUSED", type(exc).__name__)
         print("safe_failure_phase:", code)
         return 1
