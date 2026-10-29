@@ -81,7 +81,7 @@ class QueueManagerTests(unittest.TestCase):
         keys=[self.selection("scout",x["run_id"]) for x in self.records]
         with self.assertRaises(ValueError):
             mgr.apply_batch(self.db,self.records,state_fn,"scout","reject",
-                            [keys[0],keys[1][:-1]+"0"],"")
+                            [keys[0],keys[1][:-1]+("0" if keys[1][-1]!="0" else "1")],"")
         self.assertEqual(self.db.execute("SELECT count(*) FROM decisions").fetchone()[0],0)
         mgr.apply_batch(self.db,self.records,state_fn,"scout","reject",keys,"")
         self.assertEqual(self.db.execute("SELECT count(*) FROM decisions WHERE status='rejected'").fetchone()[0],2)
