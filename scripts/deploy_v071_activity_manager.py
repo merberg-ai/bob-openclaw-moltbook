@@ -106,6 +106,16 @@ def service(action):
         raise RuntimeError("service_restart_refused")
 
 
+def service_active():
+    env = {"PATH": "/usr/bin:/bin", "LANG": "C"}
+    for key in ("XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS"):
+        if key in os.environ:
+            env[key] = os.environ[key]
+    result = subprocess.run(["systemctl", "--user", "is-active", "--quiet", UNIT],
+                            capture_output=True, timeout=8, env=env, check=False)
+    return result.returncode == 0
+
+
 def authenticate():
     file = Path.home() / ".config/bob-system/lan-auth.json"
     if file.is_symlink() or not file.is_file() or file.stat().st_uid != os.getuid():
@@ -145,7 +155,7 @@ def probe(authorization, *, candidate):
 
 def bounded_probe(auth, *, candidate):
     for _ in range(10):
-        if probe(auth, candidate=candidate):
+        if service_active() and probe(auth, candidate=candidate):
             return True
         time.sleep(0.5)
     return False
@@ -184,6 +194,8 @@ def install(backup):
             write_journal("manager_installed")
             service("restart")
             write_journal("restart_requested")
+            if sha(MANAGER) != builder.sha256(candidate) or sha(NAV) != builder.sha256(navigation):
+                raise RuntimeError("installed candidate checksum mismatch")
             if not bounded_probe(auth, candidate=True):
                 raise RuntimeError("candidate_unhealthy")
             write_journal("complete")
