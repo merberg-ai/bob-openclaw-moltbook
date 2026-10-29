@@ -1,6 +1,6 @@
 # v0.7.2 publication accuracy and original-draft formatting correction
 
-**Current status:** Fixes committed to the GitHub development branch. The user reported the previous job-tracking release works, but detected misleading publication labels and failed original-thought requests. This correction is **not deployed yet**.
+**Current status (operator-reported October 28, 2026):** The guarded publication-accuracy and original-draft-format update **installed successfully** on OpenClawLab. Installation and focused tests passed; a fresh original-thought request and public-visibility audit remain necessary to demonstrate behavior on real data. Historical published-without-ID records are only relabeled in the dashboard, not rewritten. No automatic retry was enabled.
 
 ## Root causes confirmed in source
 
