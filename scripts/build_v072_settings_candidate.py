@@ -109,6 +109,11 @@ def build():
     if nav.count(anchor) != 1:
         raise ValueError("navigation changed")
     nav = nav.replace(anchor, anchor + '\n    ("/system/status", "System status", "System status"),\n    ("/settings", "Settings", "Settings"),', 1)
+    # v0.7.1 was deployed with v0.6 labels inherited from the pinned source.
+    # Replace every legacy version label for this v0.7.2 release.
+    if source.count("v0.6") != 6:
+        raise ValueError("legacy manager version markers drifted")
+    source = source.replace("v0.6", "v0.7.2")
     compile(source, "bob-activity-manager", "exec")
     compile(nav, "navigation_shell.py", "exec")
     return source.encode("utf-8"), nav.encode("utf-8")
