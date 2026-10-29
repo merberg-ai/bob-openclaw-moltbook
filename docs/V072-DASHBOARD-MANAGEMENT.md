@@ -1,0 +1,42 @@
+# Dashboard queue-management polish (v0.7.2 UI batch 1)
+
+**Status:** Development branch `feature/v0.7.2-dashboard-polish`. Reviewed implementation committed, **not installed on the live Activity Manager**. Existing `main` release channel and publisher behavior remain unchanged.
+
+## What is new
+
+A dedicated **Manage queues** sidebar/mobile navigation destination, `/manage`, with compact server-rendered tabs for:
+
+- **Scout & review:** View validated incoming scout drafts and their review/publication status. Select up to ten on the current page to approve, reject, or explicitly queue **already approved** drafts for the existing publication worker.
+- **Original posts:** View generated post drafts and their state, select up to ten to approve, reject, or explicitly queue **already approved** originals. Existing edit controls, verification challenges and individual publishing remain on the Original Posts page.
+- **Comment activity:** Review queued, attempted, verified, canceled, uncertain and failed comment records. Batch archive/restore only. No republishing of history or automatic retries.
+
+Every tab offers bounded search, status filter, active/archived/all visibility filter, ten-item pages, compact content previews, and a link to the full legacy item. The user must explicitly check each selected row; no hidden all-pages selection, blind select-all, or JavaScript is required.
+
+## Reversible archive, no erasure
+
+Archive/restore is a soft visibility flag in an additive `dashboard_hidden(kind,item_id,hidden_at)` table. A soft-archived item is still present in the original scout file, `decisions`, `publish_jobs`, `original_posts` or reply/event history, and remains retrievable using the **Archived** filter. This does **not cancel or pause** a queued publication; it never deletes Moltbook content, local API history, or approvals.
+
+No permanent delete/Trash operation is part of this release. Permanent destructive cleanup requires a separate design that distinguishes draft-only data from immutable audit records.
+
+## Batch safeguards
+
+- The UI is behind existing dashboard authentication. Bulk POST requires Host, Origin, CSRF and strict body-size checks.
+- At most **10 unique selected IDs** per batch; all are checked against current database state and original draft fingerprint before any mutation.
+- Approve/reject works only on eligible pending scout or draft originals, and never changes an existing decision silently.
+- Bulk **Queue** requires pre-existing approval, unchanged digest, no existing outgoing job for scout replies, and explicit typed **`QUEUE N`** matching the selected count. It records an intent and **does not invoke any network worker**.
+- The autonomous comment setting, the two-attempts-per-UTC-day limit, one-hour interval, original-post approval boundary, and no-automatic-retry policy remain unchanged.
+- A failed batch returns an error and its database context rolls back; no partial action or silent skip.
+
+## Release strategy
+
+This first batch adds:
+
+- `src/lib/bob/bob_dashboard_manage.py`: new standalone queue UI and guarded batch actions
+- `scripts/build_v072_dashboard_manage_candidate.py`: derives the exact current deployed manager/nav files and integrates the new authenticated route
+- `tests/test_dashboard_manage.py`: **seven focused synthetic checks**, not a full project suite
+
+The next release manifest will list precisely these three installed files: `bob-activity-manager`, `navigation_shell.py` and `bob_dashboard_manage.py`. The build script is only a source generator. After review, it can be merged into `main` and deployed as the **first nonempty `bobctl update`** release with a confirmed dashboard restart. The existing root Scout, Original Posts and Published Activity pages remain operational for one-item detail and recovery.
+
+## Follow-up work (not included)
+
+Bulk deletion with retain/undo policy, grouping by discussion, saved filter presets, exact cross-page selection and a distinct Archive page are deliberately deferred. Those are separate decisions, not prerequisites to fixing the scrolling problem.
