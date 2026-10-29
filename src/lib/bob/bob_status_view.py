@@ -15,6 +15,11 @@ STYLE = """<style>
 .bob-status-state[data-tone="warn"]{background:#4a3519;color:#f8d99b}
 .bob-status-state[data-tone="bad"]{background:#4a2530;color:#ffb5c1}
 .bob-status-state[data-tone="idle"]{background:#2a3547;color:#c6d4e8}
+.bob-status-state[data-tone="busy"]{background:#17334c;color:#b6e1ff}
+.bob-status-state[data-tone="busy"]::before{content:"";width:9px;height:9px;
+ border:2px solid #8ccfff;border-top-color:transparent;border-radius:50%;
+ animation:bob-status-spin .85s linear infinite}
+@keyframes bob-status-spin{to{transform:rotate(360deg)}}
 .bob-status-table{list-style:none;padding:0;display:grid;gap:9px}
 .bob-status-worker small{display:block;color:#aabed6;margin-top:8px;overflow-wrap:anywhere}
 .bob-status-warning{color:#f8d99b;font-size:.82rem;font-weight:650}
@@ -46,9 +51,11 @@ JS = r"""'use strict';
   let running = false;
   let timer = null;
   const tone = (s) => {
-    if (['running', 'ready', 'listening'].includes(s)) return 'good';
+    if (['fetching', 'validating', 'generating', 'preflight', 'sending', 'verifying'].includes(s)) return 'busy';
+    if (['running', 'ready', 'listening', 'completed'].includes(s)) return 'good';
     if (['unavailable', 'failed', 'error'].includes(s)) return 'bad';
-    if (['inactive', 'idle', 'queued', 'awaiting_verification', 'waiting'].includes(s)) return 'idle';
+    if (['inactive', 'idle', 'queued', 'awaiting_verification'].includes(s)) return 'idle';
+    if (s === 'waiting' || s === 'model_missing') return 'warn';
     return 'warn';
   };
   const pill = (state) => {
@@ -151,9 +158,10 @@ def javascript():
 
 def _pill(state):
     value = str(state)
-    tone = ("good" if value in ("running", "ready", "listening") else
+    tone = ("busy" if value in ("fetching", "validating", "generating", "preflight", "sending", "verifying") else
+            "good" if value in ("running", "ready", "listening", "completed") else
             "bad" if value in ("unavailable", "failed", "error") else
-            "idle" if value in ("inactive", "idle", "queued", "awaiting_verification", "waiting") else "warn")
+            "idle" if value in ("inactive", "idle", "queued", "awaiting_verification") else "warn")
     return '<span class="bob-status-state" data-tone="' + tone + '">' + escape(value) + '</span>'
 
 
