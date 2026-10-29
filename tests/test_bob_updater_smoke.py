@@ -15,12 +15,16 @@ import bootstrap_bob_updater as bootstrap
 
 
 class UpdaterSmoke(unittest.TestCase):
-    def test_initial_manifest_is_noop(self):
+    def test_current_manifest_uses_valid_release_chain(self):
         manifest = updater.manifest(ROOT)
-        self.assertEqual(manifest["release"], "v0.7.2-main-channel")
-        self.assertEqual(manifest["from"], manifest["release"])
-        self.assertEqual(manifest["files"], [])
-        self.assertFalse(manifest["restart_manager"])
+        self.assertEqual(manifest["format"], updater.FORMAT)
+        self.assertTrue(manifest["release"])
+        if manifest["files"]:
+            self.assertNotEqual(manifest["from"], manifest["release"])
+            self.assertIn("bob-activity-manager", {item["name"] for item in manifest["files"]})
+        else:
+            self.assertEqual(manifest["from"], manifest["release"])
+            self.assertFalse(manifest["restart_manager"])
 
     def test_bobctl_command_is_exact_and_bootstrap_is_pinned(self):
         before = bootstrap.source(bootstrap.OLD_BOBCTL)
