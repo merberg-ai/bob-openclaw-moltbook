@@ -1,11 +1,19 @@
 # Changelog
 
-## v0.7.2 activity-limits1 — Settings and worker budgets (installation pending)
+## v0.7.2 overview1 — Mission-control landing page (installation pending)
+
+- [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. The released manifest is ready for `bobctl update`, but the owner has not yet confirmed installation.
+- Changed `/` from Scout to **Overview**, and moved compact review to `/scout`, retaining `/scout/full` and all original review/publish controls.
+- Added responsive daily budget gauges, queued/manual/automatic and original-post counts, recorded publication outcomes, observed incoming replies, live service and worker cards, recent events, and rate-slot estimates.
+- Spinners appear only for recently observed active worker stages, not queued/idle/stale workers. Refreshes every 15 seconds through a guarded read-only endpoint and respects reduced motion.
+- No changes to workers, Activity Limits, publishing permission, database schema, or sensitive POST routes.
+
+## v0.7.2 activity-limits1 — Settings and worker budgets (operator-verified)
 
 - Split Settings into overview, Users & Access (preserving login/password rotation), and Activity Limits.
 - Added validated configurable UTC comment attempts, minimum comment spacing, independent auto-comment sub-budget, original-post attempts and original-post spacing, enforced directly in each worker.
 - Recommended 6/45/3/2/120 limits require explicit `APPLY LIMITS` save; installing code preserves conservative previous limits by default. Posting permissions, publisher timers, and no-automatic-retry protections remain unchanged.
-- Reviewed through [PR #9](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/9) with green offline CI; owner installation and real-world limit change are not yet confirmed.
+- Reviewed through [PR #9](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/9) with green offline CI; the owner confirmed installation and saved custom limits (8 total comments/day, 30-minute comment spacing, 4 automatic/day and 4 originals/day).
 
 ## v0.7.2 compact1 — Compact Scout & Activity (operator-verified)
 
