@@ -277,6 +277,23 @@ def healthy(auth):
     return True
 
 
+
+def wait_for_health(auth, *, seconds=35):
+    """Give a freshly restarted dashboard a bounded readiness window.
+
+    A brief connection refusal after systemctl restart isn't a failed release.
+    This performs authenticated GETs only; it never invokes worker endpoints.
+    """
+    deadline = time.monotonic() + seconds
+    while True:
+        if healthy(auth):
+            return True
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(1.0, remaining))
+
+
 def restart_manager():
     shell(["systemctl", "--user", "restart", "bob-activity-manager.service"], timeout=25)
 
@@ -349,7 +366,7 @@ def rollback(journal, *, auth):
     save_private(REGISTRY, (json.dumps(old_registry, sort_keys=True) + "\n").encode("utf-8"))
     if journal["restart_manager"]:
         restart_manager()
-    if not live_ok(old_registry) or not healthy(auth):
+    if not live_ok(old_registry) or not wait_for_health(auth):
         store_journal({**journal, "phase": "incident"})
         raise RuntimeError("rollback HTTP health failed")
     store_journal({**journal, "phase": "rolled_back"})
@@ -394,23 +411,30 @@ def update(folder, current, plan, contents, *, auth):
                    "phase": "prepared", "restart_manager": plan["restart_manager"]}
         store_journal(journal)
         try:
+            step = "installing listed files"
             for name, payload in contents.items():
                 if name not in current["files"] and (BIN / name).exists():
                     raise ValueError("unmanaged destination exists")
                 write_target(name, payload)
             store_journal({**journal, "phase": "installed"})
             if plan["restart_manager"]:
+                step = "restarting Activity Manager"
                 restart_manager()
             store_journal({**journal, "phase": "restarted"})
+            step = "checking file hashes and authenticated dashboard"
             next_files = dict(current["files"])
             next_files.update({name: digest(blob) for name, blob in contents.items()})
             next_state = {"format": FORMAT, "release": plan["release"], "files": next_files}
-            if not live_ok(next_state) or not healthy(auth):
-                raise RuntimeError("updated installation health failed")
+            if not live_ok(next_state):
+                raise RuntimeError("updated installation file hash mismatch")
+            if not wait_for_health(auth):
+                raise RuntimeError("dashboard failed bounded post-restart health checks")
             save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
             store_journal({**journal, "phase": "complete"})
             return "updated"
-        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+            # Safe stage only, never print HTTP responses, credentials or payloads.
+            print("BOB UPDATE: failed at " + step + " (" + type(exc).__name__ + ")")
             try:
                 rollback(journal, auth=auth)
             except (OSError, ValueError, RuntimeError):
