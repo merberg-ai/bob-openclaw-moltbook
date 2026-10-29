@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm2-memory1",
-  "from": "v0.7.3-pm1-uiqueue1",
-  "notes": "PM2.1 private operator-curated Memory Manager: additive SQLite memory/revision tables, authenticated manual add/search/edit/correct/archive/exclude/restore, HTTPS source attribution and confidence. No agent recall, automatic capture, permissions or publishing changes.",
+  "release": "v0.7.3-pm2-editfix1",
+  "from": "v0.7.3-pm2-memory1",
+  "notes": "PM2.1 focused edit repair: separate Save edit/Correct submit buttons, allow concise non-empty reasons, surface whitelisted validation errors, Memory-specific error footer and return link. No schema, memory data, identity, workers or publishing changes.",
   "files": [
     {
       "name": "bob_memory.py",
@@ -12,11 +12,6 @@
       "name": "bob-activity-manager",
       "builder": "scripts/build_v073_pm2_memory_candidate.py",
       "index": 0
-    },
-    {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_v073_pm2_memory_candidate.py",
-      "index": 1
     }
   ],
   "restart_manager": true
