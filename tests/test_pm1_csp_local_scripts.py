@@ -27,28 +27,32 @@ def handler_methods(code):
 
 
 class CSPTests(unittest.TestCase):
-    def test_only_csp_header_changes_in_generated_manager(self):
+    def test_only_csp_condition_changes_in_generated_manager(self):
         old,old_nav=before.build()
         new,new_nav=after.build()
         old_code=old.decode()
         new_code=new.decode()
-        previous="""("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")"""
-        current="""("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")"""
-        self.assertEqual(old_code.count(previous),1)
-        self.assertEqual(new_code.count(current),1)
-        self.assertEqual(new_code,old_code.replace(previous,current,1))
+        old_fragment="""("Content-Security-Policy", ("default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'" if self.path == "/system/status" else "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"))"""
+        self.assertEqual(old_code.count(old_fragment),1)
+        expected=old_code.replace(old_fragment,old_fragment.replace(after.OLD,after.NEW),1)
+        self.assertEqual(new_code,expected)
         self.assertEqual(new_nav,old_nav)
 
-    def test_scripts_allowed_but_inline_crossorigin_disallowed(self):
+    def test_script_permissions_are_limited_to_three_pages(self):
         manager,_=after.build()
-        text=manager.decode()
-        policy=re.search(r'\("Content-Security-Policy", "([^"]+)"\)',text).group(1)
+        code=manager.decode()
+        self.assertEqual(code.count(after.NEW),1)
+        policy=next(line for line in code.splitlines()
+                    if '("Content-Security-Policy",' in line)
+        permitted=policy.split('" if urlsplit(self.path).path in ')[0]
+        self.assertIn("script-src 'self'",permitted)
+        self.assertIn("connect-src 'self'",permitted)
         self.assertIn("default-src 'none'",policy)
-        self.assertIn("script-src 'self'",policy)
-        self.assertIn("connect-src 'self'",policy)
-        self.assertIn("form-action 'self'",policy)
         self.assertIn("frame-ancestors 'none'",policy)
         self.assertIn("base-uri 'none'",policy)
+        self.assertIn("form-action 'self'",policy)
+        self.assertIn('else "default-src \\'none\\'; style-src \\'unsafe-inline\\'; form-action \\'self\\'; frame-ancestors \\'none\\'; base-uri \\'none\\'"',policy)
+        self.assertIn('("/system/status", "/", "/mind/personality")',policy)
         self.assertNotIn("script-src 'unsafe-inline'",policy)
         self.assertNotIn("'unsafe-eval'",policy)
         self.assertNotIn("https:",policy)
