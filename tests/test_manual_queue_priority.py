@@ -33,10 +33,10 @@ def test_db(path):
         db.execute("CREATE TABLE publish_jobs (run_id TEXT PRIMARY KEY, approval_sha256 TEXT, "
                    "post_id TEXT, draft_comment TEXT, mode TEXT, state TEXT, created_at TEXT, "
                    "attempted_at TEXT, updated_at TEXT, last_error TEXT)")
-        db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
                    ("20261029T030000Z","oldhash","post1","old","auto","queued",
                     "2026-10-29T03:00:00+00:00",None,"2026-10-29T03:00:00+00:00",None))
-        db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
                    ("20261029T040000Z","manualhash","post2","new","manual","queued",
                     "2026-10-29T04:00:00+00:00",None,"2026-10-29T04:00:00+00:00",None))
 
@@ -91,10 +91,10 @@ class ManualPriority(unittest.TestCase):
             db.execute("CREATE TABLE publish_jobs (run_id TEXT PRIMARY KEY, approval_sha256 TEXT, "
                        "post_id TEXT, draft_comment TEXT, mode TEXT, state TEXT, created_at TEXT, "
                        "attempted_at TEXT, updated_at TEXT, last_error TEXT)")
-            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
                        ("20261029T030000Z","old","post1","auto content","auto","queued",
                         "2026-10-29T03:00:00Z",None,"2026-10-29T03:00:00Z",None))
-            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
                        ("20261029T040000Z","new","post2","manual content","manual","queued",
                         "2026-10-29T04:00:00Z",None,"2026-10-29T04:00:00Z",None))
             with patch.object(worker,"auto_candidates",return_value=0), \
