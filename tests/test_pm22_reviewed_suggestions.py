@@ -121,8 +121,11 @@ class ReviewTests(unittest.TestCase):
         path.write_text('{"posts":[]}')
         with self.assertRaisesRegex(ValueError,"unavailable"):
             suggestions.stage(self.db,RUN)
-        self.assertEqual(self.db.execute("SELECT count(*) FROM bob_memories").fetchone()[0],0)
-        self.assertIsNone(self.db.execute("SELECT name FROM sqlite_master WHERE name='bob_memory_suggestions'").fetchone())
+        # Invalid staging aborts before additive tables are initialized.
+        self.assertIsNone(self.db.execute(
+            "SELECT name FROM sqlite_master WHERE name='bob_memories'").fetchone())
+        self.assertIsNone(self.db.execute(
+            "SELECT name FROM sqlite_master WHERE name='bob_memory_suggestions'").fetchone())
         make_source(self.root)
         suggestions.stage(self.db,RUN)
         row=self.get()
