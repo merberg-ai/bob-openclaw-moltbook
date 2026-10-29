@@ -262,14 +262,14 @@ JS = r"""'use strict';
   }
   function cap(name,used,max) {
     const goodUsed = Number.isSafeInteger(used) && used >= 0 ? used : null;
-    const valid = Number.isSafeInteger(max) && max > 0 && goodUsed !== null;
+    const valid = Number.isSafeInteger(max) && max >= 0 && goodUsed !== null;
     const number = id('budget-'+name);
-    if (number) number.textContent = valid ? used + ' / ' + max : 'Unknown';
+    if (number) number.textContent = valid ? (max === 0 ? 'Disabled' : used + ' / ' + max) : 'Unknown';
     const ring = id('ring-'+name);
-    const percent = valid ? Math.max(0,Math.min(100,Math.round(used / max * 100))) : 0;
+    const percent = valid && max > 0 ? Math.max(0,Math.min(100,Math.round(used / max * 100))) : 0;
     if (ring) {
       ring.style.setProperty('--progress',percent+'%');
-      ring.setAttribute('aria-label',name+' budget '+(valid ? percent+' percent consumed' : 'unknown'));
+      ring.setAttribute('aria-label',name+' budget '+(valid ? max === 0 ? 'disabled' : percent+' percent consumed' : 'unknown'));
     }
     const bar = id('bar-'+name);
     if (bar) bar.style.width = percent+'%';
@@ -290,6 +290,8 @@ JS = r"""'use strict';
       ['comments','auto','originals'].forEach(n=>cap(n,null,null));
       txt('metrics-state','Metrics unavailable; no counts inferred');
       ['comments-queued','manual-queued','auto-queued','originals-draft','originals-queued','api-ack','public-originals','replies','uncertain','generating'].forEach(n=>txt(n,'—'));
+      txt('next-comment','Unknown');
+      txt('next-original','Unknown');
       events.replaceChildren(document.createTextNode('Recent events unavailable.'));
     } else {
       txt('metrics-state',m.auto_enabled ? 'Auto comments enabled' : 'Auto comments disabled');
@@ -374,9 +376,9 @@ def _pill(state):
 
 
 def _cap(name, label, used, limit, subtitle, color):
-    valid=type(used)==int and type(limit)==int and limit>0
-    percent=pct(used,limit) if valid else 0
-    text=f'{used} / {limit}' if valid else 'Unknown'
+    valid=type(used)==int and type(limit)==int and limit>=0
+    percent=pct(used,limit) if valid and limit>0 else 0
+    text=('Disabled' if limit==0 else f'{used} / {limit}') if valid else 'Unknown'
     return (f'<article class="bo-cap"><div class="bo-ring" id="bo-ring-{name}" '
             f'role="img" aria-label="{esc(label)} budget {percent} percent consumed" '
             f'style="--progress:{percent}%;--ring:{color}">'
