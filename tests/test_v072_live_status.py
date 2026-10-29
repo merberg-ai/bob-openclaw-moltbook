@@ -33,11 +33,11 @@ class StatusContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             dbpath = Path(temp) / "queue.sqlite3"
             with sqlite3.connect(dbpath) as db:
-                db.execute("CREATE TABLE publish_jobs (state TEXT, created_at TEXT)")
-                db.execute("CREATE TABLE original_posts (state TEXT, created_at TEXT)")
-                db.execute("CREATE TABLE original_requests (state TEXT, created_at TEXT)")
-                db.execute("INSERT INTO publish_jobs VALUES ('awaiting_verification','2026-10-28T18:00:00Z')")
-                db.execute("INSERT INTO original_requests VALUES ('queued','2026-10-28T18:01:00Z')")
+                db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, created_at TEXT, updated_at TEXT, last_error TEXT)")
+                db.execute("CREATE TABLE original_posts (id TEXT, state TEXT, created_at TEXT, updated_at TEXT, last_error TEXT)")
+                db.execute("CREATE TABLE original_requests (id TEXT, state TEXT, created_at TEXT, completed_at TEXT, error TEXT)")
+                db.execute("INSERT INTO publish_jobs VALUES ('20261028T180000Z','awaiting_verification','2026-10-28T18:00:00Z','2026-10-28T18:00:00Z',NULL)")
+                db.execute("INSERT INTO original_requests VALUES ('1234567890abcdef12345678','queued','2026-10-28T18:01:00Z',NULL,NULL)")
                 db.commit()
             result = status.queue_snapshot(dbpath)
             self.assertTrue(result["available"])
