@@ -8,7 +8,7 @@ import build_v071_manager_candidate as prior
 
 HERE = Path(__file__).resolve().parents[1]
 
-def build():
+def build(*, styled=True):
     base, navigation = prior.build()
     source = base.decode("utf-8")
     source = source.replace(
@@ -114,6 +114,51 @@ def build():
     if source.count("v0.6") != 6:
         raise ValueError("legacy manager version markers drifted")
     source = source.replace("v0.6", "v0.7.2")
+    if styled:
+        # Only the Settings markup changes. styled=False reproduces the precise
+        # v0.7.2 manager already installed on the operator's host.
+        begin = source.index("    def _settings_page(self):")
+        end = source.index("    def _change_password(self):", begin)
+        fragment = source[begin:end]
+        css = ('.bob-settings{max-width:690px;padding:clamp(18px,4vw,30px);'
+               'margin:0 auto 24px;background:#142238;border:1px solid #304766;'
+               'border-radius:16px;box-shadow:0 12px 36px #0003}'
+               '.bob-settings h2{font-size:clamp(1.2rem,3.5vw,1.55rem);margin:0 0 10px}'
+               '.bob-settings p{color:#b9cbe2;line-height:1.5}'
+               '.bob-settings-form{display:grid;gap:18px;margin:22px 0}'
+               '.bob-settings-field{display:grid;gap:8px;min-width:0}'
+               '.bob-settings-field label{font-size:.94rem;font-weight:700;color:#e6efff}'
+               '.bob-settings-field input{display:block;width:100%;min-width:0;'
+               'max-width:100%;min-height:50px;padding:12px 14px;border-radius:10px;'
+               'border:1px solid #54749a;background:#0b1727;color:#f0f6ff;'
+               'font:inherit;box-sizing:border-box}'
+               '.bob-settings-field input:focus-visible{outline:3px solid #86bdff;'
+               'outline-offset:2px;border-color:#8cbfff}'
+               '.bob-settings-form button{cursor:pointer;min-height:49px;'
+               'padding:13px 20px;background:#295f9b;border:1px solid #7ab4f7;'
+               'color:white;font-weight:700;font:inherit;border-radius:10px;'
+               'max-width:100%;width:fit-content}'
+               '.bob-settings-form button:hover{background:#3574b5}'
+               '@media(max-width:600px){.bob-settings{padding:18px 14px;'
+               'margin:0;border-radius:12px}.bob-settings-form button{width:100%}}')
+        fragment = fragment.replace(
+            '<section class="card"><h2>Change dashboard password</h2>',
+            '<style>' + css + '</style><section class="card bob-settings"><h2>Change dashboard password</h2>', 1)
+        fragment = fragment.replace(
+            '<form method="post" action="/settings/password">',
+            '<form class="bob-settings-form" method="post" action="/settings/password">', 1)
+        for field, label in (("current", "Current password"), ("new", "New password"),
+                             ("confirm", "Confirm new password")):
+            expected = '<p><label>' + label + ' <input name="' + field + '"'
+            desired = ('<div class="bob-settings-field"><label for="bob-' + field
+                       + '">' + label + '</label><input id="bob-' + field + '" name="' + field + '"')
+            if fragment.count(expected) != 1:
+                raise ValueError("Settings form field changed: " + field)
+            fragment = fragment.replace(expected, desired, 1)
+        if fragment.count('required></label></p>') != 3:
+            raise ValueError("Settings form close tags changed")
+        fragment = fragment.replace('required></label></p>', 'required></div>', 3)
+        source = source[:begin] + fragment + source[end:]
     compile(source, "bob-activity-manager", "exec")
     compile(nav, "navigation_shell.py", "exec")
     return source.encode("utf-8"), nav.encode("utf-8")
