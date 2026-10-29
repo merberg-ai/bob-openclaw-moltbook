@@ -50,7 +50,7 @@ class StatusContracts(unittest.TestCase):
             self.assertFalse(status.queue_snapshot(Path(temp) / "missing.db")["available"])
 
     def test_labels_are_not_fake_job_progress(self):
-        self.assertEqual(len(status.UNITS), 4)
+        self.assertEqual(len(status.UNITS), 6)
         self.assertNotIn("generating", status.snapshot.__code__.co_consts)
 if __name__ == "__main__":
     unittest.main()
