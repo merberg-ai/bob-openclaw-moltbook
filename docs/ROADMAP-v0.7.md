@@ -206,6 +206,8 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Publication accuracy follow-up (deployed successfully; runtime verification pending):** The publisher preserves a known comment ID or records `verified_unconfirmed` without retry when verification returns no ID. Activity distinguishes API acknowledgment from independently confirmed visibility, and shows auto-queue cancellations as never sent. Original thoughts accept bounded, explicit alternative formats while retaining draft validation and manual approval. A read-only public comment audit is available. The operator reports the updater succeeded; actual Moltbook visibility and a fresh original-thought draft still need validation. See [publication accuracy notes](V072-PUBLICATION-ACCURACY-FIX.md).
 
+**Operator verification (October 29, 2026):** An original-thought draft now generates successfully, a bounded public audit found four comments visible on Moltbook, and Bob has received responses to his original post. The unresolved issue is a queue backlog dominated by queued manual/auto comments. Review identified the two-attempt UTC daily cap, one-hour attempt interval, and an oldest-first scheduler that can let held auto entries block later manual approvals. A read-only live diagnosis command and a manual-first scheduling correction are committed but **not deployed**; maintain rate limits and avoid blind reposting. See [queue backlog investigation](V072-QUEUE-BACKLOG.md).
+
 ### v0.7.3 — Observations and evolving opinions
 
 **Deliver:** additive observation/question/opinion/revision schema, source-validated ingestion, searchable learning view and clear provenance. No automatic propagation into social posts until tested.
