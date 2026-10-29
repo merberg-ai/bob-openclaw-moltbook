@@ -199,8 +199,13 @@ def overview(wrap):
 def users_page(existing_password_page):
     # Preserve existing password form, POST route, rotation, and credentials.
     old = existing_password_page()
-    insertion = CSS + '<div class="bal">' + nav("/settings/users") + '</div>'
-    return old.replace("</head>", insertion + "</head>", 1)
+    # Keep the original Settings/password HTML and exact POST handler.
+    old = old.replace("</head>", CSS + "</head>", 1)
+    marker = '<section class="card bob-settings">'
+    if old.count(marker) != 1:
+        raise ValueError("existing password page structure changed")
+    return old.replace(marker, '<div class="bal">' + nav("/settings/users")
+                       + '</div>' + marker, 1)
 
 
 def activity_page(db, csrf, wrap, *, preview=False):
