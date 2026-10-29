@@ -7,12 +7,12 @@ from pathlib import Path
 import sqlite3
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/lib/bob"))
+from bob_activity_limits import read_limits
+
 DB = Path.home() / ".config/moltbook/activity-queue.sqlite3"
 PAUSED = Path.home() / ".config/bob-system/paused"
 PUBLISHER = Path.home() / ".local/bin/bob-moltbook-publisher"
-DAILY_MAX = 2
-MIN_GAP = timedelta(hours=1)
-
 
 def parsed_time(value):
     try:
@@ -38,6 +38,7 @@ def diagnose(path=DB, *, at=None, paused=None):
         auto_setting = db.execute(
             "SELECT value FROM publish_settings WHERE name='auto_enabled'").fetchone()
         auto_enabled = bool(auto_setting and auto_setting[0] == "1")
+        policy = read_limits(db)
         today = stamp.strftime("%Y-%m-%d")
         attempts = db.execute(
             "SELECT COUNT(*) FROM publish_jobs WHERE attempted_at LIKE ?",
@@ -56,6 +57,8 @@ def diagnose(path=DB, *, at=None, paused=None):
                            if mode == "manual" and state == "queued")
         auto_count = sum(n for (mode, state), n in modes.items()
                          if mode == "auto" and state == "queued")
+    DAILY_MAX = policy["comment_daily"]
+    MIN_GAP = timedelta(minutes=policy["comment_gap_minutes"])
     # Inspection only: the development checkout may be newer than the installed
     # publisher. Show which ordering policy the running worker will load next.
     installed_manual_first = False
@@ -85,6 +88,9 @@ def diagnose(path=DB, *, at=None, paused=None):
         "auto_enabled": auto_enabled,
         "attempts_today": attempts,
         "daily_limit": DAILY_MAX,
+        "auto_daily_limit": policy["comment_auto_daily"],
+        "original_daily_limit": policy["original_daily"],
+        "original_gap_minutes": policy["original_gap_minutes"],
         "last_attempt_utc": last_attempt.isoformat(timespec="seconds") if last_attempt else None,
         "next_rate_slot_utc": until.isoformat(timespec="seconds") if until else None,
         "queued_manual": manual_count,
@@ -108,7 +114,8 @@ def main():
         return 1
     print("COMMENT QUEUE DIAGNOSIS (read-only; no publishing)")
     for name in ("utc_time", "paused", "auto_enabled", "attempts_today",
-                 "daily_limit", "last_attempt_utc", "next_rate_slot_utc",
+                 "daily_limit", "auto_daily_limit", "original_daily_limit",
+                 "original_gap_minutes", "last_attempt_utc", "next_rate_slot_utc",
                  "queued_manual", "queued_auto", "oldest_queued",
                  "oldest_manual", "manual_behind_auto", "manual_first_installed", "reason"):
         print(name + ": " + str(report[name]))

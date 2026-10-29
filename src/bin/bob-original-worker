@@ -8,6 +8,7 @@ from datetime import datetime,timezone,timedelta
 from bob_publish_common import connect,now,event,setting,set_setting
 from bob_originals import initialize,validate,add_draft,IDENT
 from bob_job_tracking import checkpoint
+from bob_activity_limits import allowed as activity_allowed
 from bob_moltbook_api import api,api_key,parse_time
 
 HOME=Path.home()
@@ -137,10 +138,10 @@ def publish(db):
         db.execute("UPDATE original_posts SET state='failed',last_error='Digest mismatch',updated_at=? WHERE id=?",(now(),rid)); db.commit()
         checkpoint('original_publish',rid,'failed')
         return 'original post integrity mismatch'
-    day=datetime.now(timezone.utc).date().isoformat()
-    if db.execute("SELECT count(*) FROM original_posts WHERE attempted_at LIKE ?",(day+'%',)).fetchone()[0] >= 1:
+    ready, reason = activity_allowed(db, "original")
+    if not ready:
         checkpoint('original_publish',rid,'waiting')
-        return 'original post daily attempt limit reached'
+        return reason
     # To avoid duplicate top-level posts, mark as sending and persist before POST.
     t=now()
     db.execute("UPDATE original_posts SET state='sending',attempted_at=?,updated_at=? WHERE id=?",(t,t,rid))

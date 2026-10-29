@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from bob_dashboard_manage import get_items, filtered, initialize as hidden_init
 from bob_originals import initialize as original_init
 from bob_publish_common import setting, UUID
+from bob_activity_limits import summary as limit_summary
 
 PAGE_SIZE = 8
 SCOUT_STATES = ("pending", "all", "approved", "rejected", "needs review",
@@ -153,6 +154,10 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
               ("pending","approved","rejected","needs review")}
     archived = sum(x["hidden"] for x in items)
     auto_on = setting(db,"auto_enabled","0") == "1"
+    limits_today = limit_summary(db)
+    daily = limits_today['limits']['comment_daily']
+    spacing = limits_today['limits']['comment_gap_minutes']
+    auto_daily = limits_today['limits']['comment_auto_daily']
     h = [CSS,'<div class="bcv"><p class="bcv-note">Review drafts without '
          'scrolling through entire agent reports. Expand a draft to read it, '
          'or open the full original view for additional context.</p>',
@@ -167,8 +172,9 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
          '</div>',
          '<section class="bcv-control"><b>Autonomous comments: ',
          'ON' if auto_on else 'OFF','</b><p class="bcv-note">'
-         'At most two posting attempts/day and one hour between attempts. '
-         'Automatic publication is separate from manual review status.</p>',
+         f'Total budget: {daily} comments/day, at least {spacing} minutes apart; '
+         f'automatic budget: {auto_daily}/day. '
+         'Manual reviews and original posts retain separate permission rules.</p>',
          '<details><summary>Change autonomous comment setting</summary>']
     if auto_on:
         h.append(f'<form method="post" action="/autopost/disable">'
