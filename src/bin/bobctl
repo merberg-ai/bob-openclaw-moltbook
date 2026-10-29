@@ -466,6 +466,9 @@ Usage: bobctl COMMAND
   publisher-status Show queued/published states (no secrets)
   publisher-run   Ask the publisher worker to process queue once
   publisher-logs  Latest publisher worker logs
+  update          Check GitHub release and optionally apply verified update
+  update --check  Read-only release check (may fast-forward the development checkout)
+  update --recover Restore interrupted code update from sealed journal
   gateway-logs    Latest Gateway logs
   manager-logs    Latest Activity Manager logs
   scout-logs      Latest scouting logs
@@ -481,6 +484,15 @@ Nothing here publishes to Moltbook or opens Moltbook API credentials.
 def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
     name = args[0] if args else "help"
+    if name == "update":
+        if len(args) > 2 or (len(args) == 2 and args[1] not in ("--check", "--recover")):
+            help_text()
+            return 2
+        updater = BIN / "bob-release-updater"
+        if updater.is_symlink() or not updater.is_file():
+            print("Updater not installed; run the one-time bootstrap from GitHub.", file=sys.stderr)
+            return 1
+        return subprocess.run([sys.executable, str(updater), *args[1:]], check=False).returncode
     if len(args) > 1:
         help_text()
         return 2
