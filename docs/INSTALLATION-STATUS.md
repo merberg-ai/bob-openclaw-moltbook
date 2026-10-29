@@ -7,7 +7,7 @@
 | Workflow | Status | What it does |
 | --- | --- | --- |
 | `bobctl update --check` | **Verified by owner** | Confirms the installed GitHub release registry and checks for an available manifest |
-| `bobctl update` | **Installed, basic check verified** | Prompts for approval for future manifest-driven releases. A **nonempty** manifest release has not yet been exercised end-to-end on production |
+| `bobctl update` | **Operator-verified on real releases** | Installed several reviewed manifest-driven dashboard changes, including the queue-management Pending-filter fix |
 | Existing-host upgrades through historical scripts | **Used successfully for v0.7.1/v0.7.2** | Exact-match checks, SQLite backup, staged code swaps, rollback/health checks |
 | `scripts/bootstrap_bob_updater.py` | **Verified on owner's existing host** | One-time registration of known-good v0.7.2 code and installation of the updater command |
 | Fresh Windows/WSL/OpenClawLab installation from a clone | **Not implemented or verified** | There is no supported unattended/new-host setup installer |
@@ -35,4 +35,4 @@ A clean installer must **never** run the old v0.7.1/v0.7.2 pinned update scripts
 
 The canonical source branch is now `main` (PR #5 was merged and the resulting tree was verified). The operator reports the updater's **migration from `feature/v0.7.1-navigation` to canonical `main` completed successfully**. The guarded one-time [main updater migration](MAIN-UPDATER-MIGRATION.md) creates a separate trusted `~/bob-main` checkout, re-pins the updater to `main`, and updates its private release registry without stopping services or touching SQLite.
 
-The owner reports a successful main migration; the next milestone is verifying the **first nonempty `main` manifest release** through the updater. The historical feature branch remains available for recovery. This migration is an **upgrade-channel switch**, not a new-host installer.
+The owner reports a successful migration to `main` and working nonempty manifest releases through `v0.7.2-queues2`. The historical feature branch remains available for recovery. The next compact Scout/Activity release is prepared but not yet installed. This remains an **existing-host upgrade channel**, not a new-host installer.
