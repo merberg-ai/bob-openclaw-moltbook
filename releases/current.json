@@ -1,20 +1,22 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm1-uiqueue1",
-  "from": "v0.7.3-pm1-apply1",
-  "notes": "PM1 UI/queue correction: themed spaced personality Apply/Roll Back fields, plus separate Restore selected archived form so archived Scout drafts cannot be accidentally included in approve/reject batches. Server archive, status, CSRF, publication and checksum guards remain unchanged.",
+  "release": "v0.7.3-pm2-memory1",
+  "from": "v0.7.3-pm1-uiqueue1",
+  "notes": "PM2.1 private operator-curated Memory Manager: additive SQLite memory/revision tables, authenticated manual add/search/edit/correct/archive/exclude/restore, HTTPS source attribution and confidence. No agent recall, automatic capture, permissions or publishing changes.",
   "files": [
     {
-      "name": "bob_personality.py",
-      "source": "src/lib/bob/bob_personality.py"
+      "name": "bob_memory.py",
+      "source": "src/lib/bob/bob_memory.py"
     },
     {
-      "name": "bob_personality_apply.py",
-      "source": "src/lib/bob/bob_personality_apply.py"
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v073_pm2_memory_candidate.py",
+      "index": 0
     },
     {
-      "name": "bob_dashboard_manage.py",
-      "source": "src/lib/bob/bob_dashboard_manage.py"
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v073_pm2_memory_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
