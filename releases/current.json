@@ -1,12 +1,22 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm23-recallfix1",
-  "from": "v0.7.3-pm23-optin-recall1",
-  "notes": "PM2.3 recall usability fix: match meaningful short technical topics and singular/plural variants, show exact eligible active-memory counts and distinct no-match reasons, and add one-click previews using saved memory titles. Still only verified active memories, with default-off channel permissions and unchanged publishing safeguards.",
+  "release": "v0.7.4-fm1-friends1",
+  "from": "v0.7.3-pm23-recallfix1",
+  "notes": "FM1 private Moltbook Friends Manager: manual entries, relationship interests/notes and revision history, mute/archive/reactivate, and deliberate quick-add from checksum-verified saved Scout authors. No Moltbook profile lookup, follows, posts, messages, autonomous discovery or recall changes.",
   "files": [
     {
-      "name": "bob_memory_recall.py",
-      "source": "src/lib/bob/bob_memory_recall.py"
+      "name": "bob_friends.py",
+      "source": "src/lib/bob/bob_friends.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v074_fm1_friends_candidate.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v074_fm1_friends_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
