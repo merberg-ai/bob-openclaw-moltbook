@@ -86,7 +86,7 @@ JS = r"""'use strict';
       const msg = document.createElement('small');
       msg.textContent = String(item.message || 'No additional details');
       const seen = document.createElement('small');
-      seen.textContent = 'Last checkpoint: ' + String(item.updated_at || 'unknown');
+      seen.textContent = 'Job ' + String(item.job_id || 'system').slice(0, 32) + ' · Last checkpoint: ' + String(item.updated_at || 'unknown');
       card.append(name, pill(item.stage || 'unknown'), msg, seen);
       return card;
     });
@@ -101,7 +101,7 @@ JS = r"""'use strict';
       el.className = 'bob-status-job';
       const info = document.createElement('div');
       const kind = document.createElement('strong');
-      kind.textContent = String(job.kind || 'job');
+      kind.textContent = String(job.kind || 'job') + ' · ' + String(job.job_id || '').slice(0, 24);
       const created = document.createElement('small');
       created.textContent = 'Created: ' + String(job.created || 'unknown') + ' · Updated: ' + String(job.updated || 'not recorded');
       info.append(kind, created);
@@ -176,7 +176,8 @@ def page(data):
                        escape(str(item.get("worker", ""))) + '</strong>' +
                        _pill(item.get("stage", "unknown")) +
                        '<small>' + escape(str(item.get("message", ""))) + '</small>' +
-                       '<small>Last checkpoint: ' +
+                       '<small>Job ' + escape(str(item.get('job_id', 'system'))[:32]) +
+                       ' · Last checkpoint: ' +
                        escape(str(item.get("updated_at", ""))) + '</small></div>')
     if not workers:
         workers.append('<p>Waiting for worker checkpoints. Existing jobs are shown below.</p>')
@@ -186,7 +187,8 @@ def page(data):
         warning = ('<small class="bob-status-warning">Error recorded; no automatic retry</small>'
                    if job.get("has_error") else '')
         jobs.append('<li class="bob-status-job"><div><strong>' +
-                    escape(str(job.get("kind", ""))) + '</strong><small>Created: ' +
+                    escape(str(job.get("kind", ""))) + ' · ' +
+                    escape(str(job.get("job_id", ""))[:24]) + '</strong><small>Created: ' +
                     escape(str(job.get("created", ""))) + ' · Updated: ' +
                     escape(str(job.get("updated", ""))) + '</small>' + warning +
                     '</div>' + _pill(job.get("state", "unknown")) + '</li>')
