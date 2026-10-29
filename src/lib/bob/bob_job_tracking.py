@@ -85,6 +85,12 @@ def read_checkpoints(*, root: Path | None = None, at: datetime | None = None):
     timestamp = at if at is not None else datetime.now(timezone.utc)
     if folder.is_symlink() or not folder.is_dir():
         return []
+    try:
+        info = folder.stat()
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            return []
+    except OSError:
+        return []
     result = []
     for kind in sorted(KINDS):
         path = folder / (kind + ".json")
