@@ -130,10 +130,11 @@ def filters_form(base, values, states, *, show_visibility=True):
     return "".join(pieces)
 
 
-def action_form(action, ident, digest, csrf, label, cls=""):
+def action_form(action, ident, digest, csrf, label, cls="", return_to="/scout"):
     return (f'<form method="post" action="{e(action)}">'
             f'<input type="hidden" name="csrf" value="{e(csrf)}">'
             f'<input type="hidden" name="digest" value="{e(digest)}">'
+            f'<input type="hidden" name="return_to" value="{e(return_to)}">'
             f'<button type="submit" class="{e(cls)}">{e(label)}</button></form>')
 
 
@@ -149,6 +150,8 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
     items = get_items(db,"scout",records,status_fn)
     shown = filtered(items,state,show,search)
     page_items, controls = paging(shown,params,"/scout",dict(state=state,show=show,q=search))
+    return_to = "/scout?" + urlencode(dict(
+        state=state, show=show, q=search, page=page_number(params)))
     by_id = {r["run_id"]:r for r in records if isinstance(r.get("run_id"),str)}
     counts = {s: sum(x["status"] == s for x in items) for s in
               ("pending","approved","rejected","needs review")}
@@ -179,10 +182,12 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
     if auto_on:
         h.append(f'<form method="post" action="/autopost/disable">'
                  f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+                 f'<input type="hidden" name="return_to" value="{e(return_to)}">'
                  '<button type="submit" class="reject">Disable autonomous replies</button></form>')
     else:
         h.append(f'<form method="post" action="/autopost/enable">'
                  f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+                 f'<input type="hidden" name="return_to" value="{e(return_to)}">'
                  '<label>Type ENABLE AUTO <input name="confirmation" maxlength="20" '
                  'autocomplete="off" required></label><button type="submit">Enable</button></form>')
     h.append('</details></section>')
@@ -219,19 +224,20 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
         if verified and isinstance(digest,str) and re.fullmatch(r"[0-9a-f]{64}",digest):
             h.append('<div class="bcv-actions">')
             if status=="pending":
-                h.append(action_form(f"/review/{rid}/approve",rid,digest,csrf,"Approve"))
-                h.append(action_form(f"/review/{rid}/reject",rid,digest,csrf,"Reject","reject"))
+                h.append(action_form(f"/review/{rid}/approve",rid,digest,csrf,"Approve",return_to=return_to))
+                h.append(action_form(f"/review/{rid}/reject",rid,digest,csrf,"Reject","reject",return_to=return_to))
             elif status in ("approved","rejected"):
-                h.append(action_form(f"/review/{rid}/reset",rid,digest,csrf,"Return to pending","reset"))
+                h.append(action_form(f"/review/{rid}/reset",rid,digest,csrf,"Return to pending","reset",return_to=return_to))
             if status=="approved" and not job:
                 h.append(action_form(f"/publish/{rid}",rid,digest,csrf,
-                                     "Queue approved comment"))
+                                     "Queue approved comment",return_to=return_to))
                 h.append('<span class="bcv-note">Queueing may lead to a real '
                          'publication when eligible.</span>')
             h.append('</div>')
         if job=="awaiting_verification":
             h.append(f'<form class="bcv-verify" method="post" action="/verify/{e(rid)}">'
                      f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+                     f'<input type="hidden" name="return_to" value="{e(return_to)}">'
                      '<label>Verification challenge: answer with two decimals'
                      '<input name="answer" maxlength="16" placeholder="15.00" required></label>'
                      '<button type="submit">Submit challenge answer once</button></form>')
