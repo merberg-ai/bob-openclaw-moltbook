@@ -2,6 +2,8 @@
 from pathlib import Path
 import sys
 import unittest
+import sqlite3
+import tempfile
 from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src/lib/bob"))
@@ -27,6 +29,26 @@ class StatusContracts(unittest.TestCase):
         self.assertIn(b'elif self.path == "/system/status"', manager)
         self.assertIn(b'elif self.path == "/api/system/status"', manager)
         self.assertIn(b'("/system/status", "System status", "System status")', navigation)
+    def test_queue_states_are_real_and_read_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            dbpath = Path(temp) / "queue.sqlite3"
+            with sqlite3.connect(dbpath) as db:
+                db.execute("CREATE TABLE publish_jobs (state TEXT, created_at TEXT)")
+                db.execute("CREATE TABLE original_posts (state TEXT, created_at TEXT)")
+                db.execute("CREATE TABLE original_requests (state TEXT, created_at TEXT)")
+                db.execute("INSERT INTO publish_jobs VALUES ('awaiting_verification','2026-10-28T18:00:00Z')")
+                db.execute("INSERT INTO original_requests VALUES ('queued','2026-10-28T18:01:00Z')")
+                db.commit()
+            result = status.queue_snapshot(dbpath)
+            self.assertTrue(result["available"])
+            self.assertEqual([x["state"] for x in result["jobs"]], ["queued", "awaiting_verification"])
+            with sqlite3.connect(dbpath) as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM publish_jobs").fetchone()[0], 1)
+
+    def test_missing_queue_is_unknown(self):
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertFalse(status.queue_snapshot(Path(temp) / "missing.db")["available"])
+
     def test_labels_are_not_fake_job_progress(self):
         self.assertEqual(len(status.UNITS), 4)
         self.assertNotIn("generating", status.snapshot.__code__.co_consts)
