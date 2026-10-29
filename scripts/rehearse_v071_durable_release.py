@@ -187,7 +187,8 @@ def scenario(case: str) -> dict:
             outcome = recover(root)
         else:
             outcome = initial
-        expected = ["before", "after"] if case != "crash-prepared" else ["before"]
+        expected = (["before", "after"] if case in ("healthy", "failed-health", "crash-restart")
+                    else ["before"])
         valid = data_preserved(root, expected)
         chosen = active(root)
         if not valid or (chosen != ("candidate" if case == "healthy" else "baseline")):
