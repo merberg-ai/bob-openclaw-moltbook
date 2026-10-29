@@ -1,6 +1,6 @@
 # Bob Overview dashboard: v0.7.2-overview1
 
-**Status (October 29, 2026):** [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. Manifest `v0.7.2-overview1` is **ready for `bobctl update`, but is not yet confirmed installed** on the operator’s host. Its parent release `v0.7.2-activity-limits1` is operator-verified.
+**Status (October 29, 2026):** [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. The operator confirmed `v0.7.2-overview1` installed and the new dashboard looking good. Follow-up [PR #11](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/11) passed CI and merged the one-file `v0.7.2-overview2` visual cleanup, which is **available but not yet confirmed installed**.
 
 ## Navigation
 
@@ -29,7 +29,7 @@ The operator verified `v0.7.2-overview1` installed and working, then requested a
 
 All navigation remains in the existing sidebar/mobile menu. No worker policy, rate limits, approval routes, publication semantics, telemetry schema or database records change. Only `bob_overview.py` is replaced and the Activity Manager is restarted through the guarded updater. The updated module also removes browser-side references to the deleted header elements.
 
-**Deployment status:** The cleanup is implemented on the feature branch and will be made available as a subsequent manifest release; operator installation is not yet verified.
+**Deployment status:** The cleanup has passed GitHub CI and is merged on `main` as `v0.7.2-overview2`. Operator installation is still pending.
 
 ## Privacy and publishing guarantees
 
