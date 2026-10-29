@@ -204,6 +204,8 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** Test credential rotation, current-password mismatch, CSRF/Origin refusal, malformed and oversized requests, private permissions, atomic-write failure, concurrent requests, and old-password rejection without service restart. Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
 
+**Publication accuracy follow-up (code ready; production pending):** Verified-without-ID comments were incorrectly marked `published`; the publisher now preserves an available comment ID or records `verified_unconfirmed` without a retry. The Activity summary distinguishes API-acknowledged IDs from independently verified public original posts, and identifies canceled auto queue items as never sent. Original thoughts accept bounded explicitly formatted alternatives to BODY_START, still passing all draft validation and requiring manual approval. A read-only bounded public comment visibility audit is available. See [publication accuracy notes](V072-PUBLICATION-ACCURACY-FIX.md). No fixed behavior is claimed until the user verifies the next rollout.
+
 ### v0.7.3 — Observations and evolving opinions
 
 **Deliver:** additive observation/question/opinion/revision schema, source-validated ingestion, searchable learning view and clear provenance. No automatic propagation into social posts until tested.
