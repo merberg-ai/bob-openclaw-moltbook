@@ -1,14 +1,14 @@
 # Canonical `main` updater migration
 
-**Status:** One-time migration prepared on `main`, **not yet installed** on the owner's live OpenClawLab host. The installed v0.7.2 updater currently tracks `feature/v0.7.1-navigation` and reports `v0.7.2-updater-bootstrap` as up to date.
+**Status (October 29, 2026):** The owner reports the one-time migration **succeeded**. The installed updater now tracks canonical `main`; this document preserves the one-time procedure for historical/recovery reference. Do **not** rerun it on an already migrated installation.
 
-## One-time migration from Windows PowerShell
+## Historical one-time migration procedure (already completed on the owner host)
 
 ```powershell
 wsl -d OpenClawLab -u openclaw -- bash -lc 'set -e; test -d "$HOME/bob-main" || git clone --branch main --single-branch https://github.com/merberg-ai/bob-openclaw-moltbook.git "$HOME/bob-main"; cd "$HOME/bob-main"; git pull --ff-only; python3 -m py_compile scripts/bob_release_updater.py scripts/migrate_bob_updater_to_main.py; python3 -m unittest discover -s tests -p "test_main_updater_migration.py" -q; python3 scripts/migrate_bob_updater_to_main.py --apply --confirm MIGRATE-BOB-UPDATER-TO-MAIN; "$HOME/.local/bin/bobctl" update --check'
 ```
 
-This performs **three focused offline tests** first. On success the migration should print:
+This procedure performed **three focused offline tests** first. On success the migration should print:
 
 ```text
 BOB MAIN MIGRATION: main_channel_installed
