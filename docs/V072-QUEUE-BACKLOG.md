@@ -10,6 +10,17 @@ The operator reports that a new original-thought draft generated successfully an
 - When automatic posting is explicitly disabled, the dashboard cancels *still queued* auto jobs. Those canceled comments were not sent. This behavior is different from cancellation of an already attempted publication.
 - The original 3-hour auto-draft maximum age and 7-day manual maximum age still apply when jobs are evaluated. Never blindly repost historic uncertain/published items.
 
+## Operator's actual queue reading (October 29, 2026, 12:23 UTC)
+
+- Paused: **no**; automatic posting: **enabled**
+- Outgoing comment attempts today: **2 of 2**. Daily cap is the current blocker, independently of manual/auto queue ordering.
+- Local allowance resets at **2026-10-30T00:00:00Z**, which is **October 29, 5:00 PM Pacific Daylight Time**. The normal one-hour gap still applies to consecutive attempts.
+- Waiting: **4 manually approved**, **10 automatic**. Another **24 automatic** were previously canceled and one auto job failed.
+- The oldest queued item is **manual**, so disabled-auto queue starvation is **not** currently active; the manual-first patch remains valuable to prevent later automatic entries from using the next eligible slots ahead of approved replies.
+- Previously observed successful public visibility checks and original-thought generation establish that core publishing and drafting work; they do not remove the local daily cap.
+
+No need to run `bobctl publisher-run` while the daily limit is exhausted; it cannot create an allowed attempt and is not a diagnostic command. Do not disable or cancel the auto queue solely to clear the dashboard without deciding how those approved policies should behave.
+
 ## One read-only diagnosis
 
 From Windows PowerShell:
@@ -22,7 +33,7 @@ Prints: current UTC time, paused and auto-mode state, today’s attempt count ag
 
 ## Change prepared in GitHub, not installed
 
-The publisher dispatch query has been changed to prioritize manually approved comments over automatic candidates while preserving first-in-first-out order within each mode. Existing integrity checks, age limits, per-day and per-hour limits, manual approvals and no-retry guarantees are unchanged. It cannot make another attempt until the relevant rate limit permits it.
+The publisher dispatch query has been changed to prioritize manually approved comments over automatic candidates while preserving first-in-first-out order within each mode. A pinned, one-file, explicit-confirmation updater is available as `scripts/patch_manual_comment_priority.py`. Its default mode is read-only; release mode backs up SQLite, atomically replaces the exact expected publisher file, and never starts or restarts a worker. Existing integrity checks, age limits, per-day and per-hour limits, manual approvals and no-retry guarantees are unchanged. It cannot make another attempt until the relevant rate limit permits it.
 
 Focused offline tests in `tests/test_manual_queue_priority.py` cover disabled-auto starvation, shared cap reporting and read-only diagnosis. **This patch is development-only, not live.** A separately authorized deployment must pin and verify the current installed publisher before updating it. Do not run `bobctl publisher-run` just to diagnose because that is an active publication attempt command and may post if the queue becomes eligible.
 
