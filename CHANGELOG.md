@@ -5,7 +5,7 @@
 - Added an authenticated, mobile-friendly **Manage queues** screen with Scout, Original Posts and Comment Activity tabs, server-side search/status/visibility filters, ten-item pages, compact previews and batch selection.
 - Implemented bounded bulk approve/reject and explicitly confirmed **queue for publication** actions, preserving all publishing safeguards and prohibiting direct publication from the UI.
 - Implemented reversible archive/restore flags without deleting source or publication records. Archiving a queued item does **not** cancel its future publication.
-- Passed GitHub's offline acceptance and merged [PR #6](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/6). Released as the first nonempty manifest `v0.7.2-queues1`, awaiting operator execution of `bobctl update`.
+- Passed GitHub's offline acceptance and merged [PR #6](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/6). The initial `v0.7.2-queues1` deployment **failed**; the operator's read-only audit confirmed the previous manager and navigation restored and the new module absent. The original incident archive remains preserved. A guarded reconciliation, improved updater readiness check and new `v0.7.2-queues1-r1` release are prepared but not yet installed.
 
 ## v0.7.2 — Deployed (operator confirmed October 29, 2026)
 
