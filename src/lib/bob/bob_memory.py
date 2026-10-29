@@ -166,7 +166,7 @@ def create(db, fields):
     data = validate(fields)
     initialize(db)
     if db.execute("SELECT count(*) FROM bob_memories").fetchone()[0] >= CAP:
-        raise ValueError("Memory capacity reached; archive/export before adding")
+        raise ValueError("Memory capacity reached; new entries are disabled until a later retention release")
     stamp = now()
     item = dict(id=secrets.token_hex(12), **data, source_kind="operator", state="active",
                 created_at=stamp, updated_at=stamp, version=1)
