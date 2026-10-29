@@ -24,7 +24,7 @@ import build_v072_dashboard_manage_candidate as prior
 def database():
     db = sqlite3.connect(":memory:")
     db.execute("CREATE TABLE decisions(run_id TEXT PRIMARY KEY, draft_sha256 TEXT, status TEXT, decided_at TEXT)")
-    db.execute("CREATE TABLE publish_jobs (run_id TEXT PRIMARY KEY, mode TEXT, state TEXT, draft_comment TEXT, created_at TEXT, post_id TEXT, comment_id TEXT)")
+    db.execute("CREATE TABLE publish_jobs (run_id TEXT PRIMARY KEY, mode TEXT, state TEXT, draft_comment TEXT, created_at TEXT, post_id TEXT, comment_id TEXT, attempted_at TEXT)")
     db.execute("CREATE TABLE publish_settings (name TEXT PRIMARY KEY, value TEXT)")
     db.execute("CREATE TABLE published_replies (id TEXT PRIMARY KEY, post_id TEXT, comment_id TEXT, author TEXT, content TEXT, detected_at TEXT)")
     db.execute("CREATE TABLE publish_events (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, kind TEXT, details TEXT)")
@@ -64,7 +64,7 @@ class CompactDashboardTests(unittest.TestCase):
 
     def test_scout_pending_defaults_to_eight_compact_cards(self):
         rid = self.records[0]["run_id"]
-        self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+        self.db.execute("INSERT INTO publish_jobs (run_id,mode,state,draft_comment,created_at,post_id,comment_id) VALUES (?,?,?,?,?,?,?)",
                         (rid,"auto","queued","Auto queued","2026-10-29T00:00Z","test",None))
         html = compact.scout_page(self.db,self.records,fake_status,{},"csrf-only",fake_wrap)
         self.assertEqual(html.count('<article class="bcv-card"'),8)
@@ -91,7 +91,7 @@ class CompactDashboardTests(unittest.TestCase):
 
     def test_activity_tabs_show_eight_items_and_careful_public_claims(self):
         for i in range(13):
-            self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+            self.db.execute("INSERT INTO publish_jobs (run_id,mode,state,draft_comment,created_at,post_id,comment_id) VALUES (?,?,?,?,?,?,?)",
                             ("20261029T%02d0000Z"%i,"manual","published",
                              "A simulated posted comment","2026-10-29T12:00Z",None,None))
         result=compact.activity_page(self.db,{},fake_wrap)
@@ -114,7 +114,7 @@ class CompactDashboardTests(unittest.TestCase):
 
     def test_comment_activity_retains_validated_discussion_link(self):
         post_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-        self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+        self.db.execute("INSERT INTO publish_jobs (run_id,mode,state,draft_comment,created_at,post_id,comment_id) VALUES (?,?,?,?,?,?,?)",
                         ("20261029T140000Z","manual","published","A test draft",
                          "2026-10-29T14:00Z",post_id,None))
         rendered = compact.activity_page(self.db,{},fake_wrap)
