@@ -14,7 +14,8 @@ def build():
     source = source.replace(
         "from navigation_shell import integrate_existing_html",
         "from navigation_shell import integrate_existing_html, wrap\n"
-        "from bob_dashboard_auth import authorized as dashboard_authorized, rotate as dashboard_rotate, CredentialError",
+        "from bob_dashboard_auth import authorized as dashboard_authorized, rotate as dashboard_rotate, CredentialError\n"
+        "from bob_live_status import snapshot as status_snapshot",
         1)
     auth_start = source.index("    def _authenticated(self):")
     auth_end = source.index("    def _auth_required(self):", auth_start)
@@ -78,6 +79,19 @@ def build():
             self._change_password()
             return
 ''', 1)
+    anchor = '        elif self.path == "/settings":\n'
+    if source.count(anchor) != 1:
+        raise ValueError("settings route changed")
+    source = source.replace(anchor, '''        elif self.path == "/api/system/status":
+            self._send(200, json.dumps(status_snapshot()), "application/json")
+        elif self.path == "/system/status":
+            items = status_snapshot()["services"]
+            content = '<section class="card"><h2>Live service status</h2><p>Read-only snapshot. Refresh to update.</p><ul>'
+            for item in items:
+                content += "<li><strong>" + esc(item["name"]) + "</strong>: " + esc(item["state"]) + "</li>"
+            content += "</ul><p>A running service is not proof of job readiness or completion.</p></section>"
+            self._send(200, wrap("System status", content, "/system/status"), "text/html; charset=utf-8")
+''' + anchor, 1)
     nav = navigation.decode("utf-8")
     anchor = '    ("/originals", "Original posts", "Original posts"),'
     if nav.count(anchor) != 1:
