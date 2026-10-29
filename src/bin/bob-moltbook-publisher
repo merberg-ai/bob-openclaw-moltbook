@@ -103,7 +103,7 @@ def publisher_step(db):
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Draft expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
         checkpoint('publisher',rid,'failed')
         return 'old draft blocked'
-    duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
+    duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','verified_unconfirmed','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
     if duplicate:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
         checkpoint('publisher',rid,'failed')
@@ -177,9 +177,9 @@ def verification_step(db):
             db.execute("UPDATE publish_jobs SET state='verification_expired',verify_answer=NULL,challenge_code=NULL,last_error='Challenge expired',updated_at=? WHERE run_id=?",(now(),expired_id))
             event(db,'verification_expired',f'{expired_id} challenge expired')
     db.commit()
-    row=db.execute("SELECT run_id,challenge_code,verify_answer,challenge_expires_at FROM publish_jobs WHERE state='awaiting_verification' AND verify_answer IS NOT NULL ORDER BY attempted_at LIMIT 1").fetchone()
+    row=db.execute("SELECT run_id,challenge_code,verify_answer,challenge_expires_at,comment_id FROM publish_jobs WHERE state='awaiting_verification' AND verify_answer IS NOT NULL ORDER BY attempted_at LIMIT 1").fetchone()
     if not row:return None
-    rid,code,answer,expiry=row
+    rid,code,answer,expiry,known_id=row
     ex=parse_time(expiry)
     if ex and datetime.now(timezone.utc)>ex:
         db.execute("UPDATE publish_jobs SET state='verification_expired',verify_answer=NULL,last_error='Challenge expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit(); return f'{rid} challenge expired'
@@ -191,16 +191,18 @@ def verification_step(db):
         result=api('POST','/verify',{'verification_code':code,'answer':answer},key=api_key())
         if result.get('success') is not True: raise RuntimeError('Verification not confirmed')
         data=result.get('data') if isinstance(result.get('data'),dict) else result
-        cid=data.get('content_id') or result.get('content_id')
+        cid=data.get('content_id') or result.get('content_id') or known_id
         if not isinstance(cid,str) or not UUID.fullmatch(cid): cid=None
         if cid:
             db.execute("UPDATE publish_jobs SET state='published',comment_id=?,challenge_code=NULL,updated_at=? WHERE run_id=?",(cid,now(),rid))
         else:
-            db.execute("UPDATE publish_jobs SET state='published',challenge_code=NULL,updated_at=? WHERE run_id=?",(now(),rid))
-        event(db,'verified',f'{rid} Moltbook confirmed challenge')
+            # The verification response succeeded, but no comment can be identified.
+            # Never mark published or blindly retry a possibly accepted comment.
+            db.execute("UPDATE publish_jobs SET state='verified_unconfirmed',challenge_code=NULL,updated_at=? WHERE run_id=?",(now(),rid))
+        event(db,'verified',f'{rid} challenge confirmed; comment ID ' + ('received' if cid else 'unconfirmed'))
         db.commit()
-        checkpoint('publisher',rid,'completed')
-        return f'{rid} verified and published'
+        checkpoint('publisher',rid,'completed' if cid else 'uncertain')
+        return f'{rid} verification acknowledged; ' + ('comment ID recorded' if cid else 'comment ID unconfirmed, no retry')
     except Exception:
         db.execute("UPDATE publish_jobs SET state='verification_failed',last_error='Verification result unclear; do not retry',updated_at=? WHERE run_id=?",(now(),rid))
         event(db,'verification_failed',f'{rid} no automatic reattempt')
