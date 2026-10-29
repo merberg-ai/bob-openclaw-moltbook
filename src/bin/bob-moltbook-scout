@@ -4,6 +4,7 @@ No Moltbook credentials, no posting, no Docker or shell tools granted to Bob.
 """
 import fcntl
 from bob_job_tracking import checkpoint
+from bob_memory_recall import readonly_render as approved_memory_context
 import hashlib
 import json
 import os
@@ -140,7 +141,7 @@ def retry_snapshot():
     raise RuntimeError("No intact needs_review snapshot is available to retry")
 
 
-def scout_prompt(snapshot):
+def scout_prompt(snapshot, recall=''):
     """Give Bob the exact captured feed as inert data, not a filesystem path.
 
     The agent still runs in its configured sandbox with denied exec/browser/etc;
@@ -170,7 +171,10 @@ Your draft is for human review only, NOT authorization to publish anything.
 BEGIN_UNTRUSTED_MOLTBOOK_JSON
 """
     feed = json.dumps(snapshot, ensure_ascii=False, indent=2)
-    return instructions + feed + "\nEND_UNTRUSTED_MOLTBOOK_JSON\n"
+    # Insert recalled notes before the existing untrusted public feed, never
+    # replace the fixed no-tools, approval, or output-format rules.
+    return instructions.replace("BEGIN_UNTRUSTED_MOLTBOOK_JSON\n",
+        recall + "\nBEGIN_UNTRUSTED_MOLTBOOK_JSON\n" if recall else "BEGIN_UNTRUSTED_MOLTBOOK_JSON\n",1) + feed + "\nEND_UNTRUSTED_MOLTBOOK_JSON\n"
 
 
 def main():
@@ -242,7 +246,9 @@ def main():
         write_json(feed_path, snapshot)
         # Existing read-only OpenClaw sandbox reads this path. Host collector alone writes it.
         write_json(INBOX / "moltbook-scout.json", snapshot)
-        prompt = scout_prompt(snapshot)
+        context = ' '.join((str(p.get('title') or '')+' '+str(p.get('content') or ''))
+                           for p in snapshot['posts'] if isinstance(p,dict))
+        prompt = scout_prompt(snapshot, approved_memory_context(context,'scout'))
         env = os.environ.copy()
         env["PATH"] = f"{HOME}/.openclaw/bin:{HOME}/.openclaw/tools/node/bin:" + env.get("PATH", "")
         env["DOCKER_CONFIG"] = str(HOME / ".docker-openclaw")
