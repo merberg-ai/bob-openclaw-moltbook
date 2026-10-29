@@ -128,7 +128,7 @@ class OverviewTests(unittest.TestCase):
             self.assertNotIn('class="bo-links"',html)
             self.assertNotIn("Gauges show daily attempts consumed",html)
             self.assertNotIn("These are local rate slots",html)
-            self.assertIn('href="/manage?tab=activity&amp;state=queued"',html)
+            self.assertIn('href="/manage?tab=activity&state=queued"',html)
             self.assertIn("3 / 8",html)
             self.assertIn("1 / 4",html)
             self.assertIn('src="/assets/bob-overview.js"',html)
