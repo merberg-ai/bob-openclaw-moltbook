@@ -33,6 +33,6 @@ A clean installer must **never** run the old v0.7.1/v0.7.2 pinned update scripts
 
 ## Git branch transition
 
-The canonical source branch is now `main` (PR #5 was merged and the resulting tree was verified). The existing-host updater is installed and functional but is **still configured for `feature/v0.7.1-navigation` on the operator's host until the migration command is run**. The guarded one-time [main updater migration](MAIN-UPDATER-MIGRATION.md) creates a separate trusted `~/bob-main` checkout, re-pins the updater to `main`, and updates its private release registry without stopping services or touching SQLite.
+The canonical source branch is now `main` (PR #5 was merged and the resulting tree was verified). The operator reports the updater's **migration from `feature/v0.7.1-navigation` to canonical `main` completed successfully**. The guarded one-time [main updater migration](MAIN-UPDATER-MIGRATION.md) creates a separate trusted `~/bob-main` checkout, re-pins the updater to `main`, and updates its private release registry without stopping services or touching SQLite.
 
-The owner must confirm `BOB UPDATE: up to date (v0.7.2-main-channel)` before treating the channel migration as complete. The historical feature branch remains available for recovery. This migration is an **upgrade-channel switch**, not a new-host installer.
+The owner reports a successful main migration; the next milestone is verifying the **first nonempty `main` manifest release** through the updater. The historical feature branch remains available for recovery. This migration is an **upgrade-channel switch**, not a new-host installer.
