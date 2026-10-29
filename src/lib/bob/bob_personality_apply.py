@@ -53,16 +53,16 @@ def require_private_dir(path):
     if path.is_symlink():
         raise ValueError("Symlinked state directory refused")
     if not path.exists():
-        path.mkdir(mode=0o700, parents=True, exist_ok=False)
+        path.mkdir(mode=0o700, parents=True, exist_ok=True)
     st=path.lstat()
     if not stat.S_ISDIR(st.st_mode) or st.st_uid!=os.getuid() or st.st_mode & 0o077:
         raise ValueError("State directory must be owned privately (0700)")
     return path
 
 
-def _root_chain_safe(path, home=HOME):
+def _root_chain_safe(path, home=None):
     path=Path(path)
-    home=Path(home).resolve()
+    home=Path(home if home is not None else HOME).resolve()
     if not path.is_absolute() or not path.is_relative_to(home) or path == home:
         raise ValueError("Agent workspace must reside under the operator home")
     cur=home
@@ -163,7 +163,7 @@ def update_managed(raw, new_block):
     if MARK_START in raw:
         start=raw.index(MARK_START)
         end=raw.index(MARK_END)+len(MARK_END)
-        if end<start:
+        if raw.index(MARK_END)<start:
             raise ValueError("Malformed marker order")
         return raw[:start]+new_block+raw[end:], raw[start:end]
     # Preserve original text byte-for-byte; only append the delimited section.
