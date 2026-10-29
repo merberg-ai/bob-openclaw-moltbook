@@ -166,8 +166,7 @@ class RecallTests(unittest.TestCase):
         with_memory=original.prompt("thought","MEMORY CONTEXT MARKER")
         self.assertNotIn("MEMORY CONTEXT MARKER",fresh)
         self.assertIn("MEMORY CONTEXT MARKER",with_memory)
-        self.assertIn("must not publish",with_memory) if "must not publish" in with_memory else self.assertIn(
-            "must not publish",with_memory.lower().replace("must not","must not"))
+        self.assertIn("you must not publish anything yourself",with_memory.lower())
         self.assertLess(with_memory.index("MEMORY CONTEXT MARKER"),with_memory.index("Return ONLY"))
         self.assertIn("BODY_START",with_memory)
         self.assertIn("BODY_END",with_memory)
