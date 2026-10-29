@@ -1,68 +1,59 @@
-# Bob's reusable updater: `bobctl update`
+# Bob update workflow (`bobctl update`)
 
-**Status:** Committed to GitHub for one-time installation. The owner-reported live baseline is v0.7.2, including manual-first publishing. The installed `bobctl` does **not** yet know `update`; the one-time bootstrap below adds it. No changes are deployed by a GitHub commit.
+**Working system:** Bob v0.7.2 on the owner's existing OpenClawLab WSL2 installation. The manifest-driven updater has been bootstrapped and was confirmed to report `up to date`. As of October 29, 2026, the **installed updater still points at the historical `feature/v0.7.1-navigation` checkout**. The canonical `main` migration is prepared in GitHub and awaits the owner's one-time execution.
 
-## One-time installation
+## Moving the installed updater to `main`
 
-Run in Windows PowerShell using the ordinary `openclaw` WSL user:
+Follow the [one-command, three-test main migration](MAIN-UPDATER-MIGRATION.md). It creates a separate `~/bob-main` checkout, pins and verifies the exact installed updater, and changes the updater's trusted branch, private checkout pointer and release registry. It does not restart Bob or modify the publication database.
 
-```powershell
-wsl -d OpenClawLab -u openclaw -- bash -lc "set -e; cd ~/bob-v071-preview && git pull --ff-only && python3 -m py_compile scripts/bob_release_updater.py scripts/bootstrap_bob_updater.py src/bin/bobctl && python3 -m unittest discover -s tests -p 'test_bob_updater_smoke.py' -q && python3 scripts/bootstrap_bob_updater.py --apply --confirm INSTALL-BOB-UPDATER && ~/.local/bin/bobctl update --check"
+After migration, verify:
+
+```text
+BOB MAIN MIGRATION: main_channel_installed
+BOB UPDATE: up to date (v0.7.2-main-channel)
 ```
 
-This is **one focused five-test acceptance**, not the entire project suite. The bootstrap refuses unexpected installed files, checks the currently running authenticated dashboard, creates a new verified SQLite backup, registers the exact current installed code and replaces only `~/.local/bin/bobctl` plus the new `~/.local/bin/bob-release-updater`. It does **not** restart any service, publish, change auto-posting, or touch SQLite data. It writes a private configuration record pointing to the current clean GitHub checkout and a private hash registry. The installer refuses an existing deployment or partially written journal. If it reports `REFUSED`, stop rather than rerunning.
+**Do not rerun the original v0.7.2 updater bootstrap** on a working installation. That script is retained as historical release material.
 
-The expected final output is:
-
-```
-BOB UPDATER BOOTSTRAP: installed
-BOB UPDATE: up to date (v0.7.2-updater-bootstrap)
-```
-
-## Ongoing workflow
-
-After the one-time bootstrap, use **one command** from the OpenClawLab terminal:
-
-```bash
-bobctl update
-```
-
-That command verifies a clean checkout on the expected `feature/v0.7.1-navigation` branch with the expected GitHub origin, fast-forwards it from GitHub, reads `releases/current.json`, and checks its declared `from` release against a private installed-release registry. It checks SHA-256 hashes of every registered installed file. When no release is pending, it says **up to date** and changes no production files. When a new release is pending, it prints the release description, exact files to replace and whether Activity Manager will restart, then asks the operator to type **UPDATE**. Without that exact confirmation, no production code is installed.
-
-For a read-only check without the interactive installation prompt:
+## Regular updates after migration
 
 ```bash
 bobctl update --check
+bobctl update
 ```
 
-**An ordinary `git pull` never deploys a new version.** The updater won't copy arbitrary files because it only accepts an explicit `releases/current.json` release manifest, local script or builder paths in the reviewed repository, a matching previous release, and expected file hashes.
+The installed updater verifies the trusted `merberg-ai/bob-openclaw-moltbook` remote, clean `main` checkout and fast-forward-only Git history. It reads `releases/current.json` and compares the manifest `from` release with the last recorded private installed release. Only the exact explicitly listed source files are eligible. Existing installed files must match their saved SHA-256 hashes before being replaced.
 
-For a declared update, the engine creates and restore-verifies a private SQLite backup before changing any application files, archives original code privately, uses owner-private atomic writes, and performs authenticated dashboard health probes. It restarts **only** `bob-activity-manager.service` when a release manifest explicitly requests that restart. It never starts a worker or triggers a Moltbook POST. It checks updated files and the dashboard before recording completion. An interrupted transaction requires manual `bobctl update --recover`, exact confirmation, and unchanged sealed archive data; it must not be retried blindly.
+`--check` checks for changes without installing application code. Plain `bobctl update` shows the release notes, changed files and whether a dashboard restart is requested; a user must type **UPDATE** to proceed. The updater takes a private verified SQLite backup before a nonempty upgrade, records sealed old code and the installed registry, writes code atomically and checks authenticated dashboard health. It restarts only the Activity Manager when requested by the manifest. Publisher/scout workers are never started or invoked by the updater. On failure it attempts a guarded code rollback and requires manual recovery if interrupted.
 
-## Creating future releases on GitHub
+**A successful no-op check does not yet validate the first nonempty manifest-driven update.** The next dashboard refinements will provide that controlled acceptance. A direct `git pull` does not update the live installation.
 
-Future dashboard/UI changes get one reviewed manifest change rather than a new installer. Example:
+## Writing a future release
+
+Work on a feature branch, review/merge it to `main`, then promote a new manifest with a unique release ID. Example for the first nonempty update:
 
 ```json
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-ui1",
-  "from": "v0.7.2-updater-bootstrap",
-  "notes": "Mobile dashboard layout improvements",
+  "release": "v0.7.2-ui1",
+  "from": "v0.7.2-main-channel",
+  "notes": "Reviewed dashboard usability changes",
   "files": [
-    {"name": "bob-activity-manager", "builder": "scripts/build_v073_dashboard_candidate.py", "index": 0},
-    {"name": "navigation_shell.py", "builder": "scripts/build_v073_dashboard_candidate.py", "index": 1}
+    {"name": "bob-activity-manager", "builder": "scripts/build_v072_ui1_candidate.py", "index": 0},
+    {"name": "bob_status_view.py", "source": "src/lib/bob/bob_status_view.py"}
   ],
   "restart_manager": true
 }
 ```
 
-Builder scripts must have a `build()` function returning `(manager_bytes, navigation_bytes)`. Direct tracked modules can instead use e.g. `{"name":"bob_status_view.py","source":"src/lib/bob/bob_status_view.py"}`. The updater installs **only** manifest files and rejects unexpected paths, duplicate targets, uncommitted files, a changed repository remote, installed-source drift and out-of-sequence releases.
+Builders must return two bytes objects from `build()`; direct sources must be reviewed Git-tracked files. A nonempty release requires a single focused offline smoke test before proposing `bobctl update` to the owner. Do not reuse release IDs, skip `from` versions, or change live credentials and publication permissions through a dashboard-only update.
 
-Release IDs are immutable. Do not reuse a completed ID for a different manifest. This first release intentionally contains no pending changes. The next dashboard changes can use the first actual manifest-driven update.
+## Safety and boundaries
 
-## Important boundaries
+- Existing-host updater: **installed, basic check verified**, first nonempty manifest release pending.
+- Clean WSL2/Windows installation from scratch: **not implemented**; see [installation status](INSTALLATION-STATUS.md).
+- Existing LAN HTTP Basic authentication is suitable only for a trusted LAN/VPN or properly configured HTTPS proxy.
+- Code rollback is not a request to revert later SQLite publishing records. Uncertain Moltbook posts must never be retried automatically.
+- Keep the old feature checkout until the owner confirms the `main` transition and the first normal release.
 
-This is still a local GitHub-to-Bob updater, **not** an internet-accessible self-update HTTP endpoint. Only the trusted local `openclaw` shell can authorize production installation. The repo's GitHub branch remains historically named `feature/v0.7.1-navigation` until deliberately migrated; this updater pins that branch rather than silently switching it. The existing LAN dashboard is HTTP and should remain restricted to a trusted LAN/VPN until HTTPS is enabled.
-
-The updater doesn't change passwords, Moltbook credentials, publishing limits, database schema, job approvals, or existing historical records.
+Historical v0.7.1/v0.7.2 patch scripts remain in the repository as provenance and manual recovery references, not the standard upgrade interface.
