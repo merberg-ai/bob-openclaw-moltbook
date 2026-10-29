@@ -46,6 +46,14 @@ class BrowserSettingsAcceptance(unittest.TestCase):
         sys.path.insert(0, str(bin_dir))
         from importlib.machinery import SourceFileLoader
         from importlib.util import module_from_spec, spec_from_loader
+        # Avoid stale v0.7.1 module cached by earlier tests in this process.
+        cls.previous_navigation = sys.modules.pop("navigation_shell", None)
+        nav_loader = SourceFileLoader("navigation_shell", str(bin_dir / "navigation_shell.py"))
+        nav_spec = spec_from_loader(nav_loader.name, nav_loader)
+        nav_module = module_from_spec(nav_spec)
+        sys.modules["navigation_shell"] = nav_module
+        nav_loader.exec_module(nav_module)
+        from importlib.util import module_from_spec, spec_from_loader
         loader = SourceFileLoader("synthetic_v072_manager", str(bin_dir / "bob-activity-manager"))
         spec = spec_from_loader(loader.name, loader)
         cls.manager = module_from_spec(spec)
@@ -62,6 +70,10 @@ class BrowserSettingsAcceptance(unittest.TestCase):
         cls.server.shutdown()
         cls.server.server_close()
         cls.thread.join(timeout=4)
+        if cls.previous_navigation is None:
+            sys.modules.pop("navigation_shell", None)
+        else:
+            sys.modules["navigation_shell"] = cls.previous_navigation
         for entry in reversed(cls.patchers):
             entry.stop()
         cls.temp.cleanup()
