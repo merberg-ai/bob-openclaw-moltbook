@@ -1,6 +1,6 @@
 # v0.7.2 Job Tracking: release candidate
 
-**Status:** Implemented in the GitHub development branch. **NOT YET INSTALLED** on the OpenClawLab host. Owner-reported current production has working v0.7.2 responsive Settings and 15-second System Status refresh.
+**Status (operator-reported October 28, 2026):** The v0.7.2 job-tracking feature is **installed and working** on OpenClawLab, including the responsive Settings page and 15-second System Status refresh. This document retains the original release procedure as a historical description; the operator need not run the installer again.
 
 ## Actual worker stages
 
