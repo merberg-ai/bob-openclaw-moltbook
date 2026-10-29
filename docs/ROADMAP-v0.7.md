@@ -188,6 +188,8 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ### v0.7.2 — Live background-job feedback and dashboard Settings
 
+**Deployed progress (operator-reported October 28, 2026):** Responsive Settings, immediate password rotation, trusted-console login reset, mobile styling, read-only service/queue status, and in-place 15-second status updates are running in production. **Still open:** per-job worker stages (queued / generating / waiting / validating / errored), meaningful timeouts, and guarded retry eligibility; these cannot be inferred from service state alone. Deferred defects: numerous comments displayed as `canceled`; original-thought generation fails. Investigate those after closing the current status/release work without assuming a common cause.
+
 **Deliver:** job-status model/API, real spinners, stage-specific messages, health diagnostics, timeouts, error display, safe retry eligibility, and a responsive **System → Settings** page with LAN dashboard password rotation.
 
 **Settings / password rotation requirements:**
