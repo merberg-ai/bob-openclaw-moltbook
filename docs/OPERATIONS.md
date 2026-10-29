@@ -1,6 +1,6 @@
 # Bob operator guide (v0.7.2)
 
-**Current state, October 29, 2026:** The owner's OpenClawLab (WSL2) host is running the verified v0.7.2 Activity Manager, working original-thought drafting, observed worker stages and manually prioritized comment publication. The reusable `bobctl update` command was installed and confirmed up to date. **Its one-time move from the historical feature branch to canonical `main` is prepared but still requires host execution.** See [main migration](MAIN-UPDATER-MIGRATION.md).
+**Current state, October 29, 2026:** The owner's OpenClawLab (WSL2) host is running the verified v0.7.2 Activity Manager, working original-thought drafting, observed worker stages and manually prioritized comment publication. The reusable `bobctl update` command was installed and confirmed up to date. **The operator reports its one-time migration to canonical `main` completed successfully.** See [main migration](MAIN-UPDATER-MIGRATION.md).
 
 ## Routine operator commands
 
@@ -31,7 +31,7 @@ Original thoughts remain draft-first and require separate human review before pu
 ## Releases, recovery and backups
 
 - `main` is the canonical reviewed source branch, and [`releases/current.json`](../releases/current.json) is the release manifest.
-- Migrate the already-installed updater once using [main migration instructions](MAIN-UPDATER-MIGRATION.md). Do not delete the old feature checkout before checking the new channel.
+- The installed updater now tracks canonical `main` following the operator-confirmed migration. The [historical migration procedure](MAIN-UPDATER-MIGRATION.md) must not be rerun; keep the old feature checkout available for reference.
 - Subsequent reviewed releases use `bobctl update`, not historical version-specific patch scripts.
 - The updater checks stored code hashes, creates and verifies a private SQLite backup before a nonempty release, performs atomic code swaps, and verifies the authenticated dashboard; it attempts code-only rollback on failure. It never invokes the publisher or resets posting records.
 - A new-host Windows/WSL/OpenClawLab installer is **not yet available**; do not run the historical pinned upgrade scripts on a clean host. See [installation status](INSTALLATION-STATUS.md).
