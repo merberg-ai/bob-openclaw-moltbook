@@ -14,8 +14,8 @@
 
 - Implemented `bobctl update` and a verified one-time bootstrap for the existing host. The operator installed the bootstrap successfully and observed an up-to-date status.
 - Merged the working v0.7.2 development branch to `main` via [PR #5](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/5).
-- Prepared a guarded migration of the installed updater from `feature/v0.7.1-navigation` to the canonical `main` checkout, with a private registry transition and code/config rollback. **The migration is not yet verified on the host.**
-- Prepared a no-op `v0.7.2-main-channel` release manifest. The first nonempty manifest-driven update remains to be tested with upcoming dashboard improvements.
+- The operator reports the guarded updater migration from `feature/v0.7.1-navigation` to canonical `main` completed successfully. The old checkout remains available for reference.
+- Established the no-op `v0.7.2-main-channel` release manifest. The first nonempty manifest-driven update will be the forthcoming dashboard-polish release.
 
 ## v0.7.0–v0.7.1 — Historical foundation
 
