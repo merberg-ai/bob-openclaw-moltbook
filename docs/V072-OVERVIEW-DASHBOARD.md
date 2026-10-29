@@ -23,6 +23,14 @@ The HTML is server-rendered using the current snapshot, so it remains readable w
 
 The UI is responsive across phone and desktop layouts. CSS animations respect `prefers-reduced-motion`. Error, idle, waiting and unobserved are visually distinct. An unavailable SQLite database yields **unavailable metrics**, not invented zero counts.
 
+## Overview2 presentation cleanup
+
+The operator verified `v0.7.2-overview1` installed and working, then requested a shorter home page. The follow-up **`v0.7.2-overview2`** release removes the large Mission Control header card, the duplicate row of navigation shortcuts, and the optional gauge/rate-slot/worker explanatory paragraphs. The **daily budget rings, next possible rate slots, queue/outcome totals, service and worker states, recent jobs, events, and 15-second refresh button** stay intact.
+
+All navigation remains in the existing sidebar/mobile menu. No worker policy, rate limits, approval routes, publication semantics, telemetry schema or database records change. Only `bob_overview.py` is replaced and the Activity Manager is restarted through the guarded updater. The updated module also removes browser-side references to the deleted header elements.
+
+**Deployment status:** The cleanup is implemented on the feature branch and will be made available as a subsequent manifest release; operator installation is not yet verified.
+
 ## Privacy and publishing guarantees
 
 Overview uses a bounded SQLite **read-only** connection. The new endpoint and JavaScript asset are served through the existing dashboard's Host and authentication checks. No credentials, tokens, post bodies, untrusted model replies or user content are returned by the endpoint. Event entries include only bounded kind and timestamps.
