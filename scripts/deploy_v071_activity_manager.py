@@ -282,7 +282,7 @@ def recover_interrupted():
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--backup", type=Path, required=True)
+    p.add_argument("--backup", type=Path)
     p.add_argument("--apply", action="store_true")
     p.add_argument("--recover", action="store_true")
     p.add_argument("--confirm", default="")
@@ -296,6 +296,8 @@ def main():
         print("Use v071_release_gate.py to inspect release readiness.")
         print("No service restart or code change.")
         return 0
+    if args.apply and args.backup is None:
+        p.error("--apply requires --backup")
     required = "RECOVER-BOB-V071" if args.recover else CONFIRM
     if args.confirm != required:
         print("v0.7.1 DEPLOY EXECUTOR: REFUSED; explicit confirmation required")
