@@ -26,11 +26,11 @@ The installed updater verifies the trusted `merberg-ai/bob-openclaw-moltbook` re
 
 `--check` checks for changes without installing application code. Plain `bobctl update` shows the release notes, changed files and whether a dashboard restart is requested; a user must type **UPDATE** to proceed. The updater takes a private verified SQLite backup before a nonempty upgrade, records sealed old code and the installed registry, writes code atomically and checks authenticated dashboard health. It restarts only the Activity Manager when requested by the manifest. Publisher/scout workers are never started or invoked by the updater. On failure it attempts a guarded code rollback and requires manual recovery if interrupted.
 
-**A successful no-op check does not yet validate the first nonempty manifest-driven update.** The next dashboard refinements will provide that controlled acceptance. A direct `git pull` does not update the live installation.
+**The operator has verified real manifest-driven releases through `v0.7.2-queues2`**, including the guarded recovery from an initial failed update. The newest `v0.7.2-compact1` release is ready for its first deployment. A direct `git pull` still does not update the live installation.
 
 ## Writing a future release
 
-Work on a feature branch, review/merge it to `main`, then promote a new manifest with a unique release ID. Example for the first nonempty update:
+Work on a feature branch, review/merge it to `main`, then promote a new manifest with a unique release ID. Historical example of a nonempty release:
 
 ```json
 {
@@ -50,10 +50,10 @@ Builders must return two bytes objects from `build()`; direct sources must be re
 
 ## Safety and boundaries
 
-- Existing-host updater: **installed, basic check verified**, first nonempty manifest release pending.
+- Existing-host updater: **installed and operator-verified across actual nonempty dashboard releases**, including an incident-reconciliation and successful subsequent upgrades.
 - Clean WSL2/Windows installation from scratch: **not implemented**; see [installation status](INSTALLATION-STATUS.md).
 - Existing LAN HTTP Basic authentication is suitable only for a trusted LAN/VPN or properly configured HTTPS proxy.
 - Code rollback is not a request to revert later SQLite publishing records. Uncertain Moltbook posts must never be retried automatically.
-- Keep the old feature checkout until the owner confirms the `main` transition and the first normal release.
+- The updater tracks canonical `main`; keep the old feature checkout only as an optional historical recovery reference.
 
 Historical v0.7.1/v0.7.2 patch scripts remain in the repository as provenance and manual recovery references, not the standard upgrade interface.
