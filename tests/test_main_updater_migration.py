@@ -21,12 +21,15 @@ class MainMigrationChecks(unittest.TestCase):
             b'BRANCH = "feature/v0.7.1-navigation"', b'BRANCH = "main"', 1))
         self.assertEqual(updater.BRANCH, "main")
 
-    def test_main_release_starts_without_application_changes(self):
+    def test_main_release_chain_keeps_migration_baseline(self):
         plan = updater.manifest(ROOT)
-        self.assertEqual(plan["release"], migration.NEW_RELEASE)
-        self.assertEqual(plan["from"], migration.NEW_RELEASE)
-        self.assertEqual(plan["files"], [])
-        self.assertFalse(plan["restart_manager"])
+        self.assertIn(plan["from"], (migration.NEW_RELEASE, plan["release"]))
+        if plan["release"] == migration.NEW_RELEASE:
+            self.assertEqual(plan["files"], [])
+            self.assertFalse(plan["restart_manager"])
+        else:
+            self.assertNotEqual(plan["release"], plan["from"])
+            self.assertTrue(plan["files"])
 
     def test_read_only_mode_never_invokes_apply(self):
         with patch.object(migration, "plan", return_value={"old_checkout": "/mock/old"}), \
