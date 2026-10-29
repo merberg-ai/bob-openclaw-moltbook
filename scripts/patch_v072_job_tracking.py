@@ -154,7 +154,7 @@ def probe(auth, upgraded):
                 return False
             if route == "/settings" and b"bob-settings-form" not in payload:
                 return False
-            if route == "/system/status" and b"bob-worker-grid" not in payload == upgraded:
+            if route == "/system/status" and (b"bob-worker-grid" in payload) != upgraded:
                 return False
             if route == "/api/system/status":
                 data = json.loads(payload)
