@@ -1,21 +1,20 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm1-apply1",
-  "from": "v0.7.3-pm1-csp1",
-  "notes": "PM1 guarded Apply to Bob: preview only marked SOUL.md style section, verify live main OpenClaw workspace, save private backup, explicit Apply and Roll Back controls with hash/concurrency guards. Existing identity, permissions, activity limits and publishing workers preserved.",
+  "release": "v0.7.3-pm1-uiqueue1",
+  "from": "v0.7.3-pm1-apply1",
+  "notes": "PM1 UI/queue correction: themed spaced personality Apply/Roll Back fields, plus separate Restore selected archived form so archived Scout drafts cannot be accidentally included in approve/reject batches. Server archive, status, CSRF, publication and checksum guards remain unchanged.",
   "files": [
-    {
-      "name": "bob_personality_apply.py",
-      "source": "src/lib/bob/bob_personality_apply.py"
-    },
     {
       "name": "bob_personality.py",
       "source": "src/lib/bob/bob_personality.py"
     },
     {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_v073_pm1_apply_candidate.py",
-      "index": 0
+      "name": "bob_personality_apply.py",
+      "source": "src/lib/bob/bob_personality_apply.py"
+    },
+    {
+      "name": "bob_dashboard_manage.py",
+      "source": "src/lib/bob/bob_dashboard_manage.py"
     }
   ],
   "restart_manager": true
