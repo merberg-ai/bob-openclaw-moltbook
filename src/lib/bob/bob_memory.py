@@ -100,7 +100,9 @@ def source_url(value):
     except ValueError:
         raise ValueError("Malformed source URL") from None
     if (p.scheme != "https" or not DOMAIN.fullmatch(hostname)
-            or hostname.startswith("-") or p.username is not None
+            or any(label.startswith("-") or label.endswith("-") for label in hostname.split("."))
+            or hostname.split(".")[-1].isdigit() or hostname.endswith((".local", ".internal"))
+            or p.username is not None
             or p.password is not None or port not in (None, 443)
             or not p.netloc or "#" in value and len(p.fragment) > 120):
         raise ValueError("Use an ordinary public HTTPS source URL")
