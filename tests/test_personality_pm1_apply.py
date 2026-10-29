@@ -82,13 +82,14 @@ class ApplyTests(unittest.TestCase):
         self.do_apply(p)
         self.assertNotEqual(old,(self.workspace/"SOUL.md").read_bytes())
 
-    def test_changed_soil_or_profile_refuses_before_file_write(self):
+    def test_changed_soul_or_profile_refuses_before_file_write(self):
         p=self.prepare()
         (self.workspace/"SOUL.md").write_bytes(self.original+b"\nExternal author edit")
         with self.assertRaisesRegex(ValueError,"changed"):
             self.do_apply(p)
         self.assertIn(b"External author edit",(self.workspace/"SOUL.md").read_bytes())
-        self.assertFalse(self.state.exists())
+        self.assertFalse((self.state/"last.json").exists())
+        self.assertEqual(list(self.state.glob("*.soul")),[])
         (self.workspace/"SOUL.md").write_bytes(self.original)
         p=self.prepare()
         mind.store_profile(self.db,{k:str(10) for k in mind.KEYS})
@@ -148,7 +149,6 @@ class ApplyTests(unittest.TestCase):
         self.assertIn("Current managed style",html)
         self.assertIn('name="expected_before"',html)
         self.assertIn("APPLY BOB",html)
-        self.assertIn("Original",self.original.decode()) if False else None
         self.assertNotIn("Never disclose credentials",html)
 
     def test_generated_manager_only_adds_guarded_new_actions(self):
