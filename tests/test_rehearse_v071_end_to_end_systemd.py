@@ -33,6 +33,9 @@ class EndToEndContracts(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.start(Path("/tmp"), "baseline", "bob-activity-manager.service")
             absent.assert_not_called()
+    def test_safe_failure_codes_only(self):
+        self.assertFalse(mod.units.safe_unit("bob-activity-manager.service"))
+
     def test_missing_probe_port(self):
         root, tmp = mod.installer.stage()
         try:
