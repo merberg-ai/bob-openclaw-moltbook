@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re, sqlite3
 from bob_publish_common import DATA, connect, now, setting, set_setting, event, load_record, auto_candidates, UUID
+from bob_job_tracking import checkpoint
 
 API='https://www.moltbook.com/api/v1'
 CREDS=DATA/'credentials.json'
@@ -75,7 +76,10 @@ def publisher_step(db):
     row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY created_at ASC LIMIT 1").fetchone()
     if not row: return 'no queued publications'
     rid,digest,pid,draft,mode,created=row
-    if mode=='auto' and setting(db,'auto_enabled','0')!='1': return 'auto posting disabled; queued auto drafts held'
+    checkpoint('publisher',rid,'validating')
+    if mode=='auto' and setting(db,'auto_enabled','0')!='1':
+        checkpoint('publisher',rid,'waiting')
+        return 'auto posting disabled; queued auto drafts held'
     record=load_record(rid)
     if not record or record['approval_sha256']!=digest or record['chosen_post_id']!=pid or record['draft_comment']!=draft:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Integrity validation failed',updated_at=? WHERE run_id=?",(now(),rid))
@@ -99,8 +103,13 @@ def publisher_step(db):
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
         return 'duplicate target blocked'
     ready,reason=can_send(db)
-    if not ready:return reason
-    if (Path.home()/'.config/bob-system/paused').exists(): return 'Bob paused'
+    if not ready:
+        checkpoint('publisher',rid,'waiting')
+        return reason
+    if (Path.home()/'.config/bob-system/paused').exists():
+        checkpoint('publisher',rid,'paused')
+        return 'Bob paused'
+    checkpoint('publisher',rid,'preflight')
     # Preflight without credentials prevents posting on a deleted/stale discussion.
     try:
         post=api('GET',f'/posts/{pid}')
@@ -115,6 +124,7 @@ def publisher_step(db):
     db.execute("UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? WHERE run_id=? AND state='queued'",(tnow,tnow,rid))
     event(db,'publish_attempt',f'{rid} {mode} comment send started')
     db.commit()
+    checkpoint('publisher',rid,'sending')
     try:
         response=api('POST',f'/posts/{pid}/comments',{'content':draft},key=api_key())
         if response.get('success') is False: raise RuntimeError('Moltbook reported unsuccessful write')
@@ -132,17 +142,23 @@ def publisher_step(db):
             # Never auto-solve challenges. Human can submit one carefully checked answer.
             db.execute("UPDATE publish_jobs SET state='awaiting_verification',challenge_code=?,challenge_text=?,challenge_expires_at=?,comment_id=?,updated_at=? WHERE run_id=?",(code,challenge[:2000],str(v.get('expires_at') or '')[:60],comment_id,now(),rid))
             event(db,'verification_needed',f'{rid} awaits challenge answer; comment not yet published')
-            db.commit(); return f'{rid} verification required; not published'
+            db.commit()
+            checkpoint('publisher',rid,'awaiting_verification')
+            return f'{rid} verification required; not published'
         if not comment_id:
             raise RuntimeError('No confirmed comment ID in response')
         db.execute("UPDATE publish_jobs SET state='published',comment_id=?,updated_at=? WHERE run_id=?",(comment_id,now(),rid))
         event(db,'published',f'{rid} comment {comment_id} confirmed')
-        db.commit(); return f'{rid} comment published'
+        db.commit()
+        checkpoint('publisher',rid,'completed')
+        return f'{rid} comment published'
     except Exception as exc:
         # The request may have been accepted by Moltbook. No automated retries.
         db.execute("UPDATE publish_jobs SET state='uncertain',last_error=?,updated_at=? WHERE run_id=?",(str(exc)[:160],now(),rid))
         event(db,'publication_uncertain',f'{rid} response could not be confirmed; no automatic retry')
-        db.commit(); return f'{rid} publication uncertain; manual inspection required'
+        db.commit()
+        checkpoint('publisher',rid,'uncertain')
+        return f'{rid} publication uncertain; manual inspection required'
 
 def verification_step(db):
     expired=db.execute("SELECT run_id,challenge_expires_at FROM publish_jobs WHERE state='awaiting_verification'").fetchall()
@@ -161,6 +177,7 @@ def verification_step(db):
     if not re.fullmatch(r'-?\d{1,8}\.\d{2}',answer):
         db.execute("UPDATE publish_jobs SET verify_answer=NULL WHERE run_id=?",(rid,)); db.commit(); return 'invalid verification answer'
     db.execute("UPDATE publish_jobs SET state='verifying',verify_answer=NULL,updated_at=? WHERE run_id=?",(now(),rid));db.commit()
+    checkpoint('publisher',rid,'verifying')
     try:
         result=api('POST','/verify',{'verification_code':code,'answer':answer},key=api_key())
         if result.get('success') is not True: raise RuntimeError('Verification not confirmed')
@@ -172,11 +189,15 @@ def verification_step(db):
         else:
             db.execute("UPDATE publish_jobs SET state='published',challenge_code=NULL,updated_at=? WHERE run_id=?",(now(),rid))
         event(db,'verified',f'{rid} Moltbook confirmed challenge')
-        db.commit();return f'{rid} verified and published'
+        db.commit()
+        checkpoint('publisher',rid,'completed')
+        return f'{rid} verified and published'
     except Exception:
         db.execute("UPDATE publish_jobs SET state='verification_failed',last_error='Verification result unclear; do not retry',updated_at=? WHERE run_id=?",(now(),rid))
         event(db,'verification_failed',f'{rid} no automatic reattempt')
-        db.commit();return f'{rid} challenge failed or response unclear'
+        db.commit()
+        checkpoint('publisher',rid,'uncertain')
+        return f'{rid} challenge failed or response unclear'
 
 def traverse(comments, own_id):
     """Yield direct children of own comment only; conservatively don't infer authorship."""
