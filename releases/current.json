@@ -1,12 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.2-queues2",
-  "from": "v0.7.2-queues1-r1",
-  "notes": "Fix Manage Queues Pending filter: separate scout review decisions from automatic publication states; show pending even when auto-queued, count archived pending correctly. One module only; no changes to publishing or stored records.",
+  "release": "v0.7.2-compact1",
+  "from": "v0.7.2-queues2",
+  "notes": "Mobile Scout & Activity cleanup: eight-item pages, compact expandable drafts, grouped activity and legacy detail links. Existing review, publish and auto controls remain; no worker changes.",
   "files": [
+    {
+      "name": "bob_dashboard_compact.py",
+      "source": "src/lib/bob/bob_dashboard_compact.py"
+    },
     {
       "name": "bob_dashboard_manage.py",
       "source": "src/lib/bob/bob_dashboard_manage.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v072_compact_candidate.py",
+      "index": 0
     }
   ],
   "restart_manager": true
