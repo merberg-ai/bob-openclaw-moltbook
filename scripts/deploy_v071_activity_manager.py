@@ -229,24 +229,79 @@ def install(backup):
         os.close(lock)
 
 
+def recover_interrupted():
+    """Operator-authorized, fail-closed code-only rollback of a journaled install."""
+    secure_dir(STATE)
+    fd = os.open(STATE / "transaction.lock",
+                 os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        state = read_journal()
+        if state is None or state["phase"] in ("complete", "incident"):
+            raise ValueError("no recoverable in-progress transaction")
+        baseline_file = STATE / "baseline-manager"
+        candidate_file = STATE / "candidate-manager"
+        navigation_file = STATE / "candidate-navigation"
+        baseline = baseline_file.read_bytes() if not baseline_file.is_symlink() else b""
+        candidate = candidate_file.read_bytes() if not candidate_file.is_symlink() else b""
+        navigation = navigation_file.read_bytes() if not navigation_file.is_symlink() else b""
+        if (builder.sha256(baseline) != BASE or
+                (candidate, navigation) != builder.build()):
+            raise ValueError("sealed recovery files disagree with pinned sources")
+        if MANAGER.is_symlink() or not MANAGER.is_file():
+            raise ValueError("manager path unsafe")
+        current = sha(MANAGER)
+        if current not in (BASE, builder.sha256(candidate)):
+            raise ValueError("manager changed externally")
+        if NAV.is_symlink():
+            raise ValueError("navigation is symlink")
+        if NAV.exists() and sha(NAV) != builder.sha256(navigation):
+            raise ValueError("navigation changed externally")
+        auth = authenticate()
+        write_journal("rollback_started")
+        if current != BASE:
+            lab.replace_file(MANAGER, baseline, builder.sha256(candidate), 0o700)
+        if NAV.exists():
+            NAV.unlink()
+            lab.fsync_dir(NAV.parent)
+        write_journal("recovery_requested")
+        try:
+            service("restart")
+            if not bounded_probe(auth, candidate=False):
+                raise RuntimeError("baseline recovery health refused")
+            if sha(MANAGER) != BASE or NAV.exists():
+                raise RuntimeError("baseline code recovery mismatch")
+            write_journal("complete")
+            return "baseline_recovered"
+        except (OSError, RuntimeError, subprocess.TimeoutExpired):
+            write_journal("incident")
+            raise
+    finally:
+        os.close(fd)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--backup", type=Path, required=True)
     p.add_argument("--apply", action="store_true")
+    p.add_argument("--recover", action="store_true")
     p.add_argument("--confirm", default="")
     args = p.parse_args()
     if os.geteuid() == 0:
         p.error("refusing root")
-    if not args.apply:
+    if args.apply and args.recover:
+        p.error("choose apply or recover, not both")
+    if not args.apply and not args.recover:
         print("v0.7.1 DEPLOY EXECUTOR: PLAN ONLY")
         print("Use v071_release_gate.py to inspect release readiness.")
         print("No service restart or code change.")
         return 0
-    if args.confirm != CONFIRM:
+    required = "RECOVER-BOB-V071" if args.recover else CONFIRM
+    if args.confirm != required:
         print("v0.7.1 DEPLOY EXECUTOR: REFUSED; explicit confirmation required")
         return 1
     try:
-        outcome = install(args.backup)
+        outcome = recover_interrupted() if args.recover else install(args.backup)
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
         print("v0.7.1 DEPLOY EXECUTOR: REFUSED", type(exc).__name__)
         print("Inspect private transaction journal before any retry.")
