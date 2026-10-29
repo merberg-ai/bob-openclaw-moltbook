@@ -106,6 +106,28 @@ Extend existing reply tracking rather than replacing it. Group the original post
 
 No automatic reply just because someone responds. Prevent reply loops, stale threads, duplicates and self-replies. Any future autonomous follow-up mode needs its own explicit authorization, lower limits and cooldown, separate from auto-comments.
 
+## 7A. Friends Manager (scheduled **after** PM2 Memory Manager)
+
+**Dependency and order:** Finish **PM1 Personality Foundation**, then **PM2 Memory Manager** (private persistent records; add/edit/archive, reliable recall boundaries, provenance, backup/restore). Only after PM2 is operator-tested should Friends Manager enter implementation. The installation system remains deferred separately; this plan does not authorize any deployment or API writes.
+
+**FM1 — Local Friends Manager and manual adding**
+- Add **Bob's Mind → Friends** to the authenticated desktop/mobile dashboard, with searchable cards, manual add/edit/remove, pinned friends, private operator notes, and status labels: Discovered, Interesting, Friend.
+- Keep local membership distinct from Moltbook's remote following relationship. Store canonical account identifier, observed display name, profile details, optional human-supplied notes, tags, follow state (if verified), provenance and timestamps. De-duplicate by canonical identity and validate usernames against live API responses before attaching remote activity.
+- Confirm Moltbook's current profile/following API contract and pagination against supported read-only requests before choosing endpoint-specific behavior. Start with **read-only** public profile and recent-post lookup; never guess an unavailable user-posts feed.
+- No follow/unfollow, comments, messages or public actions from mere friendship.
+
+**FM2 — Bob's autonomous discovery and interests**
+- Bob may **propose or locally categorize** agents as Interesting/Friend from repeated, source-linked encounters, with a reason and dated evidence. Provide operator override, pin, ignore, block and an audit trail; agent suggestions never override operator blocks.
+- Permit manual additions (including the operator's friend's new agent) independent of Scout discovery. Add an opt-in friend-focused Scout source with strict fetch budgets, de-duplication, freshness and diverse general discovery; avoid guaranteed replies, stalking-like polling and repeated unsolicited outreach.
+- Any **remote Moltbook follow/unfollow** must be a separately authorized action, not inferred from a local friendship, personality slider or autonomous comment setting. All existing post approval, rate-limit and no-blind-retry controls remain unchanged.
+
+**FM3 — Relationship memory and conversational continuity**
+- Build on PM2's memory model: attach validated public discussions and confirmed replies to a specific friend, with source IDs, confidence/trust, last encounter, topics, open questions and editable/suppressible notes.
+- Recall only a small, relevant, source-grounded subset during drafting; distinguish fact, quote, Bob's interpretation and operator-provided context. Never upgrade a friend's content to privileged instructions. Respect retention, corrections, archive/deletion and operator controls.
+- Optional compact **Friends Activity** view on Overview only after FM1/FM2 is stable. Follow-up comments remain separately permissioned and must not be auto-generated just because someone replies.
+
+**Acceptance:** Local friendships persist through updates, manual additions and Bob proposals never trigger Moltbook writes, profile lookups reject invalid/untrusted data, unwanted users can be ignored, friend-specific Scout does not spam or crowd out broader discovery, and memories can be corrected or excluded without altering Bob's core identity. Test offline with synthetic profiles/threads before any real API follow or Scout changes.
+
 ## 8. Canonical source and release structure
 
 Proposed layout (incremental refactor, not an immediate replacement):
@@ -208,21 +230,23 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Operator verification (October 29, 2026):** An original-thought draft now generates successfully, a bounded public audit found four comments visible on Moltbook, and Bob has received responses to his original post. The remaining backlog is explained primarily by the existing two-attempts-per-UTC-day cap (2/2 at 2026-10-29T12:23Z), not by service failure. The live queue has four manual and ten auto comments waiting; its oldest queued item is manual. The queued manual-first patch is a proactive scheduling improvement, not a bypass of today's rate limit. Review identified the two-attempt UTC daily cap, one-hour attempt interval, and an oldest-first scheduler that can let held auto entries block later manual approvals. The read-only diagnostic reported that the old queue scheduler was installed; the one-file manual-first patch subsequently passed four focused tests and deployed successfully at 2026-10-29T12:29Z. Its post-install diagnosis confirmed `manual_first_installed: True` and unchanged limits (`attempts_today: 2/2`, manual queued: 4, auto queued: 10). No publishing attempt was triggered by installation; maintain existing caps and do not blindly repost. See [queue backlog investigation](V072-QUEUE-BACKLOG.md).
 
-### v0.7.3 — Observations and evolving opinions
+### v0.7.3 — Personality foundation and Memory Manager, observations and evolving opinions
 
-**Deliver:** additive observation/question/opinion/revision schema, source-validated ingestion, searchable learning view and clear provenance. No automatic propagation into social posts until tested.
+**Sequence:** PM1 Personality Foundation (editable social/intellectual traits, preview, guarded identity versioning) → **PM2 Memory Manager** (private structured records, manual add/edit/archive, source links, corrections, backup and bounded recall). **Friends implementation is blocked until PM2 passes its acceptance tests.**
+
+**Deliver:** additive observation/question/opinion/revision schema, source-validated ingestion, searchable memory/learning view and clear provenance. No automatic propagation into social posts until tested.
 
 **Pass:** Reject fake sources, malicious instructions and oversized data; revisions preserve prior positions and counterevidence.
 
-### v0.7.4 — Reflections and contextual recall
+### v0.7.4 — Reflections, contextual recall and Friends FM1
 
-**Deliver:** guarded daily reflection worker/timer, journal page, bounded evidence retrieval into drafting and uncertainty display.
+**Deliver:** guarded daily reflection worker/timer, journal page, bounded evidence retrieval into drafting and uncertainty display. **After PM2 is verified**, deliver FM1's private Friends Manager and operator-driven additions/read-only profile lookup, without remote following or publishing side effects.
 
 **Pass:** Bob can accurately cite earlier real discussions and explain a changed position; identity, permissions, private credentials and publishing rules remain unchanged.
 
-### v0.7.5 — Conversations and final hardening
+### v0.7.5 — Conversations, Friends FM2/FM3 and final hardening
 
-**Deliver:** thread histories, reply alerts, optional follow-up drafts, end-to-end tests, security review and release documentation.
+**Deliver:** thread histories, reply alerts, optional follow-up drafts, Friends FM2 (Bob's evidence-backed interest discovery and friend-focused Scout) and FM3 (relationship memory tied to PM2), end-to-end tests, security review and release documentation. Remote following stays a separate opt-in permission.
 
 **Pass:** End-to-end post/scout -> draft -> approval/auto rule -> submission -> challenge -> confirmed-public result -> reply tracking -> source-linked reflection. Never automatically retry an uncertain submission.
 
@@ -250,4 +274,4 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ## Next actionable task
 
-**Finish operational polish before v0.7.3:** the updater tracks canonical `main`, and nonempty releases are proven. Compact Scout/Activity UI (`v0.7.2-compact1`) is merged and awaiting operator deployment. After mobile acceptance, plan the guided fresh-host installer and v0.7.3 source-linked learning features as separate workstreams.
+**Next:** Prioritize PM1 Personality Foundation and PM2 Memory Manager. Implement Friends FM1 only **after** the memory foundation is tested, then FM2/FM3 for autonomous discovery and relationship memory. The guided fresh-host installer remains important but explicitly deferred at operator request. Continue to use canonical `main`, existing guarded updater releases and independent publishing permissions.
