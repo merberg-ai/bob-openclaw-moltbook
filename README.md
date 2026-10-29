@@ -2,7 +2,7 @@
 
 **A local-first AI agent experiment with autonomous scouting, controlled publishing, and an Activity Manager.** Bob runs in a dedicated WSL2 Linux environment, uses a local Ollama model through OpenClaw, and interacts with Moltbook via host-side workers and a guarded review/publishing queue.
 
-> **Repository status: v0.7.0 reviewed source and baseline tooling on a draft feature branch.** Nine SHA-verified installed source files have been imported under `src/` on `feature/v0.7.0-host-inventory`, and offline regression tests pass. This repository is **not yet an installable replacement** for the working host deployment: service templates, Windows startup recovery, staging upgrade and rollback acceptance remain unfinished. Earlier generated bundles are reference material, not proof of what's installed.
+> **Deployment status (operator-verified October 28, 2026):** Bob Activity Manager v0.7.1 is installed and running in OpenClawLab, and the responsive mobile navigation has been visually verified. The underlying original Python source is still labeled v0.6; that inherited label is not the deployed UI version. v0.7.2 Settings, password rotation and service status remain in development and are **not installed yet**. The rest of Bob's services are not replaced by this dashboard release.
 
 ## What Bob does today
 
@@ -29,7 +29,7 @@ These features describe the **working host installation**; they have not yet bee
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
-**v0.7.1 UI preview:** The draft [`feature/v0.7.1-navigation`](https://github.com/merberg-ai/bob-openclaw-moltbook/tree/feature/v0.7.1-navigation) branch integrates responsive desktop/mobile navigation into the existing three Activity Manager pages and includes a [checksummed, isolated rollback rehearsal](docs/V071-UI-UPDATE-REHEARSAL.md). It also has a [read-only localhost browser preview](docs/V071-BROWSER-PREVIEW.md) with fake scout, publication and original-post data, disabled POST requests and automatic cleanup. It is an **uninstalled, non-deployable candidate**; no production service changes or Moltbook requests have occurred.
+**v0.7.1 production:** The reviewed two-file dashboard upgrade was applied with the guarded `scripts/deploy_v071_activity_manager.py` transaction and authenticated HTTP checks. The operator confirmed `candidate_healthy`, an active user-systemd service, and working mobile navigation. **v0.7.2 development:** `scripts/build_v072_settings_candidate.py` builds the new Settings/status UI; `scripts/update_v072_dashboard.py` is the separate, explicit-confirmation updater from the installed v0.7.1 release. A GitHub commit or a test PASS does not install these new features.
 
 **Current implementation (development branch):** [read-only host inventory](docs/BASELINE-INVENTORY.md), [private database backup](docs/BASELINE-BACKUP.md), [source review and guarded import](docs/IMPORT-REVIEWED-SOURCE.md), and [service/startup recovery inventory](docs/SERVICE-RECOVERY-INVENTORY.md), [isolated release rehearsal](docs/RELEASE-REHEARSAL.md), and [sanitized service-template candidates](docs/SERVICE-TEMPLATE-CANDIDATES.md), plus [isolated inert service-graph staging](docs/INERT-SERVICE-STAGING.md) and [systemd parser acceptance](docs/SYSTEMD-PARSER-ACCEPTANCE.md), followed by [isolated mock-process lifecycle acceptance](docs/INERT-LIFECYCLE-ACCEPTANCE.md), and [read-only systemd staging preflight](docs/SYSTEMD-STAGING-PREFLIGHT.md), with a [separately gated transient-service experiment plan](docs/TRANSIENT-SYSTEMD-EXPERIMENT-PLAN.md). These are baseline/development utilities, not a deployable Bob release.
 
@@ -64,7 +64,7 @@ For more, see [Architecture](docs/ARCHITECTURE.md), [Security](SECURITY.md) and 
 
 - **Agreed plan:** v0.7 roadmap, now tracked in this repository.
 - **Existing host:** v0.6 Activity Manager with later LAN-origin fix and earlier service-management components; live exact revision still needs verification.
-- **This GitHub repository:** reviewed application source is now committed on the draft v0.7.0 feature branch; its install/release process and full recovery acceptance are still pending.
+- **This GitHub repository:** holds the pinned original manager, v0.7.1 deployed candidate builder, v0.7.2 feature builder, private-backup tooling and guarded update scripts. Running services do not automatically synchronize with the development checkout.
 - **License:** pending project-owner selection. Do not assume a redistribution license exists.
 
 Bob's future learning system will store source-linked observations and revisable positions, **not** retrain model weights or claim consciousness.
