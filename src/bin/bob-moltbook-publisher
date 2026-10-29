@@ -115,8 +115,11 @@ def publisher_step(db):
         post=api('GET',f'/posts/{pid}')
         nested=post.get('data') if isinstance(post.get('data'),dict) else post
         actual=(nested.get('post') if isinstance(nested.get('post'),dict) else nested)
-        if actual.get('id') and actual['id']!=pid: return 'preflight returned wrong post'
+        if actual.get('id') and actual['id']!=pid:
+            checkpoint('publisher',rid,'failed')
+            return 'preflight returned wrong post'
     except (RuntimeError,ValueError,urllib.error.URLError,TimeoutError) as exc:
+        checkpoint('publisher',rid,'waiting')
         return f'preflight failed: {type(exc).__name__}'
     # Persist intent *before* sending. Any timeout, crash or ambiguous reply
     # leaves state=uncertain; never automatically retry a possible duplicate.
