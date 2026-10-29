@@ -1,8 +1,23 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.2-main-channel",
+  "release": "v0.7.2-queues1",
   "from": "v0.7.2-main-channel",
-  "notes": "Canonical main release channel configured; no application or worker changes pending.",
-  "files": [],
-  "restart_manager": false
+  "notes": "Manage queues: desktop/mobile tabs, searchable 10-item pages, bulk approve/reject, explicitly confirmed publication queueing and reversible archives. No workers, limits or credentials changed.",
+  "files": [
+    {
+      "name": "bob_dashboard_manage.py",
+      "source": "src/lib/bob/bob_dashboard_manage.py"
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v072_dashboard_manage_candidate.py",
+      "index": 1
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v072_dashboard_manage_candidate.py",
+      "index": 0
+    }
+  ],
+  "restart_manager": true
 }
