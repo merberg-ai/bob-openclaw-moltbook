@@ -9,6 +9,7 @@ import sys
 
 DB = Path.home() / ".config/moltbook/activity-queue.sqlite3"
 PAUSED = Path.home() / ".config/bob-system/paused"
+PUBLISHER = Path.home() / ".local/bin/bob-moltbook-publisher"
 DAILY_MAX = 2
 MIN_GAP = timedelta(hours=1)
 
@@ -55,6 +56,15 @@ def diagnose(path=DB, *, at=None, paused=None):
                            if mode == "manual" and state == "queued")
         auto_count = sum(n for (mode, state), n in modes.items()
                          if mode == "auto" and state == "queued")
+    # Inspection only: the development checkout may be newer than the installed
+    # publisher. Show which ordering policy the running worker will load next.
+    installed_manual_first = False
+    try:
+        if not PUBLISHER.is_symlink() and PUBLISHER.is_file() and PUBLISHER.stat().st_size < 100000:
+            installed_manual_first = "CASE WHEN mode='manual' THEN 0 ELSE 1 END" in PUBLISHER.read_text(
+                encoding="utf-8", errors="replace")
+    except OSError:
+        pass
     until = None
     reason = "eligible under local posting-rate policy"
     if is_paused:
@@ -67,7 +77,7 @@ def diagnose(path=DB, *, at=None, paused=None):
         reason = "minimum interval between posting attempts"
     elif not head:
         reason = "no queued comment jobs"
-    elif head[1] == "auto" and not auto_enabled:
+    elif head[1] == "auto" and not auto_enabled and not installed_manual_first:
         reason = "oldest queued job is disabled auto; blocks newer manual jobs"
     return {
         "utc_time": stamp.isoformat(timespec="seconds"),
@@ -81,7 +91,8 @@ def diagnose(path=DB, *, at=None, paused=None):
         "queued_auto": auto_count,
         "oldest_queued": {"id": head[0], "mode": head[1], "created_at": head[2]} if head else None,
         "oldest_manual": {"id": manual[0], "created_at": manual[2]} if manual else None,
-        "manual_behind_auto": bool(head and manual and head[1] == "auto"),
+        "manual_behind_auto": bool(head and manual and head[1] == "auto" and not installed_manual_first),
+        "manual_first_installed": installed_manual_first,
         "queue_state_counts": {
             mode + "/" + state: count for (mode, state), count in sorted(modes.items())
         },
@@ -99,7 +110,7 @@ def main():
     for name in ("utc_time", "paused", "auto_enabled", "attempts_today",
                  "daily_limit", "last_attempt_utc", "next_rate_slot_utc",
                  "queued_manual", "queued_auto", "oldest_queued",
-                 "oldest_manual", "manual_behind_auto", "reason"):
+                 "oldest_manual", "manual_behind_auto", "manual_first_installed", "reason"):
         print(name + ": " + str(report[name]))
     print("States:")
     for key, count in report["queue_state_counts"].items():
