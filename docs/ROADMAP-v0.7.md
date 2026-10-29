@@ -1,8 +1,8 @@
 # Bob / OpenClawLab — v0.7 Roadmap
 
 **Working title:** Continuity, Learning & Usable Operations  
-**Status:** Approved roadmap; v0.7.0 reviewed-source import, private baseline, startup/service inventory and isolated release simulation are in progress on draft feature branch  
-**Planning baseline:** Working v0.6 Activity Manager + later LAN-origin hotfixes, v0.5 publishing, v0.4 reboot/startup recovery and v0.3 `bobctl` health checks. **Nine exact installed source files were SHA-verified and imported to the v0.7.0 development branch; full service templates and production release/rollback remain pending.**
+**Status (October 29, 2026):** v0.7.0–v0.7.2 foundation **shipped and operator-tested**, including live status, mobile navigation, manual-first comment publishing and a reusable `bobctl update` command. GitHub `main` is authoritative. The one-time installed-updater migration to `main` is **prepared, not yet applied**. Dashboard refinements and the first nonempty manifest-driven update come next; v0.7.3 learning features remain unimplemented.  
+**Planning baseline:** Bob currently uses an existing Windows 11/OpenClawLab WSL2 setup, local Ollama, OpenClaw, Docker and user-systemd services. A general **fresh-host installer is still missing**. Historical v0.5/v0.6 source and staging notes below are retained for technical context, not as current instructions.
 
 **Non-negotiable rule:** Preserve existing services, authentication, publication records, approval decisions, autonomous settings, sandboxing, and reboot recovery throughout every upgrade.
 
@@ -15,9 +15,9 @@
 5. Establish canonical GitHub source, tests, versioned releases, safe updating, backups and rollback.
 6. Preserve **separate permissions** for autonomous comments, original posts, and follow-up replies. Do not infer one authorization from another.
 
-## 2. Current reference architecture
+## 2. Existing host architecture
 
-The previously built v0.6 bundle describes:
+The deployed v0.7.2 installation builds on the original v0.6 host architecture:
 
 - A Python `ThreadingHTTPServer` Activity Manager serving `/`, `/activity`, `/originals`, `/healthz`, and protected POST actions. HTML generation, routing, authentication and CSRF/origin handling remain mixed in a relatively large script.
 - A private SQLite database at `~/.config/moltbook/activity-queue.sqlite3`, with legacy publication decisions, settings, jobs, replies and events plus v0.6 original requests, original posts and original-post reply records.
@@ -26,7 +26,7 @@ The previously built v0.6 bundle describes:
 - A trusted-LAN authenticated dashboard; successful handling of the observed opaque `Origin: null` form submission without dropping CSRF/draft checks.
 - Optional bounded auto-**comments**; original posts remain approval-only.
 
-**Reference source is not the same as current deployed source.** The user's OMEN installation received later patches. Before code import, capture installed hashes, service unit definitions, schema, script versions and exact configuration boundaries privately. Do not copy credentials or state into a public repository.
+**Current source is in `main`.** The live host has been patched through verified v0.7.2 upgrades, and the owner's successful updater bootstrap recorded exact installed checksums. Older referenced source and installer labs are historical. Never add credentials or runtime databases to Git; see [architecture](ARCHITECTURE.md) and [operations](OPERATIONS.md).
 
 ## 3. UI and navigation
 
@@ -188,7 +188,7 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ### v0.7.2 — Live background-job feedback and dashboard Settings
 
-**Deployed progress (operator-reported October 28, 2026):** Responsive Settings, immediate password rotation, trusted-console login reset, mobile styling, 15-second read-only service/queue status refresh, and observed worker-stage checkpoints are running in production. Checkpoints are bounded and become unknown when stale; they do not infer progress from service state. Publication-accuracy and original-output-format corrections have also deployed successfully. The original-thought generation outcome still needs a real-world recheck, and historical comment visibility is unknown until independently audited. No automatic reposting or retry of uncertain publications was introduced.
+**Deployed v0.7.2:** Responsive Settings/password rotation, trusted-console login reset, mobile layout, 15-second read-only status refresh, real private worker-stage checkpoints, and safer comment verification labeling are operator-confirmed. An original-thought draft subsequently succeeded, and a public audit found four visible comments. No uncertain publication is automatically retried.
 
 **v0.7.2 worker tracking (deployed and operator-confirmed):** The scout, original generation, original publication and comment publisher now report private observed checkpoints; the mobile System Status page shows stage cards, bounded stale detection, timestamps and actual queue states. The guarded update passed operator testing and installation. See [job tracking release notes](V072-JOB-TRACKING-RELEASE.md).
 
@@ -204,7 +204,7 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** Test credential rotation, current-password mismatch, CSRF/Origin refusal, malformed and oversized requests, private permissions, atomic-write failure, concurrent requests, and old-password rejection without service restart. Test unavailable/slow Docker, Gateway and Ollama; no duplicate requests or publishing; no secrets in APIs or logs.
 
-**Publication accuracy follow-up (deployed successfully; runtime verification pending):** The publisher preserves a known comment ID or records `verified_unconfirmed` without retry when verification returns no ID. Activity distinguishes API acknowledgment from independently confirmed visibility, and shows auto-queue cancellations as never sent. Original thoughts accept bounded, explicit alternative formats while retaining draft validation and manual approval. A read-only public comment audit is available. The operator reports the updater succeeded; actual Moltbook visibility and a fresh original-thought draft still need validation. See [publication accuracy notes](V072-PUBLICATION-ACCURACY-FIX.md).
+**Publication accuracy follow-up (deployed and observed working):** The publisher preserves a known comment ID or records `verified_unconfirmed` without retry when verification returns no ID. Activity distinguishes API acknowledgment from independently confirmed visibility, and shows auto-queue cancellations as never sent. Original thoughts accept bounded, explicit alternative formats while retaining draft validation and manual approval. A read-only public comment audit is available. The operator subsequently confirmed both a successful generated original-thought draft and four public comment IDs visible through the bounded audit. See [publication accuracy notes](V072-PUBLICATION-ACCURACY-FIX.md).
 
 **Operator verification (October 29, 2026):** An original-thought draft now generates successfully, a bounded public audit found four comments visible on Moltbook, and Bob has received responses to his original post. The remaining backlog is explained primarily by the existing two-attempts-per-UTC-day cap (2/2 at 2026-10-29T12:23Z), not by service failure. The live queue has four manual and ten auto comments waiting; its oldest queued item is manual. The queued manual-first patch is a proactive scheduling improvement, not a bypass of today's rate limit. Review identified the two-attempt UTC daily cap, one-hour attempt interval, and an oldest-first scheduler that can let held auto entries block later manual approvals. The read-only diagnostic reported that the old queue scheduler was installed; the one-file manual-first patch subsequently passed four focused tests and deployed successfully at 2026-10-29T12:29Z. Its post-install diagnosis confirmed `manual_first_installed: True` and unchanged limits (`attempts_today: 2/2`, manual queued: 4, auto queued: 10). No publishing attempt was triggered by installation; maintain existing caps and do not blindly repost. See [queue backlog investigation](V072-QUEUE-BACKLOG.md).
 
@@ -226,7 +226,7 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** End-to-end post/scout -> draft -> approval/auto rule -> submission -> challenge -> confirmed-public result -> reply tracking -> source-linked reflection. Never automatically retry an uncertain submission.
 
-## 10. Project-wide acceptance checklist
+## 10. Project-wide acceptance checklist (includes future v0.7.3+ gates)
 
 - [ ] Snapshot host before migrations; no secrets or private memory in public Git.
 - [ ] Exact deployed version visible in dashboard and CLI.
@@ -248,4 +248,4 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ## Next actionable task
 
-**Start v0.7.0:** collect a safe, exact baseline from the *live* OMEN OpenClawLab installation, compare it with our reference source, scrub secrets, add tested source and CI to Git, then demonstrate upgrade/rollback on staging **before** any production code changes.
+**Finish operational polish before v0.7.3:** run the guarded [migration to canonical `main`](MAIN-UPDATER-MIGRATION.md), discuss and implement a focused batch of dashboard refinements, and deliver the first nonempty release through `bobctl update` with one targeted acceptance test. Then plan the guided fresh-host installer and the v0.7.3 source-linked learning features as separate workstreams.
