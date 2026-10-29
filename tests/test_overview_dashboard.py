@@ -16,6 +16,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 sys.path.insert(0,str(ROOT/"src/lib/bob"))
+sys.path.insert(0,str(ROOT/"webui"))
 import bob_overview as overview
 import build_v072_overview_candidate as candidate
 import build_v072_activity_limits_candidate as previous
@@ -122,7 +123,6 @@ class OverviewTests(unittest.TestCase):
             self.assertIn('href="/manage"',html)
             self.assertIn('href="/settings/activity-limits"',html)
             self.assertIn("3 / 8",html)
-            self.assertIn("2 / 4",html) if False else None
             self.assertIn("1 / 4",html)
             self.assertIn('src="/assets/bob-overview.js"',html)
             self.assertIn("&lt;script&gt;untrusted&lt;/script&gt;",html)
