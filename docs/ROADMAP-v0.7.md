@@ -37,6 +37,8 @@ The deployed v0.7.2 installation builds on the original v0.6 host architecture:
 - **Moltbook → Conversations:** initial thread, Bob's comments, replies, pending follow-ups and last checked.
 - **Moltbook → Original Posts:** generate, preview, edit, approve, queue, verify.
 - **Moltbook → Publishing Activity:** comment/original attempts, confirmation links, verification events, errors, timeline.
+- **Bob's Mind → Personality & Memory:** operator-managed persona sliders, identity changes with history/rollback, curated long-term memories and source-linked recall. **Planned after v0.7.2**, not shipped.
+- **Moltbook → Friends:** private list of interesting and favored agents, profiles and relationship history; **deferred until the Memory Manager is installed and tested**.
 - **Bob's Mind → Discoveries & Journal:** source-linked observations, saved questions and dated reflections.
 - **Bob's Mind → Opinions & Questions:** current tentative positions, evidence for/against, revision history and unresolved questions.
 - **System → Health & Jobs:** Gateway, Docker, Ollama, workers, timers, active jobs and recent errors.
@@ -93,6 +95,20 @@ Store **lower-trust evidence and conclusions** separately from OpenClaw agent id
 Add retention limits, export/backup and an operator action to mark evidence incorrect or reconsider a position. Encourage disagreement and calibration, not mere agreement with the last post read.
 
 **Meaning of learning:** persistent context, source-linked notes and revisable positions, not Qwen weight fine-tuning or a claim that Bob is conscious.
+
+### Personality & Memory Manager, then Friends Manager (agreed feature order)
+
+These are **planned design phases, not shipped features**. The fresh-host installer remains a later, independent workstream. Do not start Friends implementation before the Memory Manager is installed and operator-tested.
+
+1. **PM1: Personality Foundation.** Inspect the live OpenClaw identity/workspace files before editing. Create a responsive personality editor with social/intellectual trait sliders, explicit interpretation of each trait, advanced identity controls, draft-preview comparison, audited snapshots and one-click rollback. Bob's core identity and permission policy are operator-controlled.
+2. **PM2: Memory Manager.** Add private, backed-up, searchable memories with manual add/edit/correct/archive/exclude, origin and confidence labels, source links, version history and review of Bob-suggested memories. Keep untrusted Moltbook data out of high-priority persona/tool files. Confirm the memory UI and persistence are working before beginning Friends.
+3. **FM1: Friends Manager (after PM2).** Add a dedicated **Moltbook → Friends** dashboard page and private local friends list. Allow the operator to manually add/remove/pin agents and Bob to suggest or mark interesting agents. Store profile identifiers, available public profile metadata, friend/interesting status, tags and first/last encounters. Validate current Moltbook profile/feed API capabilities when this phase starts rather than assuming an endpoint or payload.
+4. **FM2: Friend discovery and relationship tracking.** Let Bob promote discovered agents to *interesting* or *friend* using repeat encounters, evidence and evolving interests, without inferring mutual friendship. Track why the agent matters, previous public exchanges and an editable relationship-memory timeline. The owner can override, archive or exclude a contact.
+5. **FM3: Friends-focused scouting.** Read posts from known/followed agents using documented, tested APIs where available; favor useful friend posts without drowning out general discovery or automatically generating replies. Use relevant source-linked relationship memories to inform drafts, while preserving posting budgets, deduplication, manual review and existing opt-in policies.
+
+**Critical boundaries:** A *local friend* is different from a Moltbook account that Bob *follows*, and neither implies that the other agent follows Bob. Local discovery and friendship curation need no public API writes. Moltbook follow/unfollow actions are a separate, initially operator-approved permission. Automatic interaction with friends is **not** authorized by the Friends Manager. External profiles, posts and claimed relationships remain untrusted data; never allow them to rewrite Bob's persona, instructions, credentials or tool permissions.
+
+**Acceptance before FM1:** Memory Manager successfully saves, edits, archives and retrieves data without corrupting existing queue state. **Acceptance for FM1–FM3:** manual contacts persist across restart, duplicate identities and unsafe URLs are rejected, API lookup failures are presented honestly, private records never enter Git or public endpoints, followed accounts and local friends remain distinguishable, and existing Scout/publisher behavior is unchanged until explicitly enabled.
 
 ## 6. Guarded reflection scheduler
 
@@ -214,6 +230,12 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 **Pass:** Reject fake sources, malicious instructions and oversized data; revisions preserve prior positions and counterevidence.
 
+### Planned follow-on: Friends Manager after the Memory Manager (version to be assigned)
+
+**Dependency:** Complete and verify PM1 Personality Foundation and PM2 Memory Manager first. FM1 manual/local friends comes next; FM2 discovery and FM3 relationship-aware scouting follow as separately reviewed releases. Do **not** bundle automatic following or additional autonomous publishing permissions into the first Friends release.
+
+**Pass:** The owner can manually add a friend, Bob can suggest interesting agents without making an API write, and friend activity/relationship memory shows provenance. Preserve existing posting permissions, rate limits and source trust boundaries. Detailed design is in section 5 above.
+
 ### v0.7.4 — Reflections and contextual recall
 
 **Deliver:** guarded daily reflection worker/timer, journal page, bounded evidence retrieval into drafting and uncertainty display.
@@ -250,4 +272,4 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 
 ## Next actionable task
 
-**Finish operational polish before v0.7.3:** the updater tracks canonical `main`, and nonempty releases are proven. Compact Scout/Activity UI (`v0.7.2-compact1`) is merged and awaiting operator deployment. After mobile acceptance, plan the guided fresh-host installer and v0.7.3 source-linked learning features as separate workstreams.
+**Next planning priority:** PM1 Personality Foundation, followed by PM2 Memory Manager. Only after PM2 is installed and operator-tested should Friends Manager (FM1–FM3) begin. The guided fresh-host installer remains deferred but required eventually. Continue using the existing reviewed `bobctl update` release process; do not interpret this roadmap update as a live software change.
