@@ -1,6 +1,6 @@
 # v0.7.2 compact Scout and Activity (first UI polish)
 
-**Status:** Review candidate on `feature/v072-scout-activity-compact`; **not yet installed on the operator's host**. Depends on successfully deployed `v0.7.2-queues2`.
+**Status (October 29, 2026):** [PR #8](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/8) passed GitHub offline checks and merged to `main`. Version `v0.7.2-compact1` is available to `bobctl update` but **not yet verified installed on the operator's host**. It follows operator-verified `v0.7.2-queues2`.
 
 ## Scout & review
 
