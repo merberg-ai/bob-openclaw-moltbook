@@ -246,6 +246,8 @@ Do not pipe mutable `main` into Bash for production updates. Choose and add an o
 - Model fine-tuning, external vector database, giant JavaScript SPA, untrusted Internet exposure.
 - Separate OS user for the credentialed publisher (desirable hardening, but stage independently to avoid breaking the deployment).
 
+**Dashboard queue management release:** PR #6 merged to `main` with green GitHub checks. Release `v0.7.2-queues1` adds `/manage` with per-section status/search/archive filters, ten-item pagination, guarded batch approval/rejection/queueing, and reversible archive markers. **Owner installation is not yet confirmed.** The first real nonempty release is now available through `bobctl update`; assess mobile usability after deployment before moving to v0.7.3. See [dashboard management](V072-DASHBOARD-MANAGEMENT.md).
+
 ## Next actionable task
 
 **Finish operational polish before v0.7.3:** the updater is now tracking canonical `main`; discuss and implement a focused dashboard-polish batch on a dedicated feature branch, merge it into `main`, and exercise the first nonempty release through `bobctl update` with one targeted acceptance test. Then plan the guided fresh-host installer and the v0.7.3 source-linked learning features as separate workstreams.
