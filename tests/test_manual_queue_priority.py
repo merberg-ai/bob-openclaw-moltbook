@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src/lib/bob"))
 import diagnose_comment_queue as diagnosis
+import patch_manual_comment_priority as release
 
 
 def publisher_module():
@@ -45,8 +46,9 @@ class ReadOnlyDiagnosis(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             dbfile = Path(folder) / "queue.sqlite3"
             test_db(dbfile)
-            report = diagnosis.diagnose(dbfile, at=datetime(2026,10,29,5,tzinfo=timezone.utc),
-                                        paused=False)
+            with patch.object(diagnosis, "PUBLISHER", Path(folder) / "not-installed"):
+                report = diagnosis.diagnose(dbfile, at=datetime(2026,10,29,5,tzinfo=timezone.utc),
+                                            paused=False)
             self.assertEqual(report["queued_manual"], 1)
             self.assertEqual(report["queued_auto"], 1)
             self.assertTrue(report["manual_behind_auto"])
@@ -61,12 +63,25 @@ class ReadOnlyDiagnosis(unittest.TestCase):
             test_db(dbfile)
             with sqlite3.connect(dbfile) as db:
                 db.execute("UPDATE publish_jobs SET attempted_at='2026-10-29T04:00:00+00:00'")
-            report = diagnosis.diagnose(dbfile, at=datetime(2026,10,29,6,tzinfo=timezone.utc),
-                                        paused=False)
+            with patch.object(diagnosis, "PUBLISHER", Path(folder) / "not-installed"):
+                report = diagnosis.diagnose(dbfile, at=datetime(2026,10,29,6,tzinfo=timezone.utc),
+                                            paused=False)
             self.assertEqual(report["attempts_today"], 2)
             self.assertEqual(report["daily_limit"], 2)
             self.assertIn("daily comment attempt limit", report["reason"])
             self.assertEqual(report["next_rate_slot_utc"], "2026-10-30T00:00:00+00:00")
+
+
+class UpdateContracts(unittest.TestCase):
+    def test_exact_one_statement_release(self):
+        old, new = release.releases()
+        self.assertNotEqual(old, new)
+        self.assertIn(b"ORDER BY created_at ASC LIMIT 1", old)
+        self.assertIn(b"CASE WHEN mode='manual' THEN 0 ELSE 1 END", new)
+        self.assertEqual(old.count(b"MAX_DAILY=2"), 1)
+        self.assertEqual(new.count(b"MAX_DAILY=2"), 1)
+        self.assertEqual(old.count(b"MIN_BETWEEN=timedelta(hours=1)"), 1)
+        self.assertEqual(new.count(b"MIN_BETWEEN=timedelta(hours=1)"), 1)
 
 
 class ManualPriority(unittest.TestCase):
