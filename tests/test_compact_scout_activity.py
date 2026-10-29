@@ -112,6 +112,15 @@ class CompactDashboardTests(unittest.TestCase):
         self.assertNotIn('<article class="bcv-card"',compact.activity_page(
             self.db,{"view":["events"]},fake_wrap))
 
+    def test_comment_activity_retains_validated_discussion_link(self):
+        post_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                        ("20261029T140000Z","manual","published","A test draft",
+                         "2026-10-29T14:00Z",post_id,None))
+        rendered = compact.activity_page(self.db,{},fake_wrap)
+        self.assertIn("https://www.moltbook.com/post/"+post_id,rendered)
+        self.assertIn("API acknowledged; public visibility not independently confirmed",rendered)
+
     def test_builder_preserves_all_existing_post_routes(self):
         existing = ast.parse(prior.build()[0])
         changed_code,nav = builder.build()
