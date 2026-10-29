@@ -37,6 +37,14 @@ This first batch adds:
 
 The current release manifest lists precisely these three installed files: `bob-activity-manager`, `navigation_shell.py` and `bob_dashboard_manage.py`. The build script is only a source generator. Review and CI passed; PR #6 was merged to `main`. The operator can deploy it as the **first nonempty `bobctl update`** release. Installation will restart only the Activity Manager after the usual verified SQLite backup. The existing root Scout, Original Posts and Published Activity pages remain operational for one-item detail and recovery.
 
+## Follow-up: pending review visibility fix (queues2)
+
+The first deployed management screen incorrectly used the outgoing publication-job state as the **review** status for Scout drafts. A draft that was still pending manual review but had an automatic `queued` comment job disappeared from the **Pending** review filter. The mobile screenshots showed a Pending filter with no matches despite pending reviews visible on the legacy page. The separate 30 archived items remained in the UI archive table.
+
+Release `v0.7.2-queues2` corrects this without altering historical data: Scout items retain their review status and show publication status as an independent badge. Pending now includes auto-queued drafts and archived pending items when Visibility is All; the counter distinguishes pending archived items. Original draft posts are also matched by Pending. Bulk review remains allowed on valid pending drafts, but bulk Queue is refused if any existing outgoing job exists. This is a **single-module replacement**, not a change to the publisher or its rate limits.
+
+**Status:** Prepared on fix branch; installation not yet confirmed. The operator's already archived records will remain archived until explicitly restored. The default **Active** visibility omits archives; use **All** or **Archived** to inspect them.
+
 ## Follow-up work (not included)
 
 Bulk deletion with retain/undo policy, grouping by discussion, saved filter presets, exact cross-page selection and a distinct Archive page are deliberately deferred. Those are separate decisions, not prerequisites to fixing the scrolling problem.

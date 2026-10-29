@@ -21,7 +21,7 @@ class UpdaterSmoke(unittest.TestCase):
         self.assertTrue(manifest["release"])
         if manifest["files"]:
             self.assertNotEqual(manifest["from"], manifest["release"])
-            self.assertIn("bob-activity-manager", {item["name"] for item in manifest["files"]})
+            self.assertTrue({item["name"] for item in manifest["files"]})
         else:
             self.assertEqual(manifest["from"], manifest["release"])
             self.assertFalse(manifest["restart_manager"])

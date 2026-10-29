@@ -132,6 +132,55 @@ class QueueManagerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mgr.apply_batch(self.db,records,state_fn,"scout","approve",selections,"")
 
+    def test_auto_queued_scout_remains_pending_for_review_even_if_archived(self):
+        rid = self.records[0]["run_id"]
+        self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                        (rid, "auto", "queued", "Auto submission awaiting worker",
+                         "2026-10-29T02:00:00Z", "post1", None))
+        self.db.execute("INSERT INTO dashboard_hidden VALUES (?,?,?)",
+                        ("scout", rid, "2026-10-29T02:00:00Z"))
+        items = mgr.get_items(self.db, "scout", self.records, state_fn)
+        first = next(x for x in items if x["id"] == rid)
+        self.assertEqual((first["status"], first["publication_state"], first["mode"]),
+                         ("pending", "queued", "auto"))
+        self.assertEqual(len(mgr.filtered(items, "pending", "all", "")), 2)
+        self.assertEqual(len(mgr.filtered(items, "pending", "active", "")), 1)
+        self.assertEqual(len(mgr.filtered(items, "queued", "all", "")), 1)
+        html = mgr.page(self.db, self.records, state_fn,
+                        {"tab": ["scout"], "state": ["pending"],
+                         "show": ["all"]}, "mock-csrf",
+                        lambda title, content, route: content)
+        self.assertIn("2 awaiting review (1 archived)", html)
+        self.assertIn("Review: pending", html)
+        self.assertIn("Publication: queued (auto)", html)
+
+    def test_auto_queued_pending_can_be_reviewed_but_not_queued_twice(self):
+        rid = self.records[0]["run_id"]
+        key = self.selection("scout", rid)
+        self.db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?,?)",
+                        (rid, "auto", "queued", "Existing queue entry",
+                         "2026-10-29T02:00:00Z", "post1", None))
+        self.assertEqual(
+            mgr.apply_batch(self.db, self.records, state_fn,
+                            "scout", "approve", [key], ""), 1)
+        self.assertEqual(self.db.execute(
+            "SELECT status FROM decisions WHERE run_id=?", (rid,)).fetchone()[0],
+                         "approved")
+        with patch.object(mgr, "queue_manual") as mocked:
+            with self.assertRaises(ValueError):
+                mgr.apply_batch(self.db, self.records, state_fn,
+                                "scout", "queue", [key], "QUEUE 1")
+            mocked.assert_not_called()
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM publish_jobs WHERE run_id=?", (rid,)).fetchone()[0],
+                         "queued")
+
+    def test_pending_filter_includes_unpublished_original_drafts(self):
+        original(self.db, "aaaaaaaaaaaaaaaaaaaaaaaa", state="draft")
+        items = mgr.get_items(self.db, "originals", [], state_fn)
+        self.assertEqual(len(mgr.filtered(items, "pending", "all", "")), 1)
+        self.assertEqual(items[0]["status"], "draft")
+
     def test_candidate_routes_keep_existing_handlers(self):
         code,nav=candidate.build()
         self.assertIn(b'if path == "/manage/bulk":',code)

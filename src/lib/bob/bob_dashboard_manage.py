@@ -108,7 +108,11 @@ def get_items(db, tab, records, status_fn):
                 continue
             decision = status_fn(rec, decisions)
             job = jobs.get(rid)
-            state = job[0] if job else decision
+            # Review status and outgoing publication status are independent.
+            # An auto-queued comment remains review-pending until explicitly
+            # approved or rejected by the owner.
+            state = decision
+            publication_state = job[0] if job else ""
             token = rec.get("approval_sha256")
             if not isinstance(token, str) or not DIGEST.fullmatch(token):
                 token = fingerprint("scout", rid, rec.get("draft_comment", ""))
@@ -117,6 +121,7 @@ def get_items(db, tab, records, status_fn):
                                meta=str(rec.get("chosen_author") or "Unknown author")[:120],
                                summary=str(rec.get("draft_comment") or "No usable draft")[:4000],
                                source="scout", hidden=rid in hidden,
+                               publication_state=publication_state,
                                detail="/#run-" + rid, mode=job[1] if job else ""))
     elif tab == "originals":
         original_init(db)
@@ -129,7 +134,7 @@ def get_items(db, tab, records, status_fn):
             result.append(dict(id=rid, digest=sha, status=state, label=title,
                                meta="m/" + submolt, summary=body, source="originals",
                                hidden=rid in hidden, detail="/originals", mode="",
-                               post_id=pid))
+                               publication_state="", post_id=pid))
     else:
         rows = db.execute(
             "SELECT run_id,mode,state,draft_comment,created_at,post_id,comment_id "
@@ -142,7 +147,8 @@ def get_items(db, tab, records, status_fn):
                                status=state, label="Comment " + rid,
                                meta=(mode or "") + " · " + (created or ""),
                                summary=body, source="activity", hidden=rid in hidden,
-                               detail="/activity", mode=mode, comment_id=cid))
+                               detail="/activity", mode=mode,
+                               publication_state=state, comment_id=cid))
     return result
 
 
@@ -165,7 +171,11 @@ def parse_filters(params):
 def filtered(items, state, show, search):
     phrase = search.casefold()
     return [item for item in items
-            if (state == "all" or item["status"] == state)
+            if (state == "all" or item["status"] == state
+                or (state == "pending" and item["source"] == "originals"
+                    and item["status"] == "draft")
+                or (item["source"] == "scout"
+                    and item["publication_state"] == state))
             and (show == "all" or item["hidden"] == (show == "archived"))
             and (not phrase or phrase in (item["label"] + " " + item["meta"] +
                                           " " + item["summary"]).casefold())]
@@ -207,10 +217,13 @@ def page(db, records, status_fn, params, csrf, wrap):
         chosen=" selected" if value==show else ""
         parts.append(f'<option value="{e(value)}"{chosen}>{e(value.title())}</option>')
     parts.append('</select></label><button type="submit">Filter</button></form>')
-    pending=sum(item["status"] in ("pending","draft") and not item["hidden"] for item in all_items)
+    pending=sum(item["status"] in ("pending","draft") for item in all_items)
+    pending_hidden=sum(item["status"] in ("pending","draft") and item["hidden"]
+                       for item in all_items)
     archived=sum(item["hidden"] for item in all_items)
     parts.append(f'<p class="bqm-info"><strong>{total}</strong> matching · '
-                 f'{pending} pending drafts · {archived} archived · Page {current} of {last}. '
+                 f'{pending} awaiting review ({pending_hidden} archived) · '
+                 f'{archived} archived total · Page {current} of {last}. '
                  'Select up to 10 items on this page.</p>')
     parts.append('<form class="bqm-bulk" action="/manage/bulk" method="post">'
                  f'<input type="hidden" name="csrf" value="{e(csrf)}">'
@@ -221,9 +234,13 @@ def page(db, records, status_fn, params, csrf, wrap):
                  f'<input type="hidden" name="page" value="{current}">')
     for item in visible:
         label = e(item["label"])
-        badges = (f'<span class="bqm-flag">{e(item["status"])}</span>'
+        badges = (f'<span class="bqm-flag">{e("Review: " + item["status"] if tab == "scout" else item["status"])}</span>'
+                  + (f'<span class="bqm-flag">Publication: {e(item["publication_state"])}'
+                     + (f' ({e(item["mode"])})' if item["mode"] else '') + '</span>'
+                     if tab == "scout" and item["publication_state"] else '')
                   + ('<span class="bqm-flag">Archived</span>' if item["hidden"] else '')
-                  + (f'<span class="bqm-flag">{e(item["mode"])}</span>' if item["mode"] else ''))
+                  + (f'<span class="bqm-flag">{e(item["mode"])}</span>'
+                     if tab == "activity" and item["mode"] else ''))
         parts.append('<article class="bqm-item"><div class="bqm-item-head">'
                      f'<label class="bqm-check"><input type="checkbox" name="selected" '
                      f'value="{e(item["id"])}:{e(item["digest"])}" aria-label="Select {label}"></label>'
@@ -292,8 +309,9 @@ def apply_batch(db, records, status_fn, tab, operation, selected, confirmation):
                 raise ValueError("scout draft not verified")
             if operation in ("approve", "reject") and row["status"]!="pending":
                 raise ValueError("only pending drafts may be reviewed")
-            if operation == "queue" and row["status"]!="approved":
-                raise ValueError("only approved drafts without jobs may be queued")
+            if operation == "queue" and (
+                    row["status"] != "approved" or row["publication_state"]):
+                raise ValueError("only approved drafts without existing jobs may be queued")
         if tab == "originals" and operation in ("approve", "reject", "queue"):
             required = "approved" if operation == "queue" else "draft"
             if row["status"] != required:

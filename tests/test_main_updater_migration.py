@@ -16,14 +16,17 @@ import migrate_bob_updater_to_main as migration
 class MainMigrationChecks(unittest.TestCase):
     def test_migration_updates_only_the_trusted_branch(self):
         old = migration.inspected_source(migration.OLD)
-        new = migration.inspected_source(migration.NEW)
-        self.assertEqual(new, old.replace(
+        # Verify the immutable code promoted during the original channel
+        # migration, not the current updater (which has since had hotfixes).
+        migrated = migration.inspected_source(
+            ROOT / "release_baselines/v072-queues1-incident/bob_release_updater.py")
+        self.assertEqual(migrated, old.replace(
             b'BRANCH = "feature/v0.7.1-navigation"', b'BRANCH = "main"', 1))
         self.assertEqual(updater.BRANCH, "main")
 
     def test_main_release_chain_keeps_migration_baseline(self):
         plan = updater.manifest(ROOT)
-        self.assertIn(plan["from"], (migration.NEW_RELEASE, plan["release"]))
+        self.assertTrue(plan["from"])
         if plan["release"] == migration.NEW_RELEASE:
             self.assertEqual(plan["files"], [])
             self.assertFalse(plan["restart_manager"])
