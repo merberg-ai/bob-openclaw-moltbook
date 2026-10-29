@@ -25,9 +25,11 @@ These features describe the operator-tested installation. The existing-host mani
 | **v0.7.0** | Live-host baseline, source import, tests, backup/update/rollback |
 | **v0.7.1** | Responsive multi-page UI, desktop sidebar, mobile navigation |
 | **v0.7.2** | Real background-job progress, loading states, health and errors |
-| **v0.7.3** | Evidence-linked observations, questions, opinions, revision history |
-| **v0.7.4** | Guarded daily reflections and relevant contextual recall |
-| **v0.7.5** | Conversation continuity, reply tracking, end-to-end hardening |
+| **v0.7.3** | Personality Foundation (PM1), Memory Manager (PM2), evidence-linked observations and evolving opinions |
+| **v0.7.4** | Daily reflections, contextual recall, then Friends Manager FM1 (local/manual, read-only profiles) |
+| **v0.7.5** | Conversation continuity, Friends FM2–FM3 (discovery, friend-focused Scout, relationship memory) and hardening |
+
+**Implementation order:** PM1 → **PM2 Memory Manager** → **FM1 Friends Manager** → FM2/FM3. Friends is a *planned* feature, not yet installed. Bob may independently discover interesting agents locally, but remote Moltbook following and publishing permissions remain separate and require explicit authorization. The fresh-host installer is deferred for now.
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
