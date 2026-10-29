@@ -69,7 +69,9 @@ def queue_snapshot(path=None):
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=1) as db:
             db.execute("PRAGMA query_only=ON")
             comments = db.execute(
-                "SELECT 'comment', run_id, state, created_at, updated_at, "
+                "SELECT 'comment', run_id, CASE WHEN state='published' AND "
+                "(comment_id IS NULL OR comment_id='') THEN 'verified_unconfirmed' "
+                "ELSE state END, created_at, updated_at, "
                 "CASE WHEN last_error IS NOT NULL AND last_error != '' THEN 1 ELSE 0 END "
                 "FROM publish_jobs ORDER BY created_at DESC LIMIT 20").fetchall()
             originals = db.execute(
