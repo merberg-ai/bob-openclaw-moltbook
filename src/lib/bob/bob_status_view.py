@@ -16,6 +16,8 @@ STYLE = """<style>
 .bob-status-state[data-tone="bad"]{background:#4a2530;color:#ffb5c1}
 .bob-status-state[data-tone="idle"]{background:#2a3547;color:#c6d4e8}
 .bob-status-table{list-style:none;padding:0;display:grid;gap:9px}
+.bob-status-worker small{display:block;color:#aabed6;margin-top:8px;overflow-wrap:anywhere}
+.bob-status-warning{color:#f8d99b;font-size:.82rem;font-weight:650}
 .bob-status-job{display:flex;justify-content:space-between;gap:10px;align-items:center;
  background:#122035;border:1px solid #2e425f;border-radius:10px;padding:12px}
 .bob-status-job>div{min-width:0;overflow-wrap:anywhere}
@@ -37,6 +39,7 @@ JS = r"""'use strict';
   if (!root) return;
   const grid = document.getElementById('bob-service-grid');
   const jobs = document.getElementById('bob-job-list');
+  const workers = document.getElementById('bob-worker-grid');
   const stamp = document.getElementById('bob-status-updated');
   const notice = document.getElementById('bob-status-notice');
   const reload = document.getElementById('bob-status-refresh');
@@ -68,6 +71,24 @@ JS = r"""'use strict';
       return el;
     });
     grid.replaceChildren(...cards);
+    const stages = (Array.isArray(data.workers) ? data.workers : []).slice(0, 3).map((item) => {
+      const card = document.createElement('div');
+      card.className = 'bob-status-card bob-status-worker';
+      const name = document.createElement('strong');
+      name.textContent = String(item.worker || 'worker');
+      const msg = document.createElement('small');
+      msg.textContent = String(item.message || 'No additional details');
+      const seen = document.createElement('small');
+      seen.textContent = 'Last checkpoint: ' + String(item.updated_at || 'unknown');
+      card.append(name, pill(item.stage || 'unknown'), msg, seen);
+      return card;
+    });
+    if (!stages.length) {
+      const empty = document.createElement('p');
+      empty.textContent = 'Waiting for worker checkpoints. Existing jobs are shown below.';
+      stages.push(empty);
+    }
+    workers.replaceChildren(...stages);
     const entries = data.queue.jobs.slice(0, 30).map((job) => {
       const el = document.createElement('li');
       el.className = 'bob-status-job';
@@ -75,8 +96,14 @@ JS = r"""'use strict';
       const kind = document.createElement('strong');
       kind.textContent = String(job.kind || 'job');
       const created = document.createElement('small');
-      created.textContent = String(job.created || 'timestamp unavailable');
+      created.textContent = 'Created: ' + String(job.created || 'unknown') + ' · Updated: ' + String(job.updated || 'not recorded');
       info.append(kind, created);
+      if (job.has_error) {
+        const marker = document.createElement('small');
+        marker.className = 'bob-status-warning';
+        marker.textContent = 'Error recorded. Check job details/logs; no automatic retry.';
+        info.append(marker);
+      }
       el.append(info, pill(job.state || 'unknown'));
       return el;
     });
@@ -135,12 +162,26 @@ def page(data):
     for item in data.get("services", [])[:12]:
         cards.append('<div class="bob-status-card"><strong>' + escape(str(item.get("name", ""))) +
                      '</strong>' + _pill(item.get("state", "unknown")) + '</div>')
+    workers = []
+    for item in data.get("workers", [])[:3]:
+        workers.append('<div class="bob-status-card bob-status-worker"><strong>' +
+                       escape(str(item.get("worker", ""))) + '</strong>' +
+                       _pill(item.get("stage", "unknown")) +
+                       '<small>' + escape(str(item.get("message", ""))) + '</small>' +
+                       '<small>Last checkpoint: ' +
+                       escape(str(item.get("updated_at", ""))) + '</small></div>')
+    if not workers:
+        workers.append('<p>Waiting for worker checkpoints. Existing jobs are shown below.</p>')
     jobs = []
     queue = data.get("queue", {})
     for job in queue.get("jobs", [])[:30]:
-        jobs.append('<li class="bob-status-job"><div><strong>' + escape(str(job.get("kind", ""))) +
-                    '</strong><small>' + escape(str(job.get("created", ""))) +
-                    '</small></div>' + _pill(job.get("state", "unknown")) + '</li>')
+        warning = ('<small class="bob-status-warning">Error recorded; no automatic retry</small>'
+                   if job.get("has_error") else '')
+        jobs.append('<li class="bob-status-job"><div><strong>' +
+                    escape(str(job.get("kind", ""))) + '</strong><small>Created: ' +
+                    escape(str(job.get("created", ""))) + ' · Updated: ' +
+                    escape(str(job.get("updated", ""))) + '</small>' + warning +
+                    '</div>' + _pill(job.get("state", "unknown")) + '</li>')
     if not jobs:
         jobs.append('<li>' + ('No recent recorded jobs.' if queue.get("available") else
                               'Queue records currently unavailable.') + '</li>')
@@ -153,6 +194,8 @@ def page(data):
             'Automatic updates every 15 seconds while this tab is visible.</p>'
             '<section class="bob-status-panel" aria-label="Local services"><h2>Services & dependencies</h2>'
             '<div id="bob-service-grid" class="bob-status-grid">' + "".join(cards) + '</div></section>'
+            '<section class="bob-status-panel" aria-label="Worker stages"><h2>Recent worker stages</h2>'
+            '<div id="bob-worker-grid" class="bob-status-grid">' + "".join(workers) + '</div></section>'
             '<section class="bob-status-panel" aria-label="Recorded jobs"><h2>Recent recorded jobs</h2>'
             '<ul id="bob-job-list" class="bob-status-table">' + "".join(jobs) + '</ul></section>'
             '<noscript><p>JavaScript is disabled. Reload this page to refresh its read-only snapshot.</p></noscript>'
