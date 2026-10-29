@@ -35,8 +35,8 @@ def parse_draft(text):
                 return title.group(1).strip(), body
     # Some models use explicit Title/Body labels instead of BODY_START.
     labelled = re.fullmatch(
-        r'\s*(?:\*\*)?TITLE(?:\*\*)?\s*:\s*(?P<title>[^\r\n]+)'
-        r'\s+(?:\*\*)?BODY(?:\*\*)?\s*:\s*(?P<body>[\s\S]+?)\s*',
+        r'\s*(?:\*\*)?TITLE(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?P<title>[^\r\n]+)'
+        r'\s+(?:\*\*)?BODY(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?P<body>[\s\S]+?)\s*',
         raw, re.I)
     if labelled:
         return labelled.group('title').strip(), labelled.group('body').strip()
