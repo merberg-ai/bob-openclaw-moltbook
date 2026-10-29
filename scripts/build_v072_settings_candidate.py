@@ -96,7 +96,7 @@ def build():
     anchor = '    ("/originals", "Original posts", "Original posts"),'
     if nav.count(anchor) != 1:
         raise ValueError("navigation changed")
-    nav = nav.replace(anchor, anchor + '\n    ("/settings", "Settings", "Settings"),', 1)
+    nav = nav.replace(anchor, anchor + '\n    ("/system/status", "System status", "System status"),\n    ("/settings", "Settings", "Settings"),', 1)
     compile(source, "bob-activity-manager", "exec")
     compile(nav, "navigation_shell.py", "exec")
     return source.encode("utf-8"), nav.encode("utf-8")
