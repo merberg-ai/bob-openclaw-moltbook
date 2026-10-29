@@ -1,10 +1,18 @@
 # Changelog
 
-## v0.7.3 pm1-csp1 — Local JavaScript policy fix (installation pending)
+## v0.7.3 pm1-apply1 — Verified personality Apply and Roll Back (installation pending)
+
+- [PR #17](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/17) passed offline CI and merged to `main`.
+- Adds a guarded managed-section diff/preview, verified active `main` workspace discovery through `openclaw agents list --json`, and `APPLY BOB` confirmation to update only a delimited style block in `SOUL.md`.
+- Backs up the original file privately with checksums, atomic replacement and a `ROLL BACK` action that refuses changed files. Existing identity text, other files, publishing permissions and workers remain unchanged.
+- Single `bobctl update` and browser acceptance. The update **adds controls only** and does not apply personality automatically.
+
+
+## v0.7.3 pm1-csp1 — Local JavaScript policy fix (operator-verified)
 
 - [PR #16](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/16) passed CI and merged to `main`. Extends the existing System Status script/fetch CSP exception to **Overview** and **Bob's Mind · Personality**, so the local JS preview and Overview refresh can run.
 - Keeps inline/third-party scripts blocked and the rest of the dashboard's strict CSP unchanged. One generated Activity Manager file, no identity, database, approval, rate-limit or worker changes.
-- The operator confirmed `pm1-foundation1` installed, with persistent sliders and read-only identity inventory; the frozen 'Enable JavaScript' preview exposed the CSP issue.
+- The operator confirmed `pm1-foundation1` installed with persistent sliders, and subsequently confirmed the local JavaScript preview fix works as expected.
 
 ## v0.7.3 pm1-foundation1 — Staged Personality Lab (operator-verified; preview CSP fix released)
 
