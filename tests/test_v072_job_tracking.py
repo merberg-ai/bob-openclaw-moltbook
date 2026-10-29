@@ -64,12 +64,12 @@ class StatusDatabaseContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "queue.db"
             with sqlite3.connect(path) as db:
-                db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, created_at TEXT, updated_at TEXT, last_error TEXT)")
+                db.execute("CREATE TABLE publish_jobs (run_id TEXT, state TEXT, created_at TEXT, updated_at TEXT, last_error TEXT, comment_id TEXT)")
                 db.execute("CREATE TABLE original_posts (id TEXT, state TEXT, created_at TEXT, updated_at TEXT, last_error TEXT)")
                 db.execute("CREATE TABLE original_requests (id TEXT, state TEXT, created_at TEXT, completed_at TEXT, error TEXT)")
-                db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?)",
+                db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?,?,?)",
                            ("20261028T180000Z", "cancelled", "2026-10-28T18:00:00+00:00",
-                            "2026-10-28T18:01:00+00:00", None))
+                            "2026-10-28T18:01:00+00:00", None, None))
                 db.execute("INSERT INTO original_requests VALUES (?,?,?,?,?)",
                            ("1234567890abcdef12345678", "failed",
                             "2026-10-28T19:00:00+00:00", "2026-10-28T19:02:00+00:00",
