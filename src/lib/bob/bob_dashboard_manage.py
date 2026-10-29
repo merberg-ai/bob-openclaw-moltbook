@@ -147,7 +147,7 @@ def get_items(db, tab, records, status_fn):
                                status=state, label="Comment " + rid,
                                meta=(mode or "") + " · " + (created or ""),
                                summary=body, source="activity", hidden=rid in hidden,
-                               detail="/activity", mode=mode,
+                               detail="/activity", mode=mode, post_id=pid,
                                publication_state=state, comment_id=cid))
     return result
 
