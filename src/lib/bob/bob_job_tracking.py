@@ -14,7 +14,7 @@ import stat
 import tempfile
 
 ROOT = Path.home() / ".config/moltbook/job-progress"
-KINDS = frozenset(("scout", "original", "publisher"))
+KINDS = frozenset(("scout", "original", "original_publish", "publisher"))
 STAGES = frozenset(("queued", "fetching", "validating", "generating", "preflight",
                    "sending", "verifying", "waiting", "completed", "failed",
                    "uncertain", "paused", "idle", "awaiting_verification"))
