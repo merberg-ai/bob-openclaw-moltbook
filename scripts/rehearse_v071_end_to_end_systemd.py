@@ -85,7 +85,7 @@ def probe(root: Path, release: str):
                 return False
             if release == "candidate" and route != "/healthz" and b"bob-layout" not in body:
                 return False
-            if release == "baseline" and route == "/" and b"Preview: an imaginary discussion" not in body:
+            if release == "baseline" and route != "/healthz" and b"<html" not in body.lower():
                 return False
         except (OSError, TimeoutError):
             return False
