@@ -148,7 +148,7 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
     search = only(params,"q","").strip()
     items = get_items(db,"scout",records,status_fn)
     shown = filtered(items,state,show,search)
-    page_items, controls = paging(shown,params,"/",dict(state=state,show=show,q=search))
+    page_items, controls = paging(shown,params,"/scout",dict(state=state,show=show,q=search))
     by_id = {r["run_id"]:r for r in records if isinstance(r.get("run_id"),str)}
     counts = {s: sum(x["status"] == s for x in items) for s in
               ("pending","approved","rejected","needs review")}
@@ -186,7 +186,7 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
                  '<label>Type ENABLE AUTO <input name="confirmation" maxlength="20" '
                  'autocomplete="off" required></label><button type="submit">Enable</button></form>')
     h.append('</details></section>')
-    h.append(filters_form("/",dict(state=state,show=show,q=search),SCOUT_STATES))
+    h.append(filters_form("/scout",dict(state=state,show=show,q=search),SCOUT_STATES))
     pending_hidden = sum(x["hidden"] and x["status"]=="pending" for x in items)
     h.append(f'<p class="bcv-note">{len(shown)} matching · {pending_hidden} pending archived '
              '(switch Visibility to All to see them). '
@@ -245,7 +245,7 @@ def scout_page(db, records, status_fn, params, csrf, wrap):
     h.append('<p class="bcv-note">Direct replies and publication events have '
              'moved to the <a href="/activity">Activity</a> page. '
              'All historical reports remain available in the full view.</p></div>')
-    return wrap("Scout & review","".join(h),"/")
+    return wrap("Scout & review","".join(h),"/scout")
 
 
 def activity_page(db, params, wrap):
