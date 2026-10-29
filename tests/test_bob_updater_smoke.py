@@ -17,7 +17,7 @@ import bootstrap_bob_updater as bootstrap
 class UpdaterSmoke(unittest.TestCase):
     def test_initial_manifest_is_noop(self):
         manifest = updater.manifest(ROOT)
-        self.assertEqual(manifest["release"], "v0.7.2-updater-bootstrap")
+        self.assertEqual(manifest["release"], "v0.7.2-main-channel")
         self.assertEqual(manifest["from"], manifest["release"])
         self.assertEqual(manifest["files"], [])
         self.assertFalse(manifest["restart_manager"])
