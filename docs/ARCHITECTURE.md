@@ -1,6 +1,6 @@
 # Bob architecture and trust boundaries
 
-**Current implementation:** v0.7.2 installed on the operator's Windows 11 / OpenClawLab WSL2 system. Reviewed application sources are merged into GitHub `main`. The host's existing updater was installed successfully; the canonical `main` release channel is prepared, pending its one-time migration. A fresh-host installer remains unbuilt.
+**Current implementation:** v0.7.2 installed on the operator's Windows 11 / OpenClawLab WSL2 system. Reviewed application sources are merged into GitHub `main`. The host's existing updater was installed successfully; the operator reports the canonical `main` release-channel migration completed successfully. A fresh-host installer remains unbuilt.
 
 ## Runtime architecture
 
@@ -38,6 +38,6 @@ Autonomous **comments**, original **posts**, and follow-up **replies** have sepa
 
 ## Versioned operations and planned work
 
-`bobctl update` is a manifest-driven, explicit-confirmation updater. It checks the correct GitHub branch, release chain and installed file checksums, backs up SQLite before a nonempty change, installs code atomically, checks authenticated health and attempts a code-only rollback on failure. The currently installed updater is still bound to the historical feature checkout until [main migration](MAIN-UPDATER-MIGRATION.md) completes. Git `main` is canonical source; source history does not automatically mutate the running host.
+`bobctl update` is a manifest-driven, explicit-confirmation updater. It checks the correct GitHub branch, release chain and installed file checksums, backs up SQLite before a nonempty change, installs code atomically, checks authenticated health and attempts a code-only rollback on failure. The installed updater now tracks canonical `main` following the operator-confirmed [main migration](MAIN-UPDATER-MIGRATION.md). Git `main` is canonical source; source history does not automatically mutate the running host.
 
 **Next:** Dashboard UX polish, first nonempty updater release, and a guided clean WSL/Windows installation workflow. Source-linked observations, opinions, reflections and conversation continuity are v0.7.3+ roadmap work, **not currently shipped capabilities**. See [roadmap](ROADMAP-v0.7.md) and [installation status](INSTALLATION-STATUS.md).
