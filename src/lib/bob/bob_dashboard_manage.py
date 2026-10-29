@@ -22,7 +22,7 @@ ID_SCOUT = re.compile(r"\d{8}T\d{6}Z\Z")
 ID_ORIGINAL = re.compile(r"[0-9a-f]{24}\Z")
 DIGEST = re.compile(r"[0-9a-f]{64}\Z")
 TABS = ("scout", "originals", "activity")
-STATES = ("all", "pending", "needs review", "approved", "rejected",
+STATES = ("all", "pending", "draft", "needs review", "approved", "rejected",
           "queued", "sending", "awaiting_verification", "verifying",
           "published", "verified_unconfirmed", "uncertain", "failed", "cancelled")
 SHOW = ("active", "archived", "all")
