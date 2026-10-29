@@ -144,7 +144,7 @@ class ActivityLimitsTests(unittest.TestCase):
         original=(ROOT/"src/bin/bob-original-worker").read_bytes()
         self.assertIn(b'activity_allowed(db, "comment", mode=mode)',publisher)
         self.assertIn(b'activity_allowed(db, "original")',original)
-        self.assertIn(b"INSERT INTO publish_jobs",publisher)
+        self.assertIn(b"state='sending'",publisher)
         self.assertIn(b"state='sending'",original)
 
 
