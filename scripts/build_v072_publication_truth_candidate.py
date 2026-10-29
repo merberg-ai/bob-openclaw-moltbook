@@ -28,7 +28,7 @@ def build():
     source = replace_once(
         source,
         'f\'<div class="stat"><strong>{orig_pub}</strong>Publicly visible original post jobs',
-        'f\'<div class="stat"><strong>{uncertain_pub}</strong>Comments without confirmed IDs</div>\'\\n           f\'<div class="stat"><strong>{orig_pub}</strong>Publicly visible original post jobs')
+        'f\'<div class="stat"><strong>{uncertain_pub}</strong>Comments without confirmed IDs</div>\'\n           f\'<div class="stat"><strong>{orig_pub}</strong>Publicly visible original post jobs')
     source = replace_once(
         source,
         '“Published” means the API acknowledged the item; original posts are separately checked for public visibility.',
