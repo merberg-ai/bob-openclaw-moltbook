@@ -78,7 +78,7 @@ JS = r"""'use strict';
       return el;
     });
     grid.replaceChildren(...cards);
-    const stages = (Array.isArray(data.workers) ? data.workers : []).slice(0, 3).map((item) => {
+    const stages = (Array.isArray(data.workers) ? data.workers : []).slice(0, 4).map((item) => {
       const card = document.createElement('div');
       card.className = 'bob-status-card bob-status-worker';
       const name = document.createElement('strong');
@@ -171,7 +171,7 @@ def page(data):
         cards.append('<div class="bob-status-card"><strong>' + escape(str(item.get("name", ""))) +
                      '</strong>' + _pill(item.get("state", "unknown")) + '</div>')
     workers = []
-    for item in data.get("workers", [])[:3]:
+    for item in data.get("workers", [])[:4]:
         workers.append('<div class="bob-status-card bob-status-worker"><strong>' +
                        escape(str(item.get("worker", ""))) + '</strong>' +
                        _pill(item.get("stage", "unknown")) +
