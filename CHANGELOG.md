@@ -1,8 +1,14 @@
 # Changelog
 
-## v0.7.2 overview1 — Mission-control landing page (installation pending)
+## v0.7.2 overview2 — Compact Overview cleanup (installation pending)
 
-- [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. The released manifest is ready for `bobctl update`, but the owner has not yet confirmed installation.
+- Removed the redundant Mission Control hero, duplicate section-navigation buttons, and long helper paragraphs. Kept daily budget gauges, local rate-slot timestamps, queue and publication data, service/worker cards and live refresh.
+- Removed unused styles and JavaScript references to the deleted header to preserve automatic refresh.
+- [PR #11](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/11) passed offline CI and merged to `main`. One-file `bob_overview.py` update from `v0.7.2-overview1`; operator installation pending.
+
+## v0.7.2 overview1 — Live overview landing page (operator-verified)
+
+- [PR #10](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/10) passed offline CI and merged to `main`. The operator confirmed the release installed successfully and the new Overview was looking good.
 - Changed `/` from Scout to **Overview**, and moved compact review to `/scout`, retaining `/scout/full` and all original review/publish controls.
 - Added responsive daily budget gauges, queued/manual/automatic and original-post counts, recorded publication outcomes, observed incoming replies, live service and worker cards, recent events, and rate-slot estimates.
 - Spinners appear only for recently observed active worker stages, not queued/idle/stale workers. Refreshes every 15 seconds through a guarded read-only endpoint and respects reduced motion.
