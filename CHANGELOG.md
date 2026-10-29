@@ -1,10 +1,17 @@
 # Changelog
 
-## v0.7.2 overview2 — Compact Overview cleanup (installation pending)
+## v0.7.2 redirects1 — Section-preserving action navigation (installation pending)
+
+- [PR #12](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/12) passed offline CI and merged to `main`. The operator reported Scout Approve/Reject returning to the new Overview.
+- Corrected Scout Approve/Reject/Reset, Queue, Verify, and Auto-enable/disable redirects to the same Scout filter/page and full-history context. Added strict local return-target allowlisting and section-aware error-page links.
+- Audited other actions: Originals, Manage Queues and Activity Limits already return to their sections; password rotation deliberately returns a reauthentication message.
+- Three-file Activity Manager release, no posting worker, authorization, limits or database changes. Operator installation pending.
+
+## v0.7.2 overview2 — Compact Overview cleanup (operator-verified)
 
 - Removed the redundant Mission Control hero, duplicate section-navigation buttons, and long helper paragraphs. Kept daily budget gauges, local rate-slot timestamps, queue and publication data, service/worker cards and live refresh.
 - Removed unused styles and JavaScript references to the deleted header to preserve automatic refresh.
-- [PR #11](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/11) passed offline CI and merged to `main`. One-file `bob_overview.py` update from `v0.7.2-overview1`; operator installation pending.
+- [PR #11](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/11) passed offline CI and merged to `main`. One-file `bob_overview.py` update from `v0.7.2-overview1`; operator confirmed it installed successfully and looks good.
 
 ## v0.7.2 overview1 — Live overview landing page (operator-verified)
 
