@@ -73,7 +73,9 @@ def can_send(db):
 def publisher_step(db):
     auto_candidates(db)
     db.commit()
-    row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY created_at ASC LIMIT 1").fetchone()
+    # Manual approvals outrank auto drafts. A held/disabled auto item must not
+    # starve a newer human-approved reply; rate limits and checks still apply.
+    row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY CASE WHEN mode='manual' THEN 0 ELSE 1 END, created_at ASC, run_id ASC LIMIT 1").fetchone()
     if not row: return 'no queued publications'
     rid,digest,pid,draft,mode,created=row
     checkpoint('publisher',rid,'validating')
