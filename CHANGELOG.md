@@ -1,6 +1,13 @@
 # Changelog
 
-## v0.7.2 queues1 — Merged to main; installation pending
+## v0.7.2 queues2 — Pending review status fix (deployment pending)
+
+- Operator screenshots confirm the queue management page is now installed following successful guarded incident reconciliation and retry of `v0.7.2-queues1-r1`.
+- A review-pending Scout draft with an automatically queued comment was incorrectly labeled only `queued`, disappearing from the Pending filter.
+- Keep review decision and publication state independent; show both badges, count archived pending separately, allow legitimate review, and refuse duplicate publication queue jobs. Original-post `draft` records also match Pending.
+- Fix is a single-module replacement (`bob_dashboard_manage.py`) with Activity Manager restart only; it does not change publication records or archive flags.
+
+## v0.7.2 queues1 — Deployed after guarded retry
 
 - Added an authenticated, mobile-friendly **Manage queues** screen with Scout, Original Posts and Comment Activity tabs, server-side search/status/visibility filters, ten-item pages, compact previews and batch selection.
 - Implemented bounded bulk approve/reject and explicitly confirmed **queue for publication** actions, preserving all publishing safeguards and prohibiting direct publication from the UI.
