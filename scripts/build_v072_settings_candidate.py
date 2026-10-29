@@ -89,7 +89,7 @@ def build():
             content = '<section class="card"><h2>Live service status</h2><p>Updates every 10 seconds. Service active does not guarantee readiness.</p><ul>'
             for item in report["services"]:
                 content += "<li><strong>" + esc(item["name"]) + "</strong>: " + esc(item["state"]) + "</li>"
-            content += "</ul></section><section class=\"card\"><h2>Recent recorded jobs</h2>"
+            content += '</ul></section><section class="card"><h2>Recent recorded jobs</h2>'
             if not report["queue"]["available"]:
                 content += "<p>Queue records unavailable. No state inferred.</p>"
             elif not report["queue"]["jobs"]:
