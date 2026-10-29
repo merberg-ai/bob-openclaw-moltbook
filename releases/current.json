@@ -1,12 +1,20 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm1-csp1",
-  "from": "v0.7.3-pm1-foundation1",
-  "notes": "Fix browser Content Security Policy blocking Personality Lab live slider guidance and Overview polling. Allow only same-origin static scripts and same-origin fetch; keep no inline scripts, default-src none and all existing auth/CSRF/worker safeguards.",
+  "release": "v0.7.3-pm1-apply1",
+  "from": "v0.7.3-pm1-csp1",
+  "notes": "PM1 guarded Apply to Bob: preview only marked SOUL.md style section, verify live main OpenClaw workspace, save private backup, explicit Apply and Roll Back controls with hash/concurrency guards. Existing identity, permissions, activity limits and publishing workers preserved.",
   "files": [
     {
+      "name": "bob_personality_apply.py",
+      "source": "src/lib/bob/bob_personality_apply.py"
+    },
+    {
+      "name": "bob_personality.py",
+      "source": "src/lib/bob/bob_personality.py"
+    },
+    {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v073_pm1_csp_candidate.py",
+      "builder": "scripts/build_v073_pm1_apply_candidate.py",
       "index": 0
     }
   ],
