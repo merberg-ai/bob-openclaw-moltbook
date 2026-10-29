@@ -46,7 +46,8 @@ def ollama_state():
         payload = json.loads(content)
         if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
             return "unknown"
-        model_names = {name for m in payload["models"] if isinstance(m, dict)\n                       for name in [m.get("name") or m.get("model")] if isinstance(name, str)}
+        model_names = {name for m in payload["models"] if isinstance(m, dict)
+                       for name in [m.get("name") or m.get("model")] if isinstance(name, str)}
         return "ready" if "qwen3.5:9b" in model_names else "model_missing"
     except (OSError, ValueError, TimeoutError):
         return "unavailable"
