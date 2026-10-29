@@ -12,6 +12,14 @@ Adds **Bob's Mind · Personality** to the authenticated dashboard navigation at 
 
 **Important:** This release does **not** apply sliders to active OpenClaw sessions, write to any OpenClaw identity/operating files, call Ollama or Moltbook, alter publishing permissions or start extra workers. The workspace path shown is only the default; the active agent workspace must be confirmed before any PM1 Apply step. OpenClaw's documented `SOUL.md` and `IDENTITY.md` are injected into sessions; overwriting them without reading the actual identity is unacceptable.
 
+## PM1 browser preview fix: `v0.7.3-pm1-csp1`
+
+The operator installed PM1 and verified the sliders persist and the workspace inventory reads `SOUL.md` and `IDENTITY.md`. The **Live slider interpretation** section remained on the “Enable JavaScript to preview guidance” fallback. Root cause: the Activity Manager HTTP header sets `Content-Security-Policy: default-src 'none'` without any `script-src`, which blocks the local `/assets/bob-personality.js` (and previously also blocked the Overview's `/assets/bob-overview.js` polling script). This is a server configuration defect, **not evidence that the browser disabled JavaScript**.
+
+The existing v0.7.2 **System Status** page already has an exception allowing `script-src 'self'; connect-src 'self'`. The follow-up release **extends that exact existing exception only to Overview (`/`) and Personality (`/mind/personality`)**. Other pages retain the original strict default. No inline/eval/third-party scripts, remote requests or public APIs are permitted. The existing `default-src 'none'`, `style-src 'unsafe-inline'`, `form-action 'self'`, `frame-ancestors 'none'` and `base-uri 'none'` remain. Authentication, `nosniff`, CSRF, publisher and originality policies are unaffected. One file, `bob-activity-manager`, is replaced and restarted via `bobctl update` from the verified PM1 foundation release.
+
+**Acceptance:** after update, open Personality in a normal browser. The fallback text should be replaced by a non-LLM interpretation listing all eight traits and the displayed percentages. Moving any slider updates its percentage and preview without a page reload. Then check that Overview's **Refresh now** works. No terminal commands or additional posting tests.
+
 ## Next PM1 step: safe Apply to Bob
 
 Once this first release is operator-verified:
