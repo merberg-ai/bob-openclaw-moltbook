@@ -1,28 +1,25 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.2-activity-limits1",
-  "from": "v0.7.2-compact1",
-  "notes": "Settings: Users & Access plus Activity Limits; owner-set comment/auto/original budgets and cooldowns, worker-enforced. Defaults remain 2 comments/day, 60-min gap, 2 auto/day, 1 original/day, 120-min gap until you explicitly save the recommended 6/45/3/2/120 preset. No automatic permissions or retries added.",
+  "release": "v0.7.2-overview1",
+  "from": "v0.7.2-activity-limits1",
+  "notes": "New Overview mission-control home page: real daily budget gauges, queue and publication stats, observed service/worker stages, recent events and 15-second authenticated refresh. Move Scout to /scout; no publication or settings changes.",
   "files": [
     {
-      "name": "bob_activity_limits.py",
-      "source": "src/lib/bob/bob_activity_limits.py"
+      "name": "bob_overview.py",
+      "source": "src/lib/bob/bob_overview.py"
     },
     {
       "name": "bob_dashboard_compact.py",
       "source": "src/lib/bob/bob_dashboard_compact.py"
     },
     {
-      "name": "bob-moltbook-publisher",
-      "source": "src/bin/bob-moltbook-publisher"
-    },
-    {
-      "name": "bob-original-worker",
-      "source": "src/bin/bob-original-worker"
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v072_overview_candidate.py",
+      "index": 1
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v072_activity_limits_candidate.py",
+      "builder": "scripts/build_v072_overview_candidate.py",
       "index": 0
     }
   ],
