@@ -103,8 +103,18 @@ def healthy(root: Path, release: str) -> bool:
             connection.request("GET", route)
             response = connection.getresponse()
             body = response.read(256 * 1024)
-            if response.status != 200 or (route != "/healthz" and\n                (b"bob-layout" not in body if release == "candidate"\n                 else b"Preview: an imaginary discussion" not in body and\n                      b"Synthetic reply" not in body and\n                      b"original" not in body.lower())):
+            if response.status != 200:
                 return False
+            if release == "candidate" and route != "/healthz" and b"bob-layout" not in body:
+                return False
+            if release == "baseline":
+                expected = {
+                    "/": b"Preview: an imaginary discussion",
+                    "/activity": b"Synthetic reply, never retrieved from Moltbook.",
+                    "/originals": b"imaginary original post",
+                }.get(route)
+                if expected is not None and expected not in body:
+                    return False
         except (OSError, TimeoutError):
             return False
         finally:
