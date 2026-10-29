@@ -1,6 +1,6 @@
 # Dashboard queue-management polish (v0.7.2 UI batch 1)
 
-**Status:** Development branch `feature/v0.7.2-dashboard-polish`. Reviewed implementation committed, **not installed on the live Activity Manager**. Existing `main` release channel and publisher behavior remain unchanged.
+**Status (October 29, 2026):** [PR #6](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/6) merged into `main` after GitHub's offline acceptance passed. The reviewed **`v0.7.2-queues1`** manifest is now available to `bobctl update`, but **not yet reported installed on the live Activity Manager**. Publisher behavior, credentials and rate limits are unchanged.
 
 ## What is new
 
@@ -35,7 +35,7 @@ This first batch adds:
 - `scripts/build_v072_dashboard_manage_candidate.py`: derives the exact current deployed manager/nav files and integrates the new authenticated route
 - `tests/test_dashboard_manage.py`: **seven focused synthetic checks**, not a full project suite
 
-The next release manifest will list precisely these three installed files: `bob-activity-manager`, `navigation_shell.py` and `bob_dashboard_manage.py`. The build script is only a source generator. After review, it can be merged into `main` and deployed as the **first nonempty `bobctl update`** release with a confirmed dashboard restart. The existing root Scout, Original Posts and Published Activity pages remain operational for one-item detail and recovery.
+The current release manifest lists precisely these three installed files: `bob-activity-manager`, `navigation_shell.py` and `bob_dashboard_manage.py`. The build script is only a source generator. Review and CI passed; PR #6 was merged to `main`. The operator can deploy it as the **first nonempty `bobctl update`** release. Installation will restart only the Activity Manager after the usual verified SQLite backup. The existing root Scout, Original Posts and Published Activity pages remain operational for one-item detail and recovery.
 
 ## Follow-up work (not included)
 
