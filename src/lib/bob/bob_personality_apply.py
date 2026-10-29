@@ -346,7 +346,9 @@ def panel(db,csrf,*,resolver=agent_workspace,state=STATE):
         root_desc=esc(str(exc))[:220]
     record=_last(state)
     rollback_form=""
-    if record and record["status"]=="applied":
+    if (record and record["status"]=="applied" and p is not None
+            and record["root"]==str(p["root"])
+            and record["after"]==p["before_sha"]):
         rollback_form=(
           '<form method="post" action="/mind/personality/rollback">'
           '<input type="hidden" name="csrf" value="'+esc(csrf)+'">'
