@@ -1,6 +1,6 @@
 # Bob v0.7.2 Activity Limits
 
-**Status:** Reviewed implementation on feature branch; **not installed on the owner’s running OpenClawLab host** until a versioned `bobctl update` completes. Depends on operator-verified `v0.7.2-compact1`.
+**Status (October 29, 2026):** [PR #9](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/9) passed GitHub offline checks and merged to `main`. Release `v0.7.2-activity-limits1` is **ready to install but not yet verified on the owner’s OpenClawLab host**. Depends on operator-verified `v0.7.2-compact1`.
 
 ## What this adds
 
