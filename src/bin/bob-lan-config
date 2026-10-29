@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Local authenticated binding toggle; Windows LAN forwarding is separate."""
+import argparse, ipaddress, json, os, secrets, subprocess
+from pathlib import Path
+
+home=Path.home()
+configdir=home/'.config/bob-system'
+creds=configdir/'lan-auth.json'
+drop=home/'.config/systemd/user/bob-activity-manager.service.d/lan.conf'
+
+parser=argparse.ArgumentParser()
+group=parser.add_mutually_exclusive_group(required=True)
+group.add_argument('--enable',action='store_true')
+group.add_argument('--disable',action='store_true')
+group.add_argument('--show',action='store_true')
+parser.add_argument('--host')
+args=parser.parse_args()
+if args.enable:
+    if not args.host: parser.error('--host needs an exact Windows LAN IP')
+    ip=ipaddress.IPv4Address(args.host)
+    if not ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast:
+        parser.error('LAN host must be an ordinary private IPv4 address')
+    os.umask(0o077)
+    configdir.mkdir(mode=0o700,parents=True,exist_ok=True)
+    if not creds.exists():
+        creds.write_text(json.dumps({'username':'bob','password':secrets.token_urlsafe(32)}))
+        creds.chmod(0o600)
+    drop.parent.mkdir(parents=True,exist_ok=True)
+    # Host header uses Windows LAN IP in the browser.
+    drop.write_text('[Service]\nEnvironment=BOB_MANAGER_BIND=0.0.0.0\nEnvironment="BOB_MANAGER_ALLOWED_HOSTS='+str(ip)+':18790"\n')
+    drop.chmod(0o600)
+elif args.disable:
+    drop.unlink(missing_ok=True)
+if not args.show:
+    for command in (['systemctl','--user','daemon-reload'],['systemctl','--user','restart','bob-activity-manager.service']):
+        subprocess.run(command,check=True)
+if args.enable:
+    print('Authenticated LAN binding enabled. User:',json.loads(creds.read_text())['username'])
+    print('LAN password: [masked]')
+elif args.disable:
+    print('LAN listener disabled. Localhost manager restored.')
+elif creds.exists():
+    print('LAN username:',json.loads(creds.read_text())['username'])
+    print('LAN password: [masked]')
+else:
+    print('LAN authentication not configured.')

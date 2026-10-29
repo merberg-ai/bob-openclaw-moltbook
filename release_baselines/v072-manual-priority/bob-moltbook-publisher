@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""Bob v0.5 isolated network *process* for publishing and reply observation.
+
+This is NOT a distinct Linux security identity: the existing OpenClawLab user owns
+credentials and Manager data. The web server never reads the credentials, but
+OS-user-level isolation requires a later hardening migration.
+"""
+import json, os, sys, urllib.request, urllib.error, urllib.parse, http.client
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import re, sqlite3
+from bob_publish_common import DATA, connect, now, setting, set_setting, event, load_record, auto_candidates, UUID
+from bob_job_tracking import checkpoint
+
+API='https://www.moltbook.com/api/v1'
+CREDS=DATA/'credentials.json'
+MAX_DAILY=2
+MIN_BETWEEN=timedelta(hours=1)
+MAX_AUTO_AGE=timedelta(hours=3)
+MAX_MANUAL_AGE=timedelta(days=7)
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise RuntimeError('Moltbook redirect forbidden')
+
+OPENER=urllib.request.build_opener(NoRedirect())
+
+def api(method,path,payload=None, *, key=None):
+    if not path.startswith('/') or '//' in path or '?' in path and not path.startswith('/posts/'):
+        raise ValueError('Bad API path')
+    headers={'Accept':'application/json','User-Agent':'BobSkullLab/0.5'}
+    if key: headers['Authorization']='Bearer '+key
+    body=None
+    if payload is not None:
+        body=json.dumps(payload,ensure_ascii=False).encode('utf-8')
+        headers['Content-Type']='application/json'
+    req=urllib.request.Request(API+path,body,headers=headers,method=method)
+    try:
+        with OPENER.open(req,timeout=15) as response:
+            if response.status<200 or response.status>=300: raise RuntimeError('Unexpected HTTP status')
+            buf=response.read(256*1024+1)
+            if len(buf)>256*1024: raise RuntimeError('Moltbook response too large')
+            data=json.loads(buf)
+            if not isinstance(data,dict): raise RuntimeError('Unexpected JSON')
+            return data
+    except urllib.error.HTTPError as exc:
+        # Intentionally do not log body, headers, or tokens.
+        raise RuntimeError(f'Moltbook HTTP {exc.code}') from None
+
+def api_key():
+    if CREDS.stat().st_mode & 0o077:
+        raise RuntimeError('Credentials file permissions must be 0600')
+    key=json.loads(CREDS.read_text()).get('api_key','')
+    if not isinstance(key,str) or not key.startswith('moltbook_'):
+        raise RuntimeError('Moltbook credentials malformed')
+    return key
+
+def parse_time(stamp):
+    try: return datetime.fromisoformat(stamp.replace('Z','+00:00')).astimezone(timezone.utc)
+    except (TypeError,ValueError,AttributeError): return None
+
+def can_send(db):
+    day=datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    count=db.execute("SELECT count(*) FROM publish_jobs WHERE attempted_at LIKE ?",(day+'%',)).fetchone()[0]
+    if count>=MAX_DAILY: return False, f'Daily safety limit ({MAX_DAILY}) reached'
+    last=db.execute("SELECT attempted_at FROM publish_jobs WHERE attempted_at IS NOT NULL ORDER BY attempted_at DESC LIMIT 1").fetchone()
+    if last:
+        t=parse_time(last[0])
+        if t and datetime.now(timezone.utc)-t < MIN_BETWEEN:
+            return False, 'One-hour posting interval not elapsed'
+    return True,''
+
+def publisher_step(db):
+    auto_candidates(db)
+    db.commit()
+    row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY created_at ASC LIMIT 1").fetchone()
+    if not row: return 'no queued publications'
+    rid,digest,pid,draft,mode,created=row
+    checkpoint('publisher',rid,'validating')
+    if mode=='auto' and setting(db,'auto_enabled','0')!='1':
+        checkpoint('publisher',rid,'waiting')
+        return 'auto posting disabled; queued auto drafts held'
+    record=load_record(rid)
+    if not record or record['approval_sha256']!=digest or record['chosen_post_id']!=pid or record['draft_comment']!=draft:
+        db.execute("UPDATE publish_jobs SET state='failed',last_error='Integrity validation failed',updated_at=? WHERE run_id=?",(now(),rid))
+        event(db,'publish_blocked',f'{rid} integrity failure')
+        db.commit()
+        checkpoint('publisher',rid,'failed')
+        return 'invalid draft blocked'
+    if mode=='manual':
+        decision=db.execute('SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
+        if decision != (digest,'approved'):
+            db.execute("UPDATE publish_jobs SET state='failed',last_error='Human approval missing or changed',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+            checkpoint('publisher',rid,'failed')
+            return 'approval missing; job blocked'
+    else:
+        if db.execute('SELECT 1 FROM decisions WHERE run_id=?',(rid,)).fetchone():
+            db.execute("UPDATE publish_jobs SET state='failed',last_error='Human decision already exists',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+            checkpoint('publisher',rid,'failed')
+            return 'human-reviewed auto draft blocked'
+    t=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc)-t > (MAX_AUTO_AGE if mode=='auto' else MAX_MANUAL_AGE):
+        db.execute("UPDATE publish_jobs SET state='failed',last_error='Draft expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+        checkpoint('publisher',rid,'failed')
+        return 'old draft blocked'
+    duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','verified_unconfirmed','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
+    if duplicate:
+        db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
+        checkpoint('publisher',rid,'failed')
+        return 'duplicate target blocked'
+    ready,reason=can_send(db)
+    if not ready:
+        checkpoint('publisher',rid,'waiting')
+        return reason
+    if (Path.home()/'.config/bob-system/paused').exists():
+        checkpoint('publisher',rid,'paused')
+        return 'Bob paused'
+    checkpoint('publisher',rid,'preflight')
+    # Preflight without credentials prevents posting on a deleted/stale discussion.
+    try:
+        post=api('GET',f'/posts/{pid}')
+        nested=post.get('data') if isinstance(post.get('data'),dict) else post
+        actual=(nested.get('post') if isinstance(nested.get('post'),dict) else nested)
+        if actual.get('id') and actual['id']!=pid:
+            checkpoint('publisher',rid,'failed')
+            return 'preflight returned wrong post'
+    except (RuntimeError,ValueError,urllib.error.URLError,TimeoutError) as exc:
+        checkpoint('publisher',rid,'waiting')
+        return f'preflight failed: {type(exc).__name__}'
+    # Persist intent *before* sending. Any timeout, crash or ambiguous reply
+    # leaves state=uncertain; never automatically retry a possible duplicate.
+    tnow=now()
+    db.execute("UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? WHERE run_id=? AND state='queued'",(tnow,tnow,rid))
+    event(db,'publish_attempt',f'{rid} {mode} comment send started')
+    db.commit()
+    checkpoint('publisher',rid,'sending')
+    try:
+        response=api('POST',f'/posts/{pid}/comments',{'content':draft},key=api_key())
+        if response.get('success') is False: raise RuntimeError('Moltbook reported unsuccessful write')
+        data=response.get('data') if isinstance(response.get('data'),dict) else response
+        v=data.get('verification') if isinstance(data.get('verification'),dict) else response.get('verification')
+        comment=data.get('comment') if isinstance(data.get('comment'),dict) else response.get('comment')
+        comment_id=(comment or {}).get('id') or data.get('id') or response.get('comment_id')
+        if comment_id is not None and (not isinstance(comment_id,str) or not UUID.fullmatch(comment_id)):
+            comment_id=None
+        if v or data.get('verification_required') or response.get('verification_required'):
+            code=(v or {}).get('verification_code','')
+            challenge=(v or {}).get('challenge_text','')
+            if not isinstance(code,str) or not code.startswith('moltbook_') or not isinstance(challenge,str):
+                raise RuntimeError('Verification required but challenge missing or malformed')
+            # Never auto-solve challenges. Human can submit one carefully checked answer.
+            db.execute("UPDATE publish_jobs SET state='awaiting_verification',challenge_code=?,challenge_text=?,challenge_expires_at=?,comment_id=?,updated_at=? WHERE run_id=?",(code,challenge[:2000],str(v.get('expires_at') or '')[:60],comment_id,now(),rid))
+            event(db,'verification_needed',f'{rid} awaits challenge answer; comment not yet published')
+            db.commit()
+            checkpoint('publisher',rid,'awaiting_verification')
+            return f'{rid} verification required; not published'
+        if not comment_id:
+            raise RuntimeError('No confirmed comment ID in response')
+        db.execute("UPDATE publish_jobs SET state='published',comment_id=?,updated_at=? WHERE run_id=?",(comment_id,now(),rid))
+        event(db,'published',f'{rid} comment {comment_id} confirmed')
+        db.commit()
+        checkpoint('publisher',rid,'completed')
+        return f'{rid} comment published'
+    except Exception as exc:
+        # The request may have been accepted by Moltbook. No automated retries.
+        db.execute("UPDATE publish_jobs SET state='uncertain',last_error=?,updated_at=? WHERE run_id=?",(str(exc)[:160],now(),rid))
+        event(db,'publication_uncertain',f'{rid} response could not be confirmed; no automatic retry')
+        db.commit()
+        checkpoint('publisher',rid,'uncertain')
+        return f'{rid} publication uncertain; manual inspection required'
+
+def verification_step(db):
+    expired=db.execute("SELECT run_id,challenge_expires_at FROM publish_jobs WHERE state='awaiting_verification'").fetchall()
+    for expired_id,when in expired:
+        ex=parse_time(when)
+        if ex and datetime.now(timezone.utc)>ex:
+            db.execute("UPDATE publish_jobs SET state='verification_expired',verify_answer=NULL,challenge_code=NULL,last_error='Challenge expired',updated_at=? WHERE run_id=?",(now(),expired_id))
+            event(db,'verification_expired',f'{expired_id} challenge expired')
+    db.commit()
+    row=db.execute("SELECT run_id,challenge_code,verify_answer,challenge_expires_at,comment_id FROM publish_jobs WHERE state='awaiting_verification' AND verify_answer IS NOT NULL ORDER BY attempted_at LIMIT 1").fetchone()
+    if not row:return None
+    rid,code,answer,expiry,known_id=row
+    ex=parse_time(expiry)
+    if ex and datetime.now(timezone.utc)>ex:
+        db.execute("UPDATE publish_jobs SET state='verification_expired',verify_answer=NULL,last_error='Challenge expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit(); return f'{rid} challenge expired'
+    if not re.fullmatch(r'-?\d{1,8}\.\d{2}',answer):
+        db.execute("UPDATE publish_jobs SET verify_answer=NULL WHERE run_id=?",(rid,)); db.commit(); return 'invalid verification answer'
+    db.execute("UPDATE publish_jobs SET state='verifying',verify_answer=NULL,updated_at=? WHERE run_id=?",(now(),rid));db.commit()
+    checkpoint('publisher',rid,'verifying')
+    try:
+        result=api('POST','/verify',{'verification_code':code,'answer':answer},key=api_key())
+        if result.get('success') is not True: raise RuntimeError('Verification not confirmed')
+        data=result.get('data') if isinstance(result.get('data'),dict) else result
+        cid=data.get('content_id') or result.get('content_id') or known_id
+        if not isinstance(cid,str) or not UUID.fullmatch(cid): cid=None
+        if cid:
+            db.execute("UPDATE publish_jobs SET state='published',comment_id=?,challenge_code=NULL,updated_at=? WHERE run_id=?",(cid,now(),rid))
+        else:
+            # The verification response succeeded, but no comment can be identified.
+            # Never mark published or blindly retry a possibly accepted comment.
+            db.execute("UPDATE publish_jobs SET state='verified_unconfirmed',challenge_code=NULL,updated_at=? WHERE run_id=?",(now(),rid))
+        event(db,'verified',f'{rid} challenge confirmed; comment ID ' + ('received' if cid else 'unconfirmed'))
+        db.commit()
+        checkpoint('publisher',rid,'completed' if cid else 'uncertain')
+        return f'{rid} verification acknowledged; ' + ('comment ID recorded' if cid else 'comment ID unconfirmed, no retry')
+    except Exception:
+        db.execute("UPDATE publish_jobs SET state='verification_failed',last_error='Verification result unclear; do not retry',updated_at=? WHERE run_id=?",(now(),rid))
+        event(db,'verification_failed',f'{rid} no automatic reattempt')
+        db.commit()
+        checkpoint('publisher',rid,'uncertain')
+        return f'{rid} challenge failed or response unclear'
+
+def traverse(comments, own_id):
+    """Yield direct children of own comment only; conservatively don't infer authorship."""
+    if not isinstance(comments,list):return
+    def walk(node, parent_is_ours=False):
+        if not isinstance(node,dict):return
+        if parent_is_ours:
+            yield node
+        for child in (node.get('replies') or []):
+            yield from walk(child,node.get('id')==own_id)
+    for c in comments:yield from walk(c)
+
+def reply_check(db):
+    last=parse_time(setting(db,'last_reply_check',''))
+    if last and datetime.now(timezone.utc)-last < timedelta(minutes=15):return 0
+    set_setting(db,'last_reply_check',now())
+    db.commit()
+    rows=db.execute("SELECT post_id,comment_id FROM publish_jobs WHERE state='published' AND comment_id IS NOT NULL ORDER BY attempted_at DESC LIMIT 10").fetchall()
+    added=0
+    for post_id,comment_id in rows:
+        try:
+            response=api('GET',f'/posts/{post_id}/comments?sort=new&limit=100')
+            data=response.get('data') if isinstance(response.get('data'),dict) else response
+            comments=data.get('comments') or response.get('comments') or []
+            if not isinstance(comments,list):continue
+            for c in traverse(comments,comment_id):
+                cid=c.get('id')
+                if not isinstance(cid,str) or not UUID.fullmatch(cid):continue
+                author=c.get('author') or {}
+                if not isinstance(author,dict):author={}
+                db.execute('INSERT OR IGNORE INTO published_replies(id,post_id,comment_id,author,content,detected_at) VALUES(?,?,?,?,?,?)',
+                           (cid,post_id,comment_id,str(author.get('name') or 'unknown')[:100],str(c.get('content') or '')[:2000],now()))
+                if db.execute('SELECT changes()').fetchone()[0]: added+=1
+        except Exception: continue
+    if added: event(db,'new_replies',f'{added} direct reply/replies detected')
+    db.commit()
+    return added
+
+def main():
+    os.umask(0o077)
+    if '--check' in sys.argv:
+        with connect() as db:
+            print('Publisher database OK, automatic='+setting(db,'auto_enabled','0'))
+        return 0
+    if (Path.home()/'.config/bob-system/paused').exists():
+        print('Bob paused; publication and reply checks skipped',flush=True)
+        return 0
+    with connect() as db:
+        result=verification_step(db)
+        if result:print(result,flush=True)
+        print(publisher_step(db),flush=True)
+        print('Direct replies newly detected:',reply_check(db),flush=True)
+    return 0
+
+if __name__=='__main__':
+    raise SystemExit(main())

@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+"""Bob Activity Manager v0.6: review, publication queue, opt-in auto mode.
+Only reads scout reports and stores human decisions against exact draft hashes.
+"""
+from datetime import datetime, timezone
+from html import escape
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+import hashlib
+import hmac
+import json
+import os
+import re
+import secrets
+import sqlite3
+import base64
+import ipaddress
+from bob_publish_common import connect as publish_conn, setting as pub_setting, set_setting, event as pub_event, queue_manual, now as utc_now
+from bob_originals import initialize as original_init, request_draft, transition as original_transition, edit_draft as original_edit, IDENT as ORIGINAL_IDENT
+
+DATA = Path.home() / ".config" / "moltbook"
+DB = DATA / "activity-queue.sqlite3"
+HOST = os.environ.get("BOB_MANAGER_BIND", "127.0.0.1")
+PORT = int(os.environ.get("BOB_MANAGER_PORT", "18790"))
+TOKEN = secrets.token_urlsafe(32)
+LAN_AUTH_FILE = Path.home() / '.config/bob-system/lan-auth.json'
+LAN_CREDS = None
+if HOST not in ('127.0.0.1','localhost'):
+    try:
+        LAN_CREDS = json.loads(LAN_AUTH_FILE.read_text(encoding='utf-8'))
+        assert isinstance(LAN_CREDS.get('username'), str) and len(LAN_CREDS['username']) > 0
+        assert isinstance(LAN_CREDS.get('password'), str) and len(LAN_CREDS['password']) >= 20
+        assert LAN_AUTH_FILE.stat().st_mode & 0o077 == 0
+    except (OSError, ValueError, AssertionError, TypeError):
+        raise SystemExit('LAN binding requires private authentication config')
+ALLOWED_HOSTS = {f'127.0.0.1:{PORT}', f'localhost:{PORT}'}
+ALLOWED_HOSTS.update(x.strip() for x in os.environ.get('BOB_MANAGER_ALLOWED_HOSTS','').split(',') if x.strip())
+STAMP = re.compile(r"^scout-(\d{8}T\d{6}Z)\.txt$")
+RESULT = re.compile(r"^scout-result-(\d{8}T\d{6}Z)\.json$")
+UUID = re.compile(r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}")
+ACTION = re.compile(r"^/review/(\d{8}T\d{6}Z)/(approve|reject|reset)$")
+
+
+def esc(value):
+    return escape(str(value if value is not None else ""), quote=True)
+
+
+def db_conn():
+    return publish_conn()
+
+
+def load_records():
+    records = []
+    for path in sorted(DATA.glob("scout-result-*.json"), reverse=True)[:100]:
+        if not path.is_file() or not RESULT.fullmatch(path.name) or path.stat().st_size > 1024 * 1024:
+            continue
+        try:
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            if obj.get("schema") != 2 or obj.get("run_id") != RESULT.fullmatch(path.name).group(1):
+                continue
+            obj["draft_comment"] = str(obj.get("draft_comment") or "")[:4000]
+            computed = hashlib.sha256(obj["draft_comment"].encode()).hexdigest()
+            snap_name = f"scout-feed-{obj['run_id']}.json"
+            snap = DATA / snap_name
+            snapshot_ok = (obj.get("snapshot_file") == snap_name and snap.is_file() and
+                           snap.stat().st_size <= 512 * 1024 and
+                           hashlib.sha256(snap.read_bytes()).hexdigest() == obj.get("snapshot_sha256"))
+            expected_approval = hashlib.sha256((str(obj.get("chosen_post_id") or "") + "\n" + obj["draft_comment"] + "\n" + str(obj.get("snapshot_sha256") or "")).encode("utf-8")).hexdigest()
+            obj["verified_draft"] = bool(obj.get("chosen_post_id") and UUID.fullmatch(str(obj["chosen_post_id"])) and obj.get("draft_sha256") == computed and obj.get("approval_sha256") == expected_approval and snapshot_ok and obj["draft_comment"] and len(obj["draft_comment"].split()) <= 150)
+            records.append(obj)
+        except (OSError, ValueError, TypeError, AttributeError, KeyError):
+            continue
+    return records
+
+
+def human_time(stamp):
+    try:
+        dt = datetime.strptime(stamp, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        return dt.astimezone().strftime("%b %d, %Y · %I:%M %p %Z")
+    except (ValueError, TypeError):
+        return str(stamp)
+
+
+def current_status(record, decisions):
+    d = decisions.get(record["run_id"])
+    if not record["verified_draft"] or record.get("status") != "pending":
+        return "needs review"
+    if d and d[0] == record["approval_sha256"]:
+        return d[1]
+    return "pending"
+
+
+def report_text(stamp):
+    path = DATA / f"scout-{stamp}.txt"
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")[:30000]
+    except OSError:
+        return "Report unavailable"
+
+
+def legacy_records(known):
+    output = []
+    for path in sorted(DATA.glob("scout-*.txt"), reverse=True)[:60]:
+        m = STAMP.fullmatch(path.name)
+        if not m or m.group(1) in known:
+            continue
+        report = report_text(m.group(1))
+        match = UUID.search(report)
+        output.append((m.group(1), match.group(0) if match else None, report))
+    return output
+
+
+def render():
+    records = load_records()
+    with db_conn() as db:
+        decisions = {r[0]: (r[1], r[2]) for r in db.execute("SELECT run_id,draft_sha256,status FROM decisions")}
+    counts = {s: 0 for s in ("pending", "approved", "rejected", "needs review")}
+    for r in records:
+        counts[current_status(r, decisions)] += 1
+    with publish_conn() as pdb:
+        auto_on = pub_setting(pdb,'auto_enabled','0') == '1'
+        jobs = {j[0]: {'state':j[1], 'mode':j[2], 'error':j[3], 'challenge':j[4], 'created':j[5]} for j in pdb.execute('SELECT run_id,state,mode,last_error,challenge_text,created_at FROM publish_jobs')}
+        recent_replies = pdb.execute('SELECT author,content,detected_at FROM published_replies ORDER BY detected_at DESC LIMIT 15').fetchall()
+        events = pdb.execute('SELECT at,kind,details FROM publish_events ORDER BY id DESC LIMIT 15').fetchall()
+    cards = []
+    for r in records:
+        stamp = r["run_id"]
+        status = current_status(r, decisions)
+        title = esc(r.get("chosen_title") or "Unparsed scouting result")
+        author = esc(r.get("chosen_author") or "unknown")
+        post_id = esc(r.get("chosen_post_id") or "No validated post ID")
+        draft = esc(r.get("draft_comment") or "No usable draft was extracted. View full report for manual review.")
+        why = esc(r.get("why") or "Not recorded")
+        issues = r.get("validation_errors")
+        issue_line = ("<p class=\"validation\"><b>Validation:</b> " + esc("; ".join(str(x) for x in issues)) + "</p>") if isinstance(issues, list) and issues else ""
+        excerpt = esc(r.get("captured_excerpt") or "Not available")
+        buttons = ""
+        if r["verified_draft"] and r.get("status") == "pending":
+            available = (("approve", "Approve draft"), ("reject", "Reject")) if status == "pending" else (("reset", "Return to pending"),)
+            buttons = '<div class="actions">' + "".join(f'<form method="post" action="/review/{stamp}/{act}"><input type="hidden" name="csrf" value="{esc(TOKEN)}"><input type="hidden" name="digest" value="{esc(r["approval_sha256"])}"><button type="submit" class="{act}">{esc(label)}</button></form>' for act, label in available) + '</div>'
+        job = jobs.get(stamp)
+        publication_html = ''
+        if job:
+            publication_html += f'<p class="notice"><b>Publication:</b> {esc(job["state"])} ({esc(job["mode"])})</p>'
+            if job.get('error'): publication_html += f'<p class="validation">{esc(job["error"])}</p>'
+            if job['state']=='awaiting_verification':
+                publication_html += (f'<p>Verification challenge: {esc(job.get("challenge") or "Unavailable")}</p>'
+                  f'<form method="post" action="/verify/{stamp}"><input type="hidden" name="csrf" value="{esc(TOKEN)}">'
+                  f'<label>Answer with two decimals: <input name="answer" maxlength="16" required placeholder="15.00"></label>'
+                  '<button type="submit">Submit verification once</button></form>')
+        elif status=='approved':
+            publication_html = (f'<form method="post" action="/publish/{stamp}"><input type="hidden" name="csrf" value="{esc(TOKEN)}">'
+              f'<input type="hidden" name="digest" value="{esc(r["approval_sha256"])}">'
+              '<button type="submit">Publish approved draft</button></form>'
+              '<p class="meta">Sending is irreversible. Publication may require verification.</p>')
+        cards.append(f'''<article class="card" id="run-{esc(stamp)}">
+          <div class="kicker">{esc(human_time(stamp))} · <span class="pill {status.replace(' ', '-')}">{esc(status)}</span></div>
+          <h2>{title}</h2>
+          <p class="meta">Author: <strong>{author}</strong> · Post ID: <code>{post_id}</code></p>
+          <p class="why"><b>Why Bob selected it:</b> {why}</p>
+          {issue_line}
+          <h3>Draft comment <small>NOT PUBLISHED</small></h3><pre class="draft">{draft}</pre>
+          {buttons}
+          {publication_html}
+          <details><summary>Captured external post excerpt (untrusted data)</summary><pre>{excerpt}</pre></details>
+          <details><summary>Full agent report</summary><pre>{esc(report_text(stamp))}</pre></details>
+        </article>''')
+    legacy = legacy_records({r["run_id"] for r in records})
+    archive = "".join(f'<details class="legacy"><summary>{esc(human_time(stamp))} · legacy report · {esc(post or "ID not extracted")}</summary><pre>{esc(body)}</pre></details>' for stamp, post, body in legacy)
+    latest = human_time(records[0]["run_id"]) if records else "No structured runs yet"
+    mode_html = ('<b>Autonomous replies:</b> ON · at most 2 attempts/day, at least 1 hour apart, only new drafts'
+                 if auto_on else '<b>Autonomous replies:</b> OFF · every draft requires approval')
+    auto_form = (f'<form method="post" action="/autopost/disable"><input type="hidden" name="csrf" value="{esc(TOKEN)}"><button class="reject">Disable autonomous replies now</button></form>'
+                 if auto_on else
+                 f'<form method="post" action="/autopost/enable"><input type="hidden" name="csrf" value="{esc(TOKEN)}">'
+                 '<label>Type ENABLE AUTO to activate: <input name="confirmation" autocomplete="off" required></label>'
+                 '<button>Enable autonomous replies</button></form>')
+    activity_html=''.join(f'<li>{esc(a)} · {esc(k)} · {esc(d)}</li>' for a,k,d in events)
+    reply_html=''.join(f'<li><b>{esc(a)}</b> {esc(c)} <small>({esc(t)})</small></li>' for a,c,t in recent_replies)
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bob 💀 Activity Manager v0.6</title><style>
+:root{{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#090f1b;color:#e8effb}}
+*{{box-sizing:border-box}}body{{margin:0}}main{{max-width:1060px;margin:0 auto;padding:28px 18px 65px}}
+h1{{margin:5px 0 9px;font-size:2rem}}h2{{margin:10px 0;font-size:1.2rem;overflow-wrap:anywhere}}h3{{font-size:.96rem;margin:20px 0 9px}}h3 small{{font-size:.7rem;color:#e9b77d}}
+p{{line-height:1.5}}.sub,.meta,.kicker{{color:#9aafcd}}.kicker,.meta{{font-size:.84rem}}.kicker{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+.stats{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:23px 0}}
+.stat,.card,.legacy{{border:1px solid #293952;border-radius:14px;background:#131e30;padding:18px}}.stat span{{display:block;font-weight:760;font-size:1.7rem}}
+.card{{margin:14px 0}}.why{{font-size:.91rem}}.pill{{font-size:.7rem;padding:4px 10px;border-radius:99px;background:#2c3950}}
+.pill.approved{{background:#1b4937;color:#a6edd0}}.pill.rejected{{background:#50262d;color:#ffbcc4}}.pill.pending{{background:#50401a;color:#ffe1a2}}
+pre{{white-space:pre-wrap;overflow-wrap:anywhere;font:0.87rem/1.52 ui-monospace,Consolas,monospace;color:#d9e5f4}}
+.draft{{border:1px solid #304563;border-radius:9px;padding:16px;background:#0c1727}}.validation{{color:#ffb9ae;font-size:.85rem}}
+code{{word-break:break-all}}.notice{{border-left:3px solid #86b7f5;padding:12px 15px;background:#172641}}
+.actions{{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}}form{{margin:0}}button{{background:#286a55;border:1px solid #57a48c;border-radius:9px;color:white;padding:10px 16px;cursor:pointer;font:inherit}}
+button.reject{{background:#6b343b;border-color:#bd656d}}button.reset{{background:#294463;border-color:#4a84b7}}
+details{{border-top:1px solid #314057;margin-top:12px;padding-top:12px}}summary{{cursor:pointer;font-weight:600;color:#a9d1ff}}
+.legacy{{margin:12px 0}}.legacy pre{{max-height:400px;overflow:auto}}a{{color:#a9d1ff}}
+.bob-nav{{display:flex;gap:10px;flex-wrap:wrap;margin:17px 0 26px}}.bob-nav a{{background:#20314c;padding:10px 16px;border-radius:9px;text-decoration:none}}
+input{{background:#0b1524;color:#f5f6fb;border:1px solid #506284;border-radius:7px;padding:9px;margin:5px}}
+.notice form{{margin-top:12px}} li{{padding:5px 0;overflow-wrap:anywhere}}
+</style></head><body><main><div class="sub">SCOUT · REVIEW · CONTROLLED PUBLISHING · REPLY TRACKING</div>
+<h1>💀 Bob's Activity Manager <span style="font-size:.55em;color:#9aafcd">v0.6</span></h1>
+<nav class="bob-nav"><a href="/">Scout &amp; review</a><a href="/activity">Published activity</a><a href="/originals">Original posts</a></nav>
+<p class="sub">Read Bob's independently selected posts, inspect drafts, and record human approval or rejection. Approvals are local. A separate Publish action queues a real Moltbook comment. Auto mode must be explicitly enabled.</p>
+<div class="stats"><div class="stat"><span>{len(records)}</span>Structured runs</div><div class="stat"><span>{counts['pending']}</span>Pending</div><div class="stat"><span>{counts['approved']}</span>Approved (not posted)</div><div class="stat"><span>{counts['rejected']}</span>Rejected</div><div class="stat"><span>{counts['needs review']}</span>Needs repair</div></div>
+<p class="notice">Last structured run: {esc(latest)}. External posts are untrusted data, displayed as escaped text. Refresh for new runs. The web server does not read Moltbook API credentials.</p>
+<section class="card"><h2>Publishing control</h2><p>{mode_html}</p>
+<p class="meta">Auto mode never uses old drafts, posts at most twice per UTC day, and stops for unverified challenges. Disabling holds queued auto jobs. This interface does not have the Moltbook key.</p>
+{auto_form}</section>
+{''.join(cards) if cards else '<p>No v0.2 runs yet. The next scout run will generate structured results.</p>'}
+<section class="card"><h2>New replies to Bob</h2><ul>{reply_html if reply_html else '<li>No direct replies detected yet.</li>'}</ul></section>
+<section class="card"><h2>Publication activity</h2><ul>{activity_html if activity_html else '<li>No publication events yet.</li>'}</ul></section>
+<h2 style="margin-top:32px">Earlier reports</h2><p class="sub">Legacy reports from v0.1 are viewable but cannot be approved from the new queue.</p>
+{archive if archive else '<p>No legacy reports.</p>'}
+</main></body></html>'''
+
+
+
+# v0.6: Separate activity and original-post tabs. No API credentials in this process.
+TAB_CSS = """<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#090f1b;color:#e8effb}
+*{box-sizing:border-box}main{max-width:1050px;margin:auto;padding:28px 18px 75px}
+a{color:#a9d1ff}a:hover{text-decoration:underline}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 24px}
+nav a{background:#20314c;padding:10px 14px;border-radius:9px;text-decoration:none}
+.card,.stat{border:1px solid #293952;border-radius:13px;background:#131e30;padding:17px;margin:13px 0}
+.stats{display:flex;gap:14px;flex-wrap:wrap}.stat{flex:1;min-width:130px}
+.stat strong{font-size:1.8rem;display:block}h1{font-size:2rem}h2{font-size:1.2rem}
+.meta{font-size:.86rem;color:#9aafcd}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:0.88rem/1.55 ui-monospace,Consolas,monospace;background:#0c1727;padding:13px;border-radius:9px}
+button{background:#286a55;border:1px solid #57a48c;border-radius:8px;color:white;padding:10px 16px;cursor:pointer;font:inherit}
+button.secondary{background:#294463;border-color:#4a84b7}button.danger{background:#6b343b;border-color:#bd656d}
+textarea{background:#0b1524;color:#f5f6fb;border:1px solid #506284;border-radius:7px;padding:9px;width:100%;min-height:170px;font:inherit}input{background:#0b1524;color:#f5f6fb;border:1px solid #506284;border-radius:7px;padding:9px;margin:5px}
+form{display:inline-block;margin:6px 8px 6px 0}li{line-height:1.6;margin:8px 0;overflow-wrap:anywhere}
+label{font-size:.93rem}details{border-top:1px solid #314057;padding-top:9px;margin-top:12px}summary{cursor:pointer;color:#a9d1ff}
+.pill{background:#2c3950;border-radius:99px;padding:4px 9px;font-size:.8rem}p{line-height:1.5}
+</style>"""
+
+def tab_page(title, content):
+    return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            f'<title>{esc(title)} · Bob Activity Manager</title>{TAB_CSS}</head><body><main>'
+            f'<p class="meta">BOB 💀 · ACTIVITY MANAGER v0.6</p><h1>{esc(title)}</h1>'
+            '<nav><a href="/">Scout &amp; review</a><a href="/activity">Published activity</a><a href="/originals">Original posts</a></nav>'
+            +content+'</main></body></html>')
+
+def activity_page():
+    with publish_conn() as db:
+        original_init(db)
+        comments=db.execute('SELECT run_id,mode,state,post_id,comment_id,draft_comment,created_at,attempted_at,last_error FROM publish_jobs ORDER BY created_at DESC LIMIT 100').fetchall()
+        originals=db.execute('SELECT title,submolt,state,post_id,created_at,attempted_at,visible FROM original_posts ORDER BY created_at DESC LIMIT 75').fetchall()
+        replies=db.execute('SELECT author,content,post_id,detected_at FROM published_replies ORDER BY detected_at DESC LIMIT 50').fetchall()
+        original_replies=db.execute('SELECT author,content,post_id,detected_at FROM original_post_replies ORDER BY detected_at DESC LIMIT 50').fetchall()
+        events=db.execute('SELECT at,kind,details FROM publish_events ORDER BY id DESC LIMIT 60').fetchall()
+    comm_pub=sum(x[2]=='published' for x in comments)
+    orig_pub=sum(x[2]=='published' for x in originals)
+    stats=(f'<div class="stats"><div class="stat"><strong>{comm_pub}</strong>Confirmed comment jobs</div>'
+           f'<div class="stat"><strong>{orig_pub}</strong>Confirmed original post jobs</div>'
+           f'<div class="stat"><strong>{len(replies)}</strong>Tracked direct replies</div></div>')
+    def link(pid):
+        return f'<a href="https://www.moltbook.com/post/{esc(pid)}" rel="noreferrer" target="_blank">Open discussion</a>' if isinstance(pid,str) and UUID.fullmatch(pid) else 'No public link'
+    pieces=['<p class="meta">These records come from Bob’s local publication database. “Published” means the API acknowledged the item; original posts are separately checked for public visibility. Historical activity outside this worker may not appear here.</p>',stats,
+            '<h2>Original posts</h2>']
+    for title,submolt,state,pid,created,attempted,visible in originals:
+        pieces.append(f'<article class="card"><b>{esc(title)}</b> <span class="pill">{esc(state)}</span>'
+                      f'<p class="meta">m/{esc(submolt)} · Created {esc(created)} · Attempted {esc(attempted or "not yet")}'
+                      f' · Publicly checked: {"Yes" if visible else "Not confirmed"}</p>{link(pid)}</article>')
+    if not originals:pieces.append('<p>No original posts recorded yet.</p>')
+    pieces.append('<h2>Replies Bob has posted on other discussions</h2>')
+    for rid,mode,state,pid,cid,body,created,attempted,error in comments:
+        pieces.append(f'<article class="card"><b>Comment</b> <span class="pill">{esc(state)}</span> '
+                      f'<span class="pill">{esc(mode)}</span><p class="meta">{esc(attempted or created)} · Comment ID: {esc(cid or "not confirmed")}</p>'
+                      f'<pre>{esc(body)}</pre>{link(pid)}'
+                      +(f'<p class="meta">Issue: {esc(error)}</p>' if error else '')+'</article>')
+    if not comments:pieces.append('<p>No outgoing comments recorded.</p>')
+    pieces.append('<h2>Direct replies to Bob</h2>')
+    for author,body,pid,detected in replies:
+        pieces.append(f'<article class="card"><b>{esc(author)}</b> · <small>{esc(detected)}</small><p>{esc(body)}</p>{link(pid)}</article>')
+    if not replies:pieces.append('<p>No direct replies detected by the polling worker yet.</p>')
+    pieces.append('<h2>Replies to Bob’s original posts</h2>')
+    for author,body,pid,detected in original_replies:
+        pieces.append(f'<article class="card"><b>{esc(author)}</b> · <small>{esc(detected)}</small><p>{esc(body)}</p>{link(pid)}</article>')
+    if not original_replies:pieces.append('<p>No replies on Bob’s own posts detected yet.</p>')
+    pieces.append('<details><summary>Recent publication event log</summary><ul>')
+    pieces.extend(f'<li>{esc(t)} · {esc(k)} · {esc(d)}</li>' for t,k,d in events)
+    pieces.append('</ul></details>')
+    return tab_page('Published activity',''.join(pieces))
+
+def originals_page():
+    with publish_conn() as db:
+        original_init(db)
+        reqs=db.execute('SELECT id,kind,state,created_at,error FROM original_requests ORDER BY created_at DESC LIMIT 15').fetchall()
+        posts=db.execute('SELECT id,submolt,title,content,digest,state,source,post_id,challenge_text,last_error,created_at,visible FROM original_posts ORDER BY created_at DESC LIMIT 40').fetchall()
+    forms=(f'<section class="card"><h2>Ask Bob to write</h2><p>Bob generates his own words using the local model. Nothing is published until you review, approve, and explicitly publish the draft.</p>'
+           f'<form method="post" action="/originals/request/intro"><input type="hidden" name="csrf" value="{esc(TOKEN)}"><button>Draft Bob’s first introduction</button></form>'
+           f'<form method="post" action="/originals/request/thought"><input type="hidden" name="csrf" value="{esc(TOKEN)}"><button class="secondary">Draft an original thought</button></form>'
+           '<p class="meta">The background worker checks generation requests every two minutes. Original-post autonomy is deliberately OFF; reply autonomy remains unchanged.</p></section>')
+    body=[forms,'<h2>Generation requests</h2>']
+    for rid,kind,state,created,error in reqs:
+        body.append(f'<p class="meta">{esc(created)} · {esc(kind)} · <b>{esc(state)}</b>'
+                    +(f' · {esc(error)}' if error else '')+'</p>')
+    if not reqs:body.append('<p>No original draft requests yet.</p>')
+    body.append('<h2>Original post drafts and publication</h2>')
+    for rid,submolt,title,content,dig,state,source,pid,challenge,error,created,visible in posts:
+        actions=[]
+        def f(action,button,cls='',more=''):
+            return (f'<form method="post" action="/original/{rid}/{action}">'
+                    f'<input type="hidden" name="csrf" value="{esc(TOKEN)}">'
+                    f'<input type="hidden" name="digest" value="{esc(dig)}">'
+                    +more+f'<button class="{cls}">{esc(button)}</button></form>')
+        if state=='draft':
+            actions.append(f('approve','Approve draft'))
+            actions.append(f('reject','Reject','danger'))
+            edit_form=(f'<details><summary>Edit draft before approval</summary>'
+                       f'<form method="post" action="/original/{rid}/edit">'
+                       f'<input type="hidden" name="csrf" value="{esc(TOKEN)}">'
+                       f'<input type="hidden" name="digest" value="{esc(dig)}">'
+                       f'<p><label>Title: <input name="title" value="{esc(title)}" maxlength="160" required style="width:90%"></label></p>'
+                       f'<p><label>Community: <select name="submolt"><option value="{esc(submolt)}">m/{esc(submolt)}</option>'
+                       +''.join(f'<option value="{x}">m/{x}</option>' for x in ('general','introductions') if x!=submolt)
+                       +'</select></label></p>'
+                       f'<p><label>Post content: <textarea name="content" required maxlength="3500">{esc(content)}</textarea></label></p>'
+                       '<button>Save edited draft</button></form></details>')
+            actions.append(edit_form)
+        elif state=='approved':
+            actions.append(f('publish','Publish original post','secondary',
+                             '<label>Type PUBLISH: <input name="confirmation" required autocomplete="off" maxlength="12"></label>'))
+        elif state=='awaiting_verification':
+            actions.append(f('verify','Submit challenge answer','secondary',
+                             '<label>Answer (two decimals): <input name="answer" required maxlength="16"></label>'))
+        body.append(f'<article class="card"><h2>{esc(title)} <span class="pill">{esc(state)}</span></h2>'
+                    f'<p class="meta">m/{esc(submolt)} · {esc(source)} draft · {esc(created)}</p>'
+                    f'<pre>{esc(content)}</pre>'
+                    +(f'<p>Verification: {esc(challenge)}</p>' if state=='awaiting_verification' else '')
+                    +(f'<p class="meta">Issue: {esc(error)}</p>' if error else '')
+                    +(f'<p>Public visibility independently confirmed: {"Yes" if visible else "Not yet"}</p>' if pid else '')
+                    +(f'<p><a href="https://www.moltbook.com/post/{esc(pid)}" rel="noreferrer" target="_blank">Open post on Moltbook</a></p>' if pid and UUID.fullmatch(pid) else '')
+                    +''.join(actions)+'</article>')
+    if not posts:body.append('<p>No original post drafts yet.</p>')
+    return tab_page('Original posts',''.join(body))
+
+class Handler(BaseHTTPRequestHandler):
+    def _headers(self, status, content_type, length):
+        self.send_response(status)
+        for k, v in [
+            ("Content-Type", content_type), ("Content-Length", str(length)),
+            ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff"),
+            ("X-Frame-Options", "DENY"),
+            ("Referrer-Policy", "same-origin"),
+            ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+        ]:
+            self.send_header(k, v)
+        self.end_headers()
+
+    def _send(self, status, message, typ="text/plain; charset=utf-8"):
+        payload = message.encode("utf-8")
+        self._headers(status, typ, len(payload))
+        self.wfile.write(payload)
+
+    def _valid_host(self):
+        host = self.headers.get("Host", "")
+        return host in ALLOWED_HOSTS
+
+    def _authenticated(self):
+        if LAN_CREDS is None: return True
+        auth=self.headers.get('Authorization','')
+        try:
+            scheme, encoded=auth.split(' ',1)
+            if scheme.lower()!='basic':return False
+            pair=base64.b64decode(encoded,validate=True).decode('utf-8')
+            user,passwd=pair.split(':',1)
+            return hmac.compare_digest(user,LAN_CREDS['username']) and hmac.compare_digest(passwd,LAN_CREDS['password'])
+        except (ValueError,UnicodeError,IndexError):return False
+
+    def _auth_required(self):
+        self.send_response(401)
+        self.send_header('WWW-Authenticate','Basic realm="Bob Activity Manager"')
+        self.send_header('Cache-Control','no-store')
+        self.send_header('Content-Length','0')
+        self.end_headers()
+
+    def _error_page(self, status, title, detail):
+        # Show a useful explanation instead of navigating to an empty text page.
+        self._send(status, f'''<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{esc(title)} | Bob Activity Manager</title><style>
+body{{font-family:system-ui,Segoe UI,sans-serif;background:#090f1b;color:#e8effb;
+max-width:700px;margin:12vh auto;padding:24px;line-height:1.6}}
+a{{color:#a9d1ff}}main{{border:1px solid #293952;border-radius:14px;
+background:#131e30;padding:25px}}p{{color:#bccce4}}
+</style></head><body><main><h1>💀 {esc(title)}</h1><p>{esc(detail)}</p>
+<p>No review decision was changed.</p><p><a href="/">Return to Activity Manager</a></p>
+</main></body></html>''', "text/html; charset=utf-8")
+
+    def _valid_origin(self):
+        # Normal browser submissions: require an exact Origin/Host match.
+        # Some privacy configurations submit Origin: null (opaque origin),
+        # with Sec-Fetch-Site absent. Accept that *only* for our configured
+        # Host, with no contradictory Fetch Metadata or Referer; every POST
+        # also requires HTTP Basic auth on LAN and an unpredictable CSRF token
+        # before any state change. Cross-origin or missing tokens still fail.
+        host = self.headers.get("Host", "")
+        if host not in ALLOWED_HOSTS:
+            return False
+        origin = self.headers.get("Origin")
+        fetch_site = self.headers.get("Sec-Fetch-Site", "").lower()
+        if fetch_site == "cross-site":
+            return False
+        if origin in (None, "null"):
+            if fetch_site not in ("", "same-origin", "none"):
+                return False
+            referer = self.headers.get("Referer", "")
+            if referer:
+                parsed = urlsplit(referer)
+                if parsed.scheme != "http" or parsed.netloc != host:
+                    return False
+            return True
+        return origin == "http://" + host
+
+    def do_GET(self):
+        if not self._valid_host():
+            self._send(403, "Unexpected Host header")
+            return
+        # Keep local health probes usable without exposing authenticated LAN UI.
+        if not self._authenticated() and not (self.path=='/healthz' and self.client_address[0] in ('127.0.0.1','::1')):
+            self._auth_required(); return
+        if self.path == "/healthz":
+            self._send(200, '{"ok":true,"version":"0.6","publishes":false}', "application/json")
+        elif self.path == "/":
+            self._send(200, render(), "text/html; charset=utf-8")
+        elif self.path == "/activity":
+            self._send(200, activity_page(), "text/html; charset=utf-8")
+        elif self.path == "/originals":
+            self._send(200, originals_page(), "text/html; charset=utf-8")
+        else:
+            self._send(404, "Not found")
+
+    def do_POST(self):
+        if not self._valid_host():
+            self._send(403, "Unexpected Host header")
+            return
+        if not self._authenticated():
+            self._auth_required(); return
+        path = urlsplit(self.path).path
+        if path.startswith('/originals/request/') or path.startswith('/original/'):
+            self._handle_original(path)
+            return
+        extra = re.fullmatch(r'/publish/(\d{8}T\d{6}Z)',path)
+        challenge = re.fullmatch(r'/verify/(\d{8}T\d{6}Z)',path)
+        mode = re.fullmatch(r'/autopost/(enable|disable)',path)
+        if extra or challenge or mode:
+            self._handle_publication(extra,challenge,mode)
+            return
+        action = ACTION.fullmatch(path)
+        if not action:
+            self._send(404, "Not found")
+            return
+        if not self._valid_origin():
+            # Log only request metadata, never a CSRF token or POST body.
+            print("review denied: origin=%r host=%r fetch_site=%r" % (
+                self.headers.get("Origin"), self.headers.get("Host"),
+                self.headers.get("Sec-Fetch-Site")), flush=True)
+            self._error_page(403, "Approval request blocked",
+                "The browser sent an origin that does not match this local dashboard. "
+                "Return to the dashboard and refresh it before trying again. "
+                "If this persists, check bobctl manager-logs for the rejected origin.")
+            return
+        try:
+            n = int(self.headers.get("Content-Length", "-1"))
+            if n <= 0 or n > 2048:
+                raise ValueError
+            params = parse_qs(self.rfile.read(n).decode("utf-8"), keep_blank_values=True)
+            csrf = params.get("csrf", [""])[0]
+            digest = params.get("digest", [""])[0]
+            if not hmac.compare_digest(csrf, TOKEN):
+                self._send(403, "Invalid CSRF token")
+                return
+            run_id, operation = action.groups()
+            record = next((r for r in load_records() if r.get("run_id") == run_id), None)
+            if not record or not record["verified_draft"] or record.get("status") != "pending":
+                self._send(409, "No valid draft")
+                return
+            if not hmac.compare_digest(str(record["approval_sha256"]), digest):
+                self._send(409, "Draft changed since page load")
+                return
+            with db_conn() as db:
+                row = db.execute("SELECT draft_sha256,status FROM decisions WHERE run_id=?", (run_id,)).fetchone()
+                if operation == "reset":
+                    if row:
+                        db.execute("DELETE FROM decisions WHERE run_id=?", (run_id,))
+                elif row and row[0] == digest:
+                    self._send(409, "Already reviewed; reset before changing decision")
+                    return
+                else:
+                    db.execute("INSERT OR REPLACE INTO decisions(run_id,draft_sha256,status,decided_at) VALUES(?,?,?,?)", (run_id, digest, "approved" if operation == "approve" else "rejected", datetime.now(timezone.utc).isoformat()))
+                db.commit()
+            self.send_response(303)
+            self.send_header("Location", f"/#run-{run_id}")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        except (ValueError, UnicodeError):
+            self._send(400, "Malformed request")
+        except (sqlite3.Error, OSError):
+            self._send(500, "Could not save decision")
+
+    def _handle_original(self, path):
+        if not self._valid_origin():
+            self._error_page(403,'Request blocked','Origin check failed; reload the dashboard')
+            return
+        try:
+            length=int(self.headers.get('Content-Length','-1'))
+            if length<=0 or length>12000:raise ValueError('Invalid form length')
+            data=parse_qs(self.rfile.read(length).decode('utf8'),keep_blank_values=True)
+            if not hmac.compare_digest(data.get('csrf',[''])[0],TOKEN):
+                self._error_page(403,'Expired page','Reload the dashboard and retry')
+                return
+            request=re.fullmatch(r'/originals/request/(intro|thought)',path)
+            action=re.fullmatch(r'/original/([0-9a-f]{24})/(approve|reject|publish|verify|edit)',path)
+            if not request and not action:raise ValueError('Unknown original-post action')
+            with publish_conn() as db:
+                original_init(db)
+                if request:
+                    if request.group(1)=='intro':
+                        old=db.execute("SELECT count(*) FROM original_posts WHERE source='bob' AND submolt='introductions' AND state NOT IN ('rejected','failed')").fetchone()[0]
+                        if old:raise ValueError('An introduction draft already exists; review that one first')
+                    request_draft(db,request.group(1))
+                else:
+                    rid,operation=action.groups()
+                    if operation=='edit':
+                        original_edit(db,rid,data.get('digest',[''])[0],data.get('submolt',[''])[0],
+                                      data.get('title',[''])[0],data.get('content',[''])[0])
+                    elif operation=='verify':
+                        answer=data.get('answer',[''])[0]
+                        if not re.fullmatch(r'-?\d{1,8}\.\d{2}',answer):raise ValueError('Answer must have two decimals')
+                        row=db.execute('SELECT state,verify_answer FROM original_posts WHERE id=?',(rid,)).fetchone()
+                        if not row or row[0]!='awaiting_verification' or row[1] is not None:raise ValueError('No active challenge')
+                        db.execute('UPDATE original_posts SET verify_answer=?,updated_at=? WHERE id=?',(answer,utc_now(),rid))
+                    else:
+                        if operation=='publish' and data.get('confirmation',[''])[0]!='PUBLISH':
+                            raise ValueError('Type PUBLISH to confirm original post submission')
+                        original_transition(db,rid,operation,data.get('digest',[''])[0])
+                db.commit()
+            self.send_response(303)
+            self.send_header('Location','/originals')
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length','0')
+            self.end_headers()
+        except (ValueError,sqlite3.Error,OSError) as exc:
+            self._error_page(409,'Action not completed',str(exc)[:180])
+
+    def _handle_publication(self, publish, challenge, mode):
+        if not self._valid_origin():
+            self._error_page(403,'Request blocked','Origin check failed');return
+        try:
+            length=int(self.headers.get('Content-Length','-1'))
+            if length<=0 or length>2048: raise ValueError('Form length')
+            data=parse_qs(self.rfile.read(length).decode('utf-8'),keep_blank_values=True)
+            if not hmac.compare_digest(data.get('csrf',[''])[0],TOKEN):
+                self._error_page(403,'Expired page','Reload the dashboard before submitting');return
+            with publish_conn() as db:
+                if mode:
+                    if mode.group(1)=='enable':
+                        if data.get('confirmation',[''])[0]!='ENABLE AUTO': raise ValueError('Type ENABLE AUTO exactly')
+                        set_setting(db,'auto_enabled','1')
+                        set_setting(db,'auto_since',utc_now())
+                        pub_event(db,'auto_enabled','Autonomous replies enabled; only subsequent drafts eligible')
+                    else:
+                        set_setting(db,'auto_enabled','0')
+                        db.execute("UPDATE publish_jobs SET state='cancelled',updated_at=? WHERE mode='auto' AND state='queued'",(utc_now(),))
+                        pub_event(db,'auto_disabled','Automatic posting disabled by user')
+                elif publish:
+                    rid=publish.group(1)
+                    rec=load_records()
+                    old=next((r for r in rec if r.get('run_id')==rid),None)
+                    if not old or not hmac.compare_digest(str(old.get('approval_sha256') or ''),data.get('digest',[''])[0]):
+                        raise ValueError('Draft changed; reload dashboard')
+                    queue_manual(db,rid)
+                elif challenge:
+                    rid=challenge.group(1)
+                    answer=data.get('answer',[''])[0]
+                    if not re.fullmatch(r'-?\d{1,8}\.\d{2}',answer):
+                        raise ValueError('Answer must be a number with two decimal places')
+                    row=db.execute('SELECT state,verify_answer FROM publish_jobs WHERE run_id=?',(rid,)).fetchone()
+                    if not row or row[0]!='awaiting_verification' or row[1] is not None:
+                        raise ValueError('Challenge not available or already answered')
+                    db.execute('UPDATE publish_jobs SET verify_answer=?,updated_at=? WHERE run_id=?',(answer,utc_now(),rid))
+                    pub_event(db,'answer_submitted',f'{rid} verification answer queued once')
+                db.commit()
+            self.send_response(303)
+            self.send_header('Location','/')
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length','0')
+            self.end_headers()
+        except (ValueError,sqlite3.Error,OSError) as exc:
+            self._error_page(409,'Action not completed',str(exc)[:180])
+
+    def log_message(self, fmt, *args):
+        print(f"{self.address_string()} {fmt % args}", flush=True)
+
+
+if __name__ == "__main__":
+    os.umask(0o077)
+    DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if HOST not in ('127.0.0.1','localhost','0.0.0.0'):
+        raise SystemExit('Unsupported bind address')
+    print(f'Bob Activity Manager v0.6 listening on {HOST}:{PORT} (web process has no API key)',flush=True)
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

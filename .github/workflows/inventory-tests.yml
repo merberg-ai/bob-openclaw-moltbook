@@ -1,0 +1,150 @@
+name: Offline baseline and backup tests
+
+on:
+  push:
+    paths:
+      - 'scripts/inventory_live_host.py'
+      - 'scripts/inventory_service_topology.py'
+      - 'scripts/prepare_service_template_candidates.py'
+      - 'scripts/audit_service_candidate_zip.py'
+      - 'scripts/report_service_readiness.py'
+      - 'scripts/rehearse_release_rollout.py'
+      - 'scripts/stage_service_graph.py'
+      - 'scripts/audit_live_unit_directive_names.py'
+      - 'scripts/verify_inert_stage_units.py'
+      - 'scripts/rehearse_inert_process_lifecycle.py'
+      - 'scripts/preflight_stage_systemd_manager.py'
+      - 'scripts/stage_mock_actor.py'
+      - 'scripts/inventory_windows_startup.ps1'
+      - 'scripts/reconcile_dev_checkout.py'
+      - 'scripts/backup_live_sqlite.py'
+      - 'scripts/stage_live_sources.py'
+      - 'scripts/audit_staged_sources.py'
+      - 'scripts/review_staged_sources.py'
+      - 'scripts/prepare_source_candidate.py'
+      - 'scripts/import_verified_sources.py'
+      - 'tests/test_inventory_live_host.py'
+      - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_prepare_service_template_candidates.py'
+      - 'tests/test_audit_service_candidate_zip.py'
+      - 'tests/test_report_service_readiness.py'
+      - 'tests/test_rehearse_release_rollout.py'
+      - 'tests/test_stage_service_graph.py'
+      - 'tests/test_systemd_stage_review.py'
+      - 'tests/test_inert_process_lifecycle.py'
+      - 'tests/test_preflight_stage_systemd_manager.py'
+      - 'tests/test_reconcile_dev_checkout.py'
+      - 'tests/test_backup_live_sqlite.py'
+      - 'tests/test_stage_live_sources.py'
+      - 'tests/test_audit_staged_sources.py'
+      - 'tests/test_review_staged_sources.py'
+      - 'tests/test_prepare_source_candidate.py'
+      - 'tests/test_import_verified_sources.py'
+      - 'tests/test_live_source_regression.py'
+      - 'src/**'
+      - 'webui/**'
+      - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
+      - 'tests/test_v071_ui_update.py'
+      - 'scripts/build_v071_manager_candidate.py'
+      - 'scripts/rehearse_v071_ui_update.py'
+      - 'scripts/preview_v071_ui.py'
+      - 'tests/test_preview_v071_ui.py'
+      - '.github/workflows/inventory-tests.yml'
+  pull_request:
+    paths:
+      - 'scripts/inventory_live_host.py'
+      - 'scripts/inventory_service_topology.py'
+      - 'scripts/prepare_service_template_candidates.py'
+      - 'scripts/audit_service_candidate_zip.py'
+      - 'scripts/report_service_readiness.py'
+      - 'scripts/rehearse_release_rollout.py'
+      - 'scripts/stage_service_graph.py'
+      - 'scripts/audit_live_unit_directive_names.py'
+      - 'scripts/verify_inert_stage_units.py'
+      - 'scripts/rehearse_inert_process_lifecycle.py'
+      - 'scripts/preflight_stage_systemd_manager.py'
+      - 'scripts/stage_mock_actor.py'
+      - 'scripts/inventory_windows_startup.ps1'
+      - 'scripts/reconcile_dev_checkout.py'
+      - 'scripts/backup_live_sqlite.py'
+      - 'scripts/stage_live_sources.py'
+      - 'scripts/audit_staged_sources.py'
+      - 'scripts/review_staged_sources.py'
+      - 'scripts/prepare_source_candidate.py'
+      - 'scripts/import_verified_sources.py'
+      - 'tests/test_inventory_live_host.py'
+      - 'tests/test_inventory_service_topology.py'
+      - 'tests/test_prepare_service_template_candidates.py'
+      - 'tests/test_audit_service_candidate_zip.py'
+      - 'tests/test_report_service_readiness.py'
+      - 'tests/test_rehearse_release_rollout.py'
+      - 'tests/test_stage_service_graph.py'
+      - 'tests/test_systemd_stage_review.py'
+      - 'tests/test_inert_process_lifecycle.py'
+      - 'tests/test_preflight_stage_systemd_manager.py'
+      - 'tests/test_reconcile_dev_checkout.py'
+      - 'tests/test_backup_live_sqlite.py'
+      - 'tests/test_stage_live_sources.py'
+      - 'tests/test_audit_staged_sources.py'
+      - 'tests/test_review_staged_sources.py'
+      - 'tests/test_prepare_source_candidate.py'
+      - 'tests/test_import_verified_sources.py'
+      - 'tests/test_live_source_regression.py'
+      - 'src/**'
+      - 'webui/**'
+      - 'tests/test_navigation_shell.py'
+      - 'tests/test_v071_integration.py'
+      - 'tests/test_v071_http_smoke.py'
+      - 'tests/test_v071_ui_update.py'
+      - 'scripts/build_v071_manager_candidate.py'
+      - 'scripts/rehearse_v071_ui_update.py'
+      - 'scripts/preview_v071_ui.py'
+      - 'tests/test_preview_v071_ui.py'
+      - '.github/workflows/inventory-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inventory-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline synthetic baseline and backup tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Build integrated v0.7.1 manager candidate from pinned baseline
+        run: python3 scripts/build_v071_manager_candidate.py
+      - name: Rehearse versioned v0.7.1 UI package and code-only rollback
+        run: python3 scripts/rehearse_v071_ui_update.py
+      - name: Smoke read-only browser preview (synthetic data, disabled POST)
+        run: python3 scripts/preview_v071_ui.py --self-test
+      - name: Run complete isolated release rehearsal after tests
+        run: python3 scripts/rehearse_release_rollout.py
+      - name: Run inert service-graph acceptance in disposable sandbox
+        run: python3 scripts/stage_service_graph.py
+      - name: Verify inert staging unit syntax
+        run: python3 scripts/verify_inert_stage_units.py
+      - name: Verify inert mock crash, restart and rollback lifecycle
+        run: python3 scripts/rehearse_inert_process_lifecycle.py
+
+  windows-startup-script-parse:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Windows startup inventory PowerShell syntax (no execution)
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $file = Join-Path $PWD 'scripts/inventory_windows_startup.ps1'
+          [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Output 'PowerShell syntax valid; no startup tasks or registry keys touched.'
