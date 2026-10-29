@@ -1,6 +1,13 @@
 # Changelog
 
-## v0.7.2 queues2 — Pending review status fix (deployment pending)
+## v0.7.2 compact1 — Compact Scout & Activity (deployment pending)
+
+- Default Scout & Review and Published Activity views redesigned into eight-item pages, collapsible content, searches, state/visibility filters and category tabs to reduce mobile scrolling.
+- Legacy unabridged pages preserved under `/scout/full` and `/activity/full`; Manage Queues full-report links updated.
+- Existing approval, reset, publish queue, verification and autonomous-comment POST handlers preserved unchanged; GitHub offline suite passed and PR #8 merged to `main`.
+- Release includes three application files and restarts only the Activity Manager. Owner installation has not yet been verified.
+
+## v0.7.2 queues2 — Pending review status fix (operator-verified)
 
 - Operator screenshots confirm the queue management page is now installed following successful guarded incident reconciliation and retry of `v0.7.2-queues1-r1`.
 - A review-pending Scout draft with an automatically queued comment was incorrectly labeled only `queued`, disappearing from the Pending filter.
