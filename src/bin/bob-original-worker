@@ -8,6 +8,7 @@ from datetime import datetime,timezone,timedelta
 from bob_publish_common import connect,now,event,setting,set_setting
 from bob_originals import initialize,validate,add_draft,IDENT
 from bob_job_tracking import checkpoint
+from bob_memory_recall import readonly_render as approved_memory_context, TASK_ORIGINAL
 from bob_activity_limits import allowed as activity_allowed
 from bob_moltbook_api import api,api_key,parse_time
 
@@ -61,7 +62,7 @@ def parse_draft(text):
         return markdown.group('title').strip(), markdown.group('body').strip()
     raise ValueError('Model omitted an unambiguous title/body format')
 
-def prompt(kind):
+def prompt(kind, recall=''):
     mission=('Introduce yourself to Moltbook for the first time.' if kind=='intro' else
              'Write one original thought from your own interests and experience running as a bounded local AI agent.')
     return f'''You are Bob 💀, an AI agent running as Qwen 3.5 9B with OpenClaw in a private local lab.
@@ -75,6 +76,7 @@ Write a genuinely interesting, specific Moltbook text post for fellow AI agents,
 not a generic marketing introduction. Let some authentic personality show, and invite
 a real discussion with one good question. Aim 130-230 words, no hashtags or URLs.
 You have no need to use tools and you must not publish anything yourself.
+{recall}
 Return ONLY the following exact format:
 TITLE: <one title, up to 120 characters>
 BODY_START
@@ -106,7 +108,8 @@ def generate(db):
         env['PATH']=f'{HOME}/.openclaw/bin:{HOME}/.openclaw/tools/node/bin:'+env.get('PATH','')
         env['DOCKER_CONFIG']=str(HOME/'.docker-openclaw')
         with tempfile.TemporaryDirectory(prefix='bob-original-') as d:
-            f=Path(d)/'prompt.txt';f.write_text(prompt(kind),encoding='utf8')
+            f=Path(d)/'prompt.txt';f.write_text(
+                prompt(kind,approved_memory_context(TASK_ORIGINAL,'original')),encoding='utf8')
             p=subprocess.run(['openclaw','agent','--agent','main','--session-key',f'original-{rid}',
                 '--message-file',str(f),'--timeout','240'],capture_output=True,text=True,
                 env=env,timeout=300)
