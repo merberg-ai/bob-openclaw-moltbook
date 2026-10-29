@@ -1,21 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.3-pm22-scout-review1",
-  "from": "v0.7.3-pm2-editfix1",
-  "notes": "PM2.2 first reviewed suggestion inbox: operator stages previously verified Bob Scout draft with source fingerprints, then explicitly edits/approves or rejects. Private provenance, dedupe, stale/source rechecks and transaction guard. No model generation, automatic recall, publishers or workers changed.",
+  "release": "v0.7.3-pm22b-local-ai1",
+  "from": "v0.7.3-pm22-scout-review1",
+  "notes": "PM2.2b: owner-triggered, one-at-a-time local Ollama memory idea generation from checksum-verified Scout posts, async status and explicit owner review. Candidates isolated from active memories, OpenClaw prompt and publisher permissions. No model/tool/network publishing, no automatic recall.",
   "files": [
     {
-      "name": "bob_memory_suggestions.py",
-      "source": "src/lib/bob/bob_memory_suggestions.py"
+      "name": "bob_memory_ai.py",
+      "source": "src/lib/bob/bob_memory_ai.py"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v073_pm22_suggestions_candidate.py",
+      "builder": "scripts/build_v073_pm22b_ai_candidate.py",
       "index": 0
     },
     {
       "name": "navigation_shell.py",
-      "builder": "scripts/build_v073_pm22_suggestions_candidate.py",
+      "builder": "scripts/build_v073_pm22b_ai_candidate.py",
       "index": 1
     }
   ],
