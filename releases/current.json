@@ -1,22 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.6-oc3-console1",
-  "from": "v0.7.6-oc2-automation1",
-  "notes": "OC3 authenticated terminal-style read-only Console: safe classified local jobs/events/checkpoints and status, optional bounded explicit journal, severity/source/service filters, pause/scroll/copy/export. No shell or publishing authority.",
+  "release": "v0.7.6-pubfix-manual1",
+  "from": "v0.7.6-oc3-console1",
+  "notes": "Repair explicit owner-approved automatic draft to manual queue handoff before any send; preserve strict duplicate/uncertain protections, guarded worker claim and visible Publish action. OC4 follows after acceptance.",
   "files": [
     {
-      "name": "bob_diagnostic_console.py",
-      "source": "src/lib/bob/bob_diagnostic_console.py"
+      "name": "bob_publish_common.py",
+      "source": "src/lib/bob/bob_publish_common.py"
+    },
+    {
+      "name": "bob-moltbook-publisher",
+      "source": "src/bin/bob-moltbook-publisher"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v076_oc3_candidate.py",
+      "builder": "scripts/build_v076_pubfix_handoff_candidate.py",
       "index": 0
-    },
-    {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_v076_oc3_candidate.py",
-      "index": 1
     }
   ],
   "restart_manager": true
