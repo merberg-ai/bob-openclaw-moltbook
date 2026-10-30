@@ -49,16 +49,49 @@ def openclaw_decide(prompt: str, session_key: str) -> str:
             result = subprocess.run(
                 ["openclaw", "agent", "--agent", "main",
                  "--session-key", session_key, "--message-file", str(message),
-                 "--timeout", "240"],
+                 "--timeout", "240", "--json"],
                 env=environment, capture_output=True, text=True,
                 timeout=300, check=False)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError("shadow_agent_unavailable") from exc
     if result.returncode != 0:
-        raise RuntimeError("shadow_agent_failed")
-    if not result.stdout or len(result.stdout) > 8192:
-        raise ValueError("shadow_agent_output_invalid")
-    return result.stdout
+        raise RuntimeError("shadow_agent_cli_failed")
+    if not result.stdout or len(result.stdout) > 32768:
+        raise ValueError("shadow_agent_envelope_invalid")
+    try:
+        envelope = json.loads(result.stdout)
+    except (TypeError, ValueError):
+        raise ValueError("shadow_agent_envelope_invalid") from None
+    if not isinstance(envelope, dict) or envelope.get("status") != "ok":
+        raise ValueError("shadow_agent_envelope_invalid")
+    details = envelope.get("result")
+    if not isinstance(details, dict):
+        raise ValueError("shadow_agent_envelope_invalid")
+    payloads = details.get("payloads")
+    if not isinstance(payloads, list) or len(payloads) != 1:
+        raise ValueError("shadow_agent_payload_invalid")
+    payload = payloads[0]
+    if not isinstance(payload, dict):
+        raise ValueError("shadow_agent_payload_invalid")
+    reply = payload.get("text")
+    if not isinstance(reply, str) or not 0 < len(reply) <= 8192:
+        raise ValueError("shadow_agent_payload_invalid")
+    # The strict five-field source-bound JSON contract remains in parse_decision.
+    # Never log the envelope, the reply, stderr or untrusted Moltbook content.
+    return reply
+
+
+def _safe_error_reason(exc: Exception) -> str:
+    """Preserve only reviewed categorical errors, never raw model or CLI text."""
+    code = str(exc)
+    if code in ("shadow_agent_unavailable", "shadow_agent_cli_failed",
+                "shadow_agent_envelope_invalid", "shadow_agent_payload_invalid",
+                "invalid_model_json", "invalid_model_shape",
+                "unverified_model_target", "invalid_model_reason",
+                "skip_must_not_contain_text", "invalid_comment_length",
+                "unsafe_comment_text", "copied_untrusted_text"):
+        return code
+    return "invalid_or_unavailable_model_output"
 
 
 def run_once(*, legacy: Path = LEGACY, event_db: Path = EVENT_DB,
@@ -91,10 +124,10 @@ def run_once(*, legacy: Path = LEGACY, event_db: Path = EVENT_DB,
             raw = model(decision_prompt(observed),
                         "moltbook-v08-shadow-" + observed.run_id)
             action = parse_decision(raw, observed)
-        except (ValueError, RuntimeError, TypeError, OSError):
+        except (ValueError, RuntimeError, TypeError, OSError) as exc:
             store.append(db, source_run=observed.run_id, post_id=observed.post_id,
                          kind="agent_error", state="invalid",
-                         reason="invalid_or_unavailable_model_output",
+                         reason=_safe_error_reason(exc),
                          correlation=_correlation("error", observed.run_id, observed.post_id))
             return {"state": "model_invalid_or_unavailable", "acted": False,
                     "source_run": observed.run_id}
