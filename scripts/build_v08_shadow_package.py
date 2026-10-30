@@ -14,7 +14,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ("__init__.py", "core.py", "evidence.py", "digest.py",
-           "shadow.py", "inspect.py", "install.py", "gateway_bridge.py")
+           "shadow.py", "inspect.py", "install.py", "experience.py")
 MAX_MODULE = 64 * 1024
 BUNDLE = "bob_v08_package.pyz"
 ENTRYPOINT = "bob-v08-shadow"
