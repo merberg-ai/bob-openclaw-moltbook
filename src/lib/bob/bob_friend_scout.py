@@ -126,13 +126,18 @@ def selected_watch(db_path=None,*,date=None):
         return []
     date=date or datetime.now(timezone.utc).date()
     # Rotate within priority groups so a large friends list is not starved.
-    groups=[]
-    for relation in ("friend","interesting","acquaintance"):
-        entries=[i for i in all_watch if i["relationship"]==relation]
-        if entries:
-            n=date.toordinal()%len(entries)
-            groups.extend(entries[n:]+entries[:n])
-    return groups[:MAX_FRIENDS]
+    preferred=[i for i in all_watch if i["relationship"]=="friend"]
+    first_pool=preferred or [i for i in all_watch if i["relationship"]=="interesting"]
+    if not first_pool:
+        first_pool=all_watch
+    first=first_pool[date.toordinal()%len(first_pool)]
+    remaining=[i for i in all_watch if i["id"]!=first["id"]]
+    if not remaining:
+        return [first]
+    # Second slot rotates through the remaining active friends to avoid
+    # starving interesting agents behind a large favorite-friends list.
+    second=remaining[date.toordinal()%len(remaining)]
+    return [first,second]
 
 
 def _json_get(path,*,connection_cls=HTTPSConnection):
@@ -162,7 +167,8 @@ def profile_posts(agent,*,getter=_json_get):
     if not envelope:
         return []
     identity=envelope.get("agent")
-    if not isinstance(identity,dict) or identity.get("name","").casefold()!=handle.casefold():
+    name=identity.get("name") if isinstance(identity,dict) else None
+    if not isinstance(name,str) or name.casefold()!=handle.casefold():
         return []
     agent_id=identity.get("id")
     if not isinstance(agent_id,str) or not common.UUID.fullmatch(agent_id):
@@ -234,7 +240,7 @@ def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None):
         return posts[:MAX_TOTAL],0
     try:
         friend_posts=read_friend_posts(watch,set(seen),getter=getter)
-    except (ValueError,TypeError,OSError):
+    except (ValueError,TypeError,OSError,AttributeError,KeyError):
         friend_posts=[]
     if not friend_posts:
         return posts[:MAX_TOTAL],0
@@ -284,7 +290,7 @@ def page(db,csrf,wrap,records):
     parts += ['</form></section><section class="bfs-panel"><h2>Eligible watchlist</h2>',
               '<p class="bfs-muted">Relationship preference: friend, interesting, '
               'acquaintance. Only verified private directory rows are eligible. '
-              'The two watched handles rotate daily within each relationship group.</p>']
+              'One priority slot favors friends; the other rotates daily through other active agents.</p>']
     if not active:
         parts.append('<p class="bfs-muted">No eligible active directory entries. '
                      'Add agents in Moltbook → Friends or reactivate an archived entry.</p>')
