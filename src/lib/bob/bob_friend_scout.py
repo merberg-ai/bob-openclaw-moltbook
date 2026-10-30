@@ -1046,7 +1046,7 @@ def focus_repair(db):
 def focus_review(db,form):
     if set(form)!={"csrf","operation","id","expected_sha","decision","reason"}:
         raise ValueError("Public focus form invalid")
-    if form["decision"] not in ("approve","reject"):
+    if form["decision"] not in ("approve","reject","reopen"):
         raise ValueError("Public focus decision unavailable")
     reason=form["reason"]
     if not isinstance(reason,str) or not 1<=len(reason.strip())<=240 or (
@@ -1057,13 +1057,17 @@ def focus_review(db,form):
     if not isinstance(form["expected_sha"],str) or not hmac.compare_digest(
             item["sha256"],form["expected_sha"]):
         raise ValueError("Public focus review changed; reload")
-    if item["status"]!="completed" or item["review_status"]!="pending":
+    if item["status"]!="completed" or not (
+        item["review_status"]=="pending" and form["decision"] in ("approve","reject")
+        or item["review_status"] in ("approved","rejected") and form["decision"]=="reopen"
+    ):
         raise ValueError("Public focus decision unavailable")
     _focus_friend(db,item)
     # The result and model idea are covered by the sealed item and history.
     if not item["idea_json"]:
         raise ValueError("Public focus review unavailable")
-    item["review_status"]="approved" if form["decision"]=="approve" else "rejected"
+    item["review_status"]={"approve":"approved","reject":"rejected",
+                           "reopen":"pending"}[form["decision"]]
     item["review_reason"]=reason.strip()
     _focus_update(db,item,form["decision"])
     common.event(db,"bob_friend_focus_reviewed",item["id"]+" "+form["decision"])
@@ -1112,8 +1116,10 @@ def focus_markup(db,csrf):
                               ' · Uncertainty: '+e(idea["uncertainty"])+
                               ' · confidence '+e(idea["confidence"])+
                               ' · review '+e(job["review_status"])+'</p>']
-                    if job["review_status"]=="pending":
-                        for decision in ("approve","reject"):
+                    if job["review_status"] in ("pending","approved","rejected"):
+                        for decision in (("approve","reject")
+                                         if job["review_status"]=="pending"
+                                         else ("reopen",)):
                             parts += ['<form method="post" action="/moltbook/friend-scout">',
                                       '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
                                       '<input type="hidden" name="operation" value="focus_review">',
