@@ -199,13 +199,14 @@ class FocusTests(unittest.TestCase):
     def test_pause_while_job_running_prevents_completing_snapshot(self):
         ident=self.start()
         getter,_=self.fake_get()
+        original_fetch=scout.focus_fetch
         def after_profile(friend):
             with self.db() as db:
                 f=friends._get(db,self.fid)
                 scout.change(db,dict(csrf="t",operation="watch",id=self.fid,
                                      friend_sha=f["sha256"],watch_sha="default",
                                      watch_enabled="0"))
-            return scout.focus_fetch(friend,getter=getter)
+            return original_fetch(friend,getter=getter)
         with patch.object(scout,"focus_fetch",side_effect=after_profile), \
              patch.object(scout,"_ai_model") as ai:
             scout.focus_worker(ident,common.connect)
