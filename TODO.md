@@ -12,15 +12,25 @@
 | --- | --- | --- |
 | Personality (PM1) and Memory (PM2) | Implemented / operator-tested | Maintain existing explicit memory recall and owner review boundaries |
 | **Friends (FM1–FM3.2d)** | **All FM3 phases complete, operator-accepted**; final release `v0.7.5-fm32d-focus1`, PR #38, 537 CI tests | **HOLD** until unrelated issues and separate requested feature are addressed. Then resume **FM4.1 evidence-linked Social Memory Timeline**, later FM5 only with explicit approval. See [Friends roadmap & resumption handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md) |
-| Logs & Diagnostics | Installed / operator-tested | Future persistent sanitized startup-failure summaries; journal rotation can erase early import errors |
+| **Operations Center: activity / automation / console / inactivity investigation** | **New owner-requested roadmap, NOT implemented** | **OC0** diagnostic reason codes, then **OC1** Overview “Bob right now”, **OC2** unified Automation, **OC3** sanitized Console, **OC4** inactivity investigator. See [Operations Center roadmap](docs/OPERATIONS-CENTER-ROADMAP.md) |
+| Logs & Diagnostics | Installed / operator-tested | Reuse existing bounded redacted journal, job, event and checkpoint collectors rather than duplicate raw logging |
 | **Direct Bob Chat (CH1)** | **Planned here, not started** | Gateway compatibility spike, then authenticated LAN chat UI |
 | Fresh-host installer | Deferred | Keep current WSL/Windows startup, services and updater intact |
 
+## Current priority: Bob Operations Center, before FM4/FM5
+
+**Owner request (Oct 30, 2026):** The Overview gauges show 2/10 comment attempts, 0/6 automatic, 0/4 originals and six queued manual comments, but reveal too little about the reason for inactivity. Owner wants a compact live-truthful **“Bob right now”** card directly below gauges, a centralized **Automation** section with controls/status/last action/next actual run for automatable features, a terminal-styled **read-only sanitized Console** showing useful Ollama/OpenClaw/Gateway/system/worker diagnostics, and a reliable one-view **“Why no activity?”** explanation. All pages must be compact and mobile-friendly.
+
+**Implementation status:** proposed/planned, **not built or installed**. The full evidence-first staged plan and CI/rollout/acceptance criteria are in [docs/OPERATIONS-CENTER-ROADMAP.md](docs/OPERATIONS-CENTER-ROADMAP.md). First phase: **OC0 diagnostic evidence contract and deterministic reason codes**, followed closely by **OC1 Overview card**. Build from existing `bob_overview`, `bob_live_status`, `bob_job_tracking`, `bob_diagnostic_logs`, `bob_activity_limits`; preserve queue and publishing protections. Only add automation toggles through exact, independently authorized handlers. **Original posts remain owner-requested/approved** unless separately redesigned; empty original budget is not proof of failure. “Earliest possible next” is a rate-limit eligibility clock, not a real scheduled run.
+
+**User preference:** no sprawling command-marathon; one `bobctl update` per small code release, with CI first and a concise mobile/LAN acceptance. Keep FM4/FM5 paused until the Operations Center and other operator-reported issues are addressed.
+
+---
 ## Friends work: paused after final FM3 acceptance
 
 **Passed October 30, 2026:** The operator tested `v0.7.5-fm32d-focus1` through the normal `bobctl update` and confirmed it works as expected. This closes FM3.2d and FM3 as scoped. PR [#38](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/38) merged to main, with **537 passing synthetic offline tests**. This is a documentation acceptance checkpoint, **not a new code release**. Keep `releases/current.json` unchanged until an actual next software release.
 
-**Explicit priority before any more Friends work:** operator-observed issues and a separate desired feature, details not yet provided. Do not assume that feature is CH1 (Direct Bob Chat), do not start FM4 or FM5 on your own, and do not grant new external social permissions.
+**Explicit priority before any more Friends work:** the operator's now-specified **Operations Center** improvements (read-only status explanation, Overview activity, unified Automation panel, and sanitized Console) plus any additional issues. See [Operations Center roadmap](docs/OPERATIONS-CENTER-ROADMAP.md). Do not assume this is CH1 (Direct Bob Chat), do not start FM4 or FM5 on your own, and do not grant new external social permissions.
 
 **Resume Friends at FM4.1** only after the operator lifts the hold: a small private, source-verifiable, per-agent **Social Memory Timeline** distinguishing actual saved observations, Bob's tentative ideas and owner-reviewed records. Start with read-only evidence linked from FM1/FM2 and existing FM3.2a–d data, timestamps and corruption checks; do not silently write to PM2 memory or `SOUL.md`, change Scout priorities or authorize outreach. FM4.2 can add revisable impressions and owner corrections; FM4.3 can add explicitly enabled bounded recall. FM5.1 independent exploration and FM5.2 separately approved public interactions remain further off. Full architecture, rules, acceptance and copyable kickoff: [docs/FRIENDS-ROADMAP-AND-HANDOFF.md](docs/FRIENDS-ROADMAP-AND-HANDOFF.md).
 
