@@ -199,14 +199,18 @@ STYLE = """<style>
  color:#f3d9af;font-size:.86rem;line-height:1.5}
 .bo-now{border-color:#3b618a;background:radial-gradient(circle at 95% 0%,#24517b88 0%,transparent 45%),linear-gradient(145deg,#152c47,#0b172a)}
 .bo-now-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.bo-now-headline{font-size:1.08rem;font-weight:800;line-height:1.45;margin:12px 0 4px}
-.bo-now-detail{color:#c2d6ea;font-size:.85rem;line-height:1.5;overflow-wrap:anywhere;margin:0 0 14px}
+.bo-now-headline{font-size:1.03rem;font-weight:800;line-height:1.35;margin:8px 0 3px}
+.bo-now-detail{color:#c2d6ea;font-size:.78rem;line-height:1.4;overflow-wrap:anywhere;margin:3px 0 8px}
 .bo-now-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
-.bo-now-lane{background:#0d2036;border:1px solid #345575;border-radius:11px;padding:11px 10px;min-width:0}
-.bo-now-lane b{font-size:.85rem;display:block;margin-bottom:5px}
-.bo-now-lane p{font-size:.76rem;color:#bfd0e3;overflow-wrap:anywhere;line-height:1.42;margin:6px 0}
-.bo-now-lane small{font-size:.71rem;color:#a5bdd7;overflow-wrap:anywhere}
+.bo-now-lane{background:#0d2036;border:1px solid #345575;border-radius:11px;padding:8px;min-width:0}
+.bo-now-lane b{font-size:.8rem;display:block;margin-bottom:3px}
+.bo-now-lane p{font-size:.74rem;color:#bfd0e3;overflow-wrap:anywhere;line-height:1.35;margin:3px 0}
+.bo-now-lane small{font-size:.72rem;color:#a5bdd7;overflow-wrap:anywhere;display:block}
 .bo-now-lane a{font-size:.75rem}
+.bo-now :is(details) summary{cursor:pointer;color:#a8cbea;font-size:.73rem;padding:4px 0}
+.bo-now :is(details) summary:focus-visible{outline:2px solid #eac873;outline-offset:2px}
+.bo-now-why{margin-bottom:8px}
+.bo-now .bo-muted{font-size:.73rem;margin:7px 0 0}
 .bo-now-dot{width:9px;height:9px;display:inline-block;background:#8191a5;border-radius:50%;margin-right:7px;vertical-align:middle}
 .bo-now-dot[data-tone=active]{background:#55c8ff;box-shadow:0 0 0 4px #55c8ff22;animation:bo-beat 1.4s ease-in-out infinite}
 .bo-now-dot[data-tone=blocked]{background:#f7a8a8}
@@ -326,21 +330,26 @@ JS = r"""'use strict';
       if(overall){overall.textContent=String(ops.state||'unknown');overall.dataset.tone=String(ops.state||'unknown');}
       const current=id('now-lanes');
       if(current){
+        const expanded=new Set(Array.from(current.querySelectorAll('.bo-now-lane[data-key] details[open]'))
+          .map(el=>el.closest('.bo-now-lane').dataset.key));
         current.replaceChildren();
         const labels={scout:'Scout',publisher:'Comment publisher',original:'Original posts',dependencies:'Gateway + Ollama'};
         const links={scout:'/logs?service=scout',publisher:'/logs?service=publisher',original:'/originals',dependencies:'/system/status'};
         ops.lanes.slice(0,4).forEach(item=>{
           if(!item || !Object.prototype.hasOwnProperty.call(labels,String(item.key)))return;
           const key=String(item.key);
-          const card=document.createElement('div');card.className='bo-now-lane';
+          const card=document.createElement('div');card.className='bo-now-lane';card.dataset.key=key;
           const head=document.createElement('b');
           const dot=document.createElement('span');dot.className='bo-now-dot';dot.dataset.tone=String(item.state||'unknown');
           head.append(dot,document.createTextNode(labels[key]));
           const activity=document.createElement('p');activity.textContent=String(item.activity||'Status unconfirmed');
+          const detail=document.createElement('details');detail.open=expanded.has(key);
+          const summary=document.createElement('summary');summary.textContent='Why / evidence';
           const reason=document.createElement('small');
           reason.textContent=String(item.reason||'')+(item.next_scheduled?' · Systemd next: '+String(item.next_scheduled):'');
           const link=document.createElement('a');link.href=links[key];link.textContent='Inspect evidence';
-          card.append(head,activity,reason,document.createElement('br'),link);
+          detail.append(summary,reason,link);
+          card.append(head,activity,detail);
           current.append(card);
         });
       }
@@ -460,9 +469,10 @@ def _operations_html(data):
                if item.get("next_scheduled") else "")
         cards.append('<div class="bo-now-lane"><b><span class="bo-now-dot" data-tone="'+
                      state+'"></span>'+esc(names[key])+'</b><p>'+
-                     esc(item.get("activity","Status unconfirmed"))+'</p><small>'+
+                     esc(item.get("activity","Status unconfirmed"))+'</p>'+
+                     '<details><summary>Why / evidence</summary><small>'+
                      esc(str(item.get("reason",""))+extra)+'</small><br>'
-                     '<a href="'+links[key]+'">Inspect evidence</a></div>')
+                     '<a href="'+links[key]+'">Inspect evidence</a></details></div>')
     state=ops.get("state","unknown")
     state=state if state in ("active","waiting","blocked","idle","unknown") else "unknown"
     return ('<section class="bo-panel bo-now" aria-label="Bob right now">'
@@ -471,8 +481,9 @@ def _operations_html(data):
             esc(state)+'</span></div>'
             '<p id="bo-now-headline" class="bo-now-headline">'+
             esc(ops.get("headline","Current activity unconfirmed"))+'</p>'
+            '<details class="bo-now-why"><summary>Why this status?</summary>'
             '<p id="bo-now-detail" class="bo-now-detail">'+
-            esc(ops.get("detail","No verified status available."))+'</p>'
+            esc(ops.get("detail","No verified status available."))+'</p></details>'
             '<div id="bo-now-lanes" class="bo-now-grid">'+''.join(cards)+'</div>'
             '<p class="bo-muted">Evidence checked: <span id="bo-now-checked">'+
             esc(ops.get("checked_at","Unknown"))+'</span>. '

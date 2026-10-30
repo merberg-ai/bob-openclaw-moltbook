@@ -2,7 +2,7 @@
 
 **Last reviewed:** October 30, 2026 (America/Los_Angeles)  
 **Canonical repo:** `merberg-ai/bob-openclaw-moltbook`, `main`  
-**Operator-tested deployed baseline:** `v0.7.5-fm32d-focus1` (FM3 complete, operator PASS on Oct 30, 2026)  
+**Operator-tested deployed baseline:** `v0.7.6-oc01-activity1` (OC0+OC1 passed Oct 30, 2026; OC2 candidate not yet operator-tested)  
 **Status:** FM3 complete; **FM4/FM5 on hold** until operator's other issues and new feature are handled. **CH1 remains planned only, not implemented or installed.**  
 **Deployment contract:** future implementation through `bobctl update` with verified private backup, installed-module import checks, reversible release and short live acceptance. A Git commit alone never changes the running Activity Manager.
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | Personality (PM1) and Memory (PM2) | Implemented / operator-tested | Maintain existing explicit memory recall and owner review boundaries |
 | **Friends (FM1–FM3.2d)** | **All FM3 phases complete, operator-accepted**; final release `v0.7.5-fm32d-focus1`, PR #38, 537 CI tests | **HOLD** until unrelated issues and separate requested feature are addressed. Then resume **FM4.1 evidence-linked Social Memory Timeline**, later FM5 only with explicit approval. See [Friends roadmap & resumption handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md) |
-| **Operations Center: activity / automation / console / inactivity investigation** | **OC0 + OC1 release candidate ready for operator testing**, not yet confirmed installed | `v0.7.6-oc01-activity1`: read-only diagnostic reason engine and Overview “Bob right now” below gauges. **OC2** Automation, **OC3** Console, **OC4** investigation remain planned. [Operations Center roadmap](docs/OPERATIONS-CENTER-ROADMAP.md) |
+| **Operations Center: activity / automation / console / inactivity investigation** | **OC0+OC1 operator-tested; OC2 release candidate** | OC2 `v0.7.6-oc2-automation1`: compact Overview and authenticated Automation page with existing safeguarded auto-comment and friend Scout switches; no new timer control. **OC3** Console, **OC4** inactivity investigator remain planned. [Operations Center roadmap](docs/OPERATIONS-CENTER-ROADMAP.md) |
 | Logs & Diagnostics | Installed / operator-tested | Reuse existing bounded redacted journal, job, event and checkpoint collectors rather than duplicate raw logging |
 | **Direct Bob Chat (CH1)** | **Planned here, not started** | Gateway compatibility spike, then authenticated LAN chat UI |
 | Fresh-host installer | Deferred | Keep current WSL/Windows startup, services and updater intact |
@@ -21,7 +21,7 @@
 
 **Owner request (Oct 30, 2026):** The Overview gauges show 2/10 comment attempts, 0/6 automatic, 0/4 originals and six queued manual comments, but reveal too little about the reason for inactivity. Owner wants a compact live-truthful **“Bob right now”** card directly below gauges, a centralized **Automation** section with controls/status/last action/next actual run for automatable features, a terminal-styled **read-only sanitized Console** showing useful Ollama/OpenClaw/Gateway/system/worker diagnostics, and a reliable one-view **“Why no activity?”** explanation. All pages must be compact and mobile-friendly.
 
-**Implementation status:** **OC0 + OC1 implemented as candidate release `v0.7.6-oc01-activity1`**, pending CI/merge and live acceptance; **not installed by repository commits alone**. See [docs/V076-OC01-BOB-RIGHT-NOW.md](docs/V076-OC01-BOB-RIGHT-NOW.md). The full remaining roadmap (OC2–OC4) and CI/rollout criteria are in [docs/OPERATIONS-CENTER-ROADMAP.md](docs/OPERATIONS-CENTER-ROADMAP.md). Build from existing `bob_overview`, `bob_live_status`, `bob_job_tracking`, `bob_diagnostic_logs`, `bob_activity_limits`; preserve queue and publishing protections. Only add automation toggles through exact, independently authorized handlers. **Original posts remain owner-requested/approved** unless separately redesigned; empty original budget is not proof of failure. “Earliest possible next” is a rate-limit eligibility clock, not a real scheduled run.
+**Implementation status:** **OC0+OC1 accepted in `v0.7.6-oc01-activity1`**. Operator confirmed the first Overview activity card works but is verbose, and supplied a full-page mobile screenshot. **OC2 Automation + compact OC1 are candidate `v0.7.6-oc2-automation1`**, pending deployment and acceptance; see [docs/V076-OC2-AUTOMATION.md](docs/V076-OC2-AUTOMATION.md). **OC3 Console and OC4 investigator remain unimplemented**, detailed in [Operations Center roadmap](docs/OPERATIONS-CENTER-ROADMAP.md). Build from existing `bob_overview`, `bob_live_status`, `bob_job_tracking`, `bob_diagnostic_logs`, `bob_activity_limits`; preserve queue and publishing protections. Only add automation toggles through exact, independently authorized handlers. **Original posts remain owner-requested/approved** unless separately redesigned; empty original budget is not proof of failure. “Earliest possible next” is a rate-limit eligibility clock, not a real scheduled run.
 
 **User preference:** no sprawling command-marathon; one `bobctl update` per small code release, with CI first and a concise mobile/LAN acceptance. Keep FM4/FM5 paused until the Operations Center and other operator-reported issues are addressed.
 
@@ -34,7 +34,7 @@
 
 **Resume Friends at FM4.1** only after the operator lifts the hold: a small private, source-verifiable, per-agent **Social Memory Timeline** distinguishing actual saved observations, Bob's tentative ideas and owner-reviewed records. Start with read-only evidence linked from FM1/FM2 and existing FM3.2a–d data, timestamps and corruption checks; do not silently write to PM2 memory or `SOUL.md`, change Scout priorities or authorize outreach. FM4.2 can add revisable impressions and owner corrections; FM4.3 can add explicitly enabled bounded recall. FM5.1 independent exploration and FM5.2 separately approved public interactions remain further off. Full architecture, rules, acceptance and copyable kickoff: [docs/FRIENDS-ROADMAP-AND-HANDOFF.md](docs/FRIENDS-ROADMAP-AND-HANDOFF.md).
 
-**Future versioning:** the last operator-confirmed installed release is `v0.7.5-fm32d-focus1`. The `from` field of any subsequent `bobctl update` release must match the most recent accepted installed version, including intervening bug fixes/new features; it is not necessarily still FM3.2d by the time FM4 resumes.
+**Future versioning:** the last operator-confirmed installed release is now `v0.7.6-oc01-activity1` following acceptance on October 30, 2026. OC2's candidate upgrade is `from: v0.7.6-oc01-activity1` and must not be marked installed before operator acceptance. Future `bobctl update` releases must match the latest accepted installed version, including intervening bug fixes/new features.
 
 ---
 

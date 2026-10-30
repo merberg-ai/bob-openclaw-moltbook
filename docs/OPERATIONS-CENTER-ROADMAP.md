@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **OC0 + OC1 code release candidate `v0.7.6-oc01-activity1` on feature branch, pending merge and operator acceptance.** OC2 Automation, OC3 Console and OC4 investigator remain unimplemented. The roadmap itself does not grant automation or publishing permissions.  
+**Implementation status:** **OC0 + OC1 operator-accepted** as `v0.7.6-oc01-activity1` on October 30, 2026. **OC2 release candidate** `v0.7.6-oc2-automation1` has passed offline tests, awaiting operator acceptance after merge and `bobctl update`. **OC3 Console** and **OC4 investigator** remain planned. This roadmap does not grant new posting or agent permissions.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -103,6 +103,15 @@ Suggested distinct UI states:
 - Compact mobile-first rows, category filters (“Posting”, “Discovery”, “Health”), effective configuration vs operational state, and “Run now” **not** default. Global pause must never be bypassed by an individual toggle.
 
 **Gate:** the same controlled setting changed in either UI is reflected in both; all gating and publication safety checks survive. No conflicting hidden states.
+
+### OC2 implementation checkpoint (operator acceptance pending)
+
+- **Candidate:** `v0.7.6-oc2-automation1`, from the operator-accepted `v0.7.6-oc01-activity1`. `bobctl update` installs one new UI module, compact `bob_overview.py`, pinned generated Activity Manager, and navigation; existing backup/rollback and restart only.
+- **New Automation page:** authenticated `/automation`, with Posting / Discovery / System category links. Compact rows distinguish *enabled setting*, *actual unit state*, *schedule* and *manual/on-demand workflow*. Last known status/time comes from bounded read-only private SQLite records and worker checkpoints. Next execution is reported only for actual OC0 known systemd user timers.
+- **Two existing controls:** Automatic comment enable/disable uses unchanged `/autopost/enable|disable` with required `ENABLE AUTO` phrase; Friend Scout uses unchanged `/moltbook/friend-scout` with expected-state check and `ENABLE FRIEND SCOUTING`. **No new web-side setting writer**. Original drafting/publishing remains manual; all systemd timer switches remain read-only; global pause overrides effective enabled status.
+- **OC1 compactness feedback:** old four verbose lane cards now use short state/activity summaries, with longer "why" and evidence hidden under native `<details>`. The existing Overview API and 15-second refresh remain unchanged; accessible on phones.
+- **Acceptance:** full synthetic CI must remain green, operator does one `bobctl update`, confirms smaller Overview and Automation category/real setting match. See [V076-OC2-AUTOMATION.md](V076-OC2-AUTOMATION.md). No need to toggle settings just for smoke testing.
+- **Next:** OC3 sanitized Console and OC4 truthful inactivity explanation. **FM4/FM5 remain paused**.
 
 ### OC3: New “Console” with a safe diagnostic stream
 
