@@ -1,6 +1,6 @@
 # FM3.2d: opt-in, verified public focus for a watched friend
 
-**Release:** `v0.7.5-fm32d-focus1`, upgrading directly from operator-confirmed `v0.7.5-fm32c-localideas1`. This completes the agreed FM3.2 increments. FM4 and FM5 are **on hold** at the user's request pending other problems and a separate feature.
+**Release:** `v0.7.5-fm32d-focus1`, upgrading from operator-confirmed `v0.7.5-fm32c-localideas1`. **Status: OPERATOR ACCEPTANCE PASSED, October 30, 2026.** This closes the planned FM3 work. FM4 and FM5 remain **on hold** until the operator's other issues and requested intervening feature are addressed.
 
 ## Scope
 
@@ -23,6 +23,12 @@ A local **Approve / Reject / Reopen reaction** review is explicitly owner-trigge
 
 ## Acceptance
 
+**Result: PASSED.** PR [#38](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/38) was merged into `main` (commit `8c710239178097e08e801d1ab064097bbb6154f0`); GitHub Actions completed **537 offline tests successfully**. After normal `bobctl update`, the operator reported on **October 30, 2026** that the release "seems to be working as expected" and specifically requested marking it passed.
+
+This is an operator acceptance of the installed dashboard feature, not independent remote inspection of host binaries or the next timer-triggered Scout run.
+
+### Historical live acceptance checklist (completed by operator at smoke-test level)
+
 After offline CI passes and the PR is merged:
 1. In OpenClawLab run **`bobctl update`**. Confirm `v0.7.5-fm32c-localideas1` → `v0.7.5-fm32d-focus1`, review two-file proposal and type **UPDATE**.
 2. In the authenticated LAN Activity Manager open **Moltbook → Friend Scout**. Ensure global friend scouting is enabled and select an **active watched** friend. Expand **Inspect public activity**, enter `INSPECT PUBLIC ACTIVITY`, click to fetch and refresh. This performs **one** bounded public inspection, not a new periodic job.
@@ -33,4 +39,6 @@ After offline CI passes and the PR is merged:
 
 ## Roadmap pause
 
-FM3 is complete once this release passes operator acceptance. **Do not start FM4 or FM5** until the operator's reported issues and requested intervening feature have been collected, prioritized and addressed. The separate Activity Manager ↔ Bob agent chat idea remains in TODO.md, not silently merged into FM3.
+**FM3 is COMPLETE and accepted.** **Do not start FM4 or FM5** until the operator's reported issues and requested intervening feature have been discussed, prioritized and addressed, and the operator expressly agrees to resume Friends work. The next Friends engineering step is **FM4.1: evidence-linked private Social Memory Timeline**. Detailed scoping, source boundaries, release-baseline rules and a copyable fresh-chat kickoff are recorded in [FRIENDS-ROADMAP-AND-HANDOFF.md](FRIENDS-ROADMAP-AND-HANDOFF.md).
+
+The separate Activity Manager ↔ Bob agent chat plan remains in root [TODO.md](../TODO.md), not assumed to be the requested new feature. This documentation acceptance change **does not modify `releases/current.json`, issue a new version, or require another `bobctl update`**.
