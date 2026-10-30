@@ -469,6 +469,10 @@ Usage: bobctl COMMAND
   update          Check GitHub release and optionally apply verified update
   update --check  Read-only release check (may fast-forward the development checkout)
   update --recover Restore interrupted code update from sealed journal
+  shadow-status  Read-only v0.8 versioned activation status
+  shadow-activate  Separately approve v0.8 shadow timer (no publishing)
+  shadow-deactivate  Stop and undo reviewed v0.8 shadow activation
+  shadow-once  One hypothetical decision on a verified saved Scout source
   update --channel next  Switch trusted source to next, NO installation
   update --channel main  Switch trusted source back to main, NO installation
   gateway-logs    Latest Gateway logs
@@ -503,6 +507,16 @@ def main(argv=None):
         return 2
     if name in ("help", "-h", "--help"):
         help_text(); return 0
+    if name in ("shadow-status", "shadow-activate", "shadow-deactivate", "shadow-once"):
+        entry = BIN / ("bob-v08-shadow" if name == "shadow-once"
+                       else "bob-v08-activate")
+        if entry.is_symlink() or not entry.is_file():
+            print("Bob v0.8 shadow entrypoint not installed", file=sys.stderr)
+            return 1
+        flag = {"shadow-status": "--status", "shadow-activate": "--activate",
+                "shadow-deactivate": "--deactivate",
+                "shadow-once": "--once"}[name]
+        return subprocess.run([sys.executable, str(entry), flag], check=False).returncode
     if name == "publisher-status": return publisher_status()
     if name == "publisher-run": return 0 if ctl('start','bob-moltbook-publisher.service') else 1
     if name == "publisher-logs":
