@@ -567,7 +567,9 @@ def main():
             print("BOB UPDATE: up to date (" + current["release"] + ")")
             return 0
         if plan["from"] != current["release"]:
-            raise ValueError("release chain mismatch; no automatic skipping")
+            # Both identifiers were validated by registry() and manifest().
+            raise ValueError("release chain mismatch: installed " + current["release"]
+                             + ", expected " + plan["from"])
         if not plan["files"]:
             raise ValueError("empty release is not an upgrade")
         contents = {item["name"]: release_bytes(folder, item) for item in plan["files"]}
@@ -589,6 +591,18 @@ def main():
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
             json.JSONDecodeError, ImportError, AttributeError) as exc:
         print("BOB UPDATE: REFUSED (" + type(exc).__name__ + ")")
+        reason = str(exc)
+        # Only release IDs validated by the manifest/registry or fixed messages
+        # may be shown to the operator. Never echo arbitrary HTTP, Git or API
+        # errors: they can contain private paths, payloads or credentials.
+        public = {"unexpected release branch", "development checkout has uncommitted changes",
+                  "installed file hash drift", "installed files drifted; no overwrite",
+                  "incomplete prior release; use --recover", "untrusted release channel",
+                  "release branch changed during pull", "release chain mismatch; no automatic skipping"}
+        if (reason in public or re.fullmatch(
+                r"release chain mismatch: installed [a-zA-Z0-9][a-zA-Z0-9._-]{2,79}, "
+                r"expected [a-zA-Z0-9][a-zA-Z0-9._-]{2,79}", reason)):
+            print("Reason: " + reason)
         print("No automatic retry. Review updater journal for an incomplete transaction.")
         return 1
 
