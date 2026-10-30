@@ -21,7 +21,8 @@ def build():
         "safe_error as friends_safe_error\n"
         "from bob_friend_discovery import (page as discovery_page, "
         "dispatch as discovery_dispatch, profile_lookup, cache_profile, "
-        "safe_error as discovery_safe_error)")
+        "safe_error as discovery_safe_error)\n"
+        "from urllib.parse import quote")
     src=once(src,
         '        elif urlsplit(self.path).path == "/moltbook/friends":',
         '''        elif urlsplit(self.path).path == "/moltbook/discover":
@@ -74,7 +75,6 @@ def build():
             self._error_page(409,"Friend discovery unchanged",discovery_safe_error(exc))
 
 '''
-    # quote already exported from urllib.parse in the main manager.
     src=once(src,'    def _save_friend(self):',method+'    def _save_friend(self):')
     src=once(src,
         '"/moltbook/friends" if urlsplit(self.path).path == "/moltbook/friends"',
