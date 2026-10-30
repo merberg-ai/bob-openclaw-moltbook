@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **OC0–OC4 installed and operator-smoke-tested**, including publication fix and `v0.7.6-oc4-investigator1`, October 30, 2026. The screenshot confirmed useful classifications but exposed confusing historical aggregation, missing source times, and unreported systemd trigger. **OC4.1 candidate** `v0.7.6-oc41-polish1` implements read-only clarity fixes, pending operator acceptance. No new posting or agent permissions.  
+**Implementation status:** **OC0–OC4.1 complete and operator-accepted as of October 30, 2026.** Final verified-on-host release: `v0.7.6-oc41-polish1` (PR #47; 591 offline CI tests). The user confirmed OC4.1 works as expected. Earlier publication-fix and OC4 were installed in the release chain. No new posting or agent permissions were granted. **Next separately planned work: MD1 Moltbook Experience Digest**, not part of Operations Center.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -158,14 +158,14 @@ Suggested distinct UI states:
 - **Acceptance:** one guarded `bobctl update` *after* publication fix accepted, browse Overview → Why no activity?, verify four cards and the schedule/eligibility distinction. See [V076-OC4-INACTIVITY.md](V076-OC4-INACTIVITY.md). **No test posting, no toggles.**
 - **Future:** optional copy/export sanitized summary and richer per-run skip instrumentation can be separately prioritized; neither is required for the read-only OC4 first pass. The **Moltbook Experience Digest** is a separate pending MD1/CH1/FM4 design in root [TODO.md](../TODO.md). FM4/FM5 remain paused.
 
-### OC4.1 diagnostic polish (release candidate, not operator-accepted yet)
+### OC4.1 diagnostic polish (operator-accepted October 30, 2026)
 
-- **Baseline:** `v0.7.6-oc4-investigator1`, operator confirmed installed and functionally working but provided a screenshot of missing/incomplete metadata. Next `bobctl update` candidate: `v0.7.6-oc41-polish1`. Only two existing installed modules: `bob_inactivity.py` and `bob_operations_diagnostics.py`. No manager routes, publisher, original-post worker, SQLite schema, systemd mutation or new external permission.
+- **Baseline:** `v0.7.6-oc4-investigator1`, operator confirmed installed and working, then installed/accepted `v0.7.6-oc41-polish1` as the final Operations Center release. Only two existing installed modules: `bob_inactivity.py` and `bob_operations_diagnostics.py`. No manager routes, publisher, original-post worker, SQLite schema, systemd mutation or new external permission.
 - **Historical label correctness:** up to 150 recent publication jobs, with observed UTC min/max source update dates, real last matching review-block time, and clear **historical** wording. At most 25 approved no-send blocked jobs are read-only rechecked using the same sealed-feed/digest and no-send validator as existing manual Publish action. Display verified subset count and up to three canonical run links to the existing owner review page, not new queue buttons. Verification does not bypass later age/rate/duplicate rules.
 - **Timer truth:** prefer fixed user-systemd timer `NextElapseUSecRealtime`, then read-only fixed-unit JSON `list-timers --all` fallback for each of the same two allowlisted timers. A blank/invalid result remains unknown, never a made-up scheduled publication.
 - **Recent event context:** Last activity & timing shows recorded Scout checkpoint, latest valid metadata-only publisher skip/evaluation, last send attempt, last API-acknowledged publication, next systemd trigger and separate policy eligibility. Undated static explanations say policy/historical summary, not "Time unavailable" as though an event timestamp was lost.
-- **Acceptance:** [V076-OC41-DIAGNOSTIC-POLISH.md](V076-OC41-DIAGNOSTIC-POLISH.md); one `bobctl update` and short mobile `/investigate` review. No test posting or setting toggles.
-- **After OC4.1:** Operations Center OC0–OC4.1 closes only after live acceptance. Pending independent idea: Moltbook Experience Digest (MD1), followed by separate authorization for CH1/FM4/FM5. Maintain hold.
+- **Acceptance:** PASS as reported by the operator on October 30, 2026 after normal `bobctl update`; [V076-OC41-DIAGNOSTIC-POLISH.md](V076-OC41-DIAGNOSTIC-POLISH.md). No separate test posting or setting toggles required.
+- **After OC4.1:** Operations Center OC0–OC4.1 is **closed and accepted**. The next proposed separate project is Moltbook Experience Digest (MD1); CH1/FM4/FM5 still require separately authorized work. Maintain Friends hold.
 
 ## 4. Improvements that should NOT get mixed into first release
 
@@ -181,6 +181,6 @@ Suggested distinct UI states:
 - Avoid 14-hour manual test sequences. Synthetic comprehensive CI plus a **single short owner smoke test** for each release, with exact pass/fail and rollback.
 - Real operator screenshot is the problem statement, **not proof** that current services have failed. To confirm a live cause, use existing `/system/status`, `/logs` (publisher/scout) and `/originals` without mutation.
 
-## 6. OC4.1 handoff, October 30, 2026
+## 6. Fresh-chat handoff after Operations Center completion
 
-> Last confirmed installed baseline: `v0.7.6-oc4-investigator1`. OC4.1 diagnostic-only candidate `v0.7.6-oc41-polish1` is built on that baseline but **not installed until the owner reports `bobctl update` success**. Read `docs/V076-OC41-DIAGNOSTIC-POLISH.md`, `docs/OPERATIONS-CENTER-ROADMAP.md`, root `TODO.md` and current `releases/current.json` on GitHub `main`. Validate source timestamps, historical vs verified handoff subset, rate policy vs systemd trigger, real last Scout/publisher evidence; keep publication logic, owner-review permissions, auth and security unchanged. After operator accepts, OC0–OC4.1 complete. Next possible project is **MD1 Moltbook Experience Digest**, not already implemented. FM4 and FM5 remain paused.
+> **Operator-accepted installed baseline: `v0.7.6-oc41-polish1` (October 30, 2026).** OC0, OC1, OC2, OC3, publication handoff repair, OC4 and OC4.1 were accepted; the last step got the explicit “working as expected” confirmation. All scoped Operations Center work is complete. **Do not repeat OC4.1 or redeploy this release.** Read `TODO.md` for the *separately planned* **MD1 Moltbook Experience Digest**, a bounded, owner-controlled way for the real OpenClaw Bob to read verified Scout selections, publications and observed replies during Gateway/CH1 chat. MD1 has not been implemented, and FM4/FM5 stay paused. Future `bobctl update` releases must have `from: v0.7.6-oc41-polish1` unless intervening changes are accepted by the operator. No running services or updater manifest were modified by this documentation checkpoint.

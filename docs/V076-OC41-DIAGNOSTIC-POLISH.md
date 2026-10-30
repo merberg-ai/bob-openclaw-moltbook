@@ -1,7 +1,7 @@
 # OC4.1: Why No Activity? Diagnostic Polish
 
-**Release candidate:** `v0.7.6-oc41-polish1` from last operator-accepted `v0.7.6-oc4-investigator1`.  
-**Status:** offline CI and live operator acceptance required. Repo merge does not install on the OMEN.  
+**Release:** `v0.7.6-oc41-polish1` from `v0.7.6-oc4-investigator1`.  
+**Status:** **OPERATOR ACCEPTANCE: PASS, October 30, 2026.** Installed using `bobctl update` and reported working as expected. Offline CI: 591 tests passed. Repository merge alone does not install on the OMEN.  
 **Installed files:** `bob_inactivity.py`, `bob_operations_diagnostics.py`. Activity Manager restart only. **No new manager route, DB schema, new listener, automation, timer mutation, scheduler or publication permission.**
 
 ## Why this increment
@@ -21,7 +21,7 @@ All evidence stays on authenticated LAN. SQLite is fixed and read-only with boun
 
 Synthetic `tests/test_oc41_diagnostic_polish.py` covers valid/invalid systemd fallback, exact-unit selection, bad JSON/injection, bounded handoff verified vs unverified/unsafe job, real history date labels and UI source links. The entire old tests suite must remain green.
 
-## Operator smoke acceptance
+## Operator smoke acceptance (completed: PASS)
 
 1. Run `bobctl update` in OpenClawLab; confirm `v0.7.6-oc4-investigator1` → `v0.7.6-oc41-polish1`, type `UPDATE`.
 2. On LAN open **Why no activity?**. Look for the Last activity & timing block, historical UTC range on Automatic comments, dated blocked-review findings, and the separate **verified handoff subset**.
@@ -30,3 +30,5 @@ Synthetic `tests/test_oc41_diagnostic_polish.py` covers valid/invalid systemd fa
 5. Existing Overview, Automation, Console and normal queue protections should remain unchanged. No extra command marathon.
 
 **Next:** After OC4.1 acceptance, Operations Center OC0–OC4.1 is closed as scoped. Separate pending MD1 **Moltbook Experience Digest** in TODO.md, future CH1 Direct Bob Chat, and paused FM4/FM5 remain independent operator choices.
+
+**Acceptance record:** The operator confirmed the OC4.1 update installed and worked as expected. The Operations Center phases OC0–OC4.1 are complete; MD1/CH1 and FM4/FM5 are distinct planned workstreams and remain unimplemented/paused until authorized.
