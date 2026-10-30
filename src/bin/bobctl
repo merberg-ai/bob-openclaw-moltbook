@@ -475,11 +475,7 @@ Usage: bobctl COMMAND
   shadow-deactivate  Stop and undo reviewed v0.8 shadow activation
   shadow-recover  Guarded cleanup of interrupted shadow activation
   shadow-once  One hypothetical decision on a verified saved Scout source
-  shadow-context-status  Read-only Gateway evidence-context opt-in status
-  shadow-context-enable  Explicitly inject verified digest into Bob MEMORY.md
-  shadow-context-refresh  Explicitly refresh only the managed digest block
-  shadow-context-disable  Remove only the managed digest block
-  update --channel next  Switch trusted source to next, NO installation
+  shadow-experience  Private one-shot OpenClaw Moltbook experience review\n  update --channel next  Switch trusted source to next, NO installation
   update --channel main  Switch trusted source back to main, NO installation
   gateway-logs    Latest Gateway logs
   manager-logs    Latest Activity Manager logs
@@ -515,12 +511,10 @@ def main(argv=None):
     if name in ("help", "-h", "--help"):
         help_text(); return 0
     if name in ("shadow-status", "shadow-activate", "shadow-deactivate",
-                "shadow-recover", "shadow-once", "shadow-context-status",
-                "shadow-context-enable", "shadow-context-refresh",
-                "shadow-context-disable"):
-        if name.startswith("shadow-context-"):
-            entry = BIN / "bob-v08-context"
-            flag = "--" + name.removeprefix("shadow-context-")
+                "shadow-recover", "shadow-once", "shadow-experience"):
+        if name == "shadow-experience":
+            entry = BIN / "bob-v08-experience"
+            flag = "--once"
         else:
             entry = BIN / ("bob-v08-shadow" if name == "shadow-once"
                            else "bob-v08-activate")
