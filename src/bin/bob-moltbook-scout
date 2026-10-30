@@ -218,10 +218,13 @@ def main():
             raise RuntimeError("Usage: bob-moltbook-scout [--retry-latest]")
         retry_of = None
         friend_source_count = 0
+        friend_scan_status = "disabled"
         if is_retry:
             posts, retry_of = retry_snapshot()
             friend_source_count=sum(1 for p in posts if
                                     isinstance(p,dict) and p.get("from_friend") is True)
+            friend_scan_status=("replayed_friend_snapshot" if friend_source_count
+                                else "replayed_global_snapshot")
             print(f"Retrying saved discussion batch from {retry_of}...", flush=True)
         else:
             checkpoint("scout",stamp,"fetching")
@@ -248,7 +251,10 @@ def main():
             # FM3 owner opt-in: at most two additional public profile GETs
             # and one post GET per verified active friend. If disabled, the
             # original global feed is unchanged and no extra requests occur.
-            posts, friend_source_count = friend_enrich(posts,seen_ids)
+            friend_scan={}
+            posts, friend_source_count = friend_enrich(
+                posts,seen_ids,diagnostics=friend_scan)
+            friend_scan_status=friend_scan.get("state","disabled")
         checkpoint("scout",stamp,"validating")
         print(f"New discussions selected: {len(posts)}", flush=True)
         if not posts:
@@ -304,6 +310,7 @@ def main():
             "why": why, "draft_comment": draft,
             "friend_focus": bool(friend_source_count),
             "friend_source_count": friend_source_count,
+            "friend_scan_status": friend_scan_status,
             "validation_errors": errors, "retry_of": retry_of, "feed_post_count": len(posts),
             "draft_sha256": hashlib.sha256(draft.encode()).hexdigest() if draft else None,
             "approval_sha256": approval_digest,
