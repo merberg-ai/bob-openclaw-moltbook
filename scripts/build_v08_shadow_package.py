@@ -34,10 +34,10 @@ if POINTER.exists() or POINTER.is_symlink():
         raise SystemExit("Invalid Bob v0.8 activation pointer")
     try:
         record = json.loads(POINTER.read_text())
-        if (record.get("release") != "v0.8.0-shadow1" or
+        if (record.get("release") != "v0.8.0-shadow2" or
                 len(record.get("sha256", "")) != 64):
             raise ValueError("bad active release")
-        PACKAGE = HOME / ".local/share/bob/releases/v0.8.0-shadow1/bob_v08_package.pyz"
+        PACKAGE = HOME / ".local/share/bob/releases/v0.8.0-shadow2/bob_v08_package.pyz"
         if (PACKAGE.is_symlink() or not PACKAGE.is_file() or
                 hashlib.sha256(PACKAGE.read_bytes()).hexdigest() != record["sha256"]):
             raise ValueError("active archive mismatch")
