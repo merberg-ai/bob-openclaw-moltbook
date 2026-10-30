@@ -9,7 +9,8 @@ import json, os, sys, urllib.request, urllib.error, urllib.parse, http.client
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re, sqlite3
-from bob_publish_common import DATA, connect, now, setting, set_setting, event, load_record, auto_candidates, UUID
+from bob_publish_common import DATA, connect, now, setting, set_setting, event, load_record, UUID
+from bob_friend_scout import guarded_auto_candidates as auto_candidates, allow_auto_candidate
 from bob_job_tracking import checkpoint
 from bob_activity_limits import allowed as activity_allowed
 
@@ -84,6 +85,17 @@ def publisher_step(db):
         db.commit()
         checkpoint('publisher',rid,'failed')
         return 'invalid draft blocked'
+    # FM3: a friend encountered through either the dedicated scan OR the
+    # ordinary global feed must never be sent by old auto-comment permission.
+    # Recheck just before network posting, including pre-existing queued jobs.
+    if mode=='auto' and not allow_auto_candidate(db,record):
+        db.execute("UPDATE publish_jobs SET state='failed',last_error="
+                   "'Friend-targeted draft requires manual review',updated_at=? "
+                   "WHERE run_id=? AND state='queued'",(now(),rid))
+        event(db,'publish_blocked',f'{rid} friend-targeted auto reply blocked')
+        db.commit()
+        checkpoint('publisher',rid,'failed')
+        return 'friend-targeted auto reply blocked; requires human review'
     if mode=='manual':
         decision=db.execute('SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
         if decision != (digest,'approved'):
