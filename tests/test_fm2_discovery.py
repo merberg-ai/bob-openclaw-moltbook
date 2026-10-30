@@ -192,7 +192,7 @@ class FM2Tests(unittest.TestCase):
             discovery.review(self.db,item["id"],"0"*64,"reject","uninteresting")
         discovery.review(self.db,item["id"],item["sha256"],"reject","Not interesting")
         self.assertEqual(self.db.execute("SELECT count(*) FROM bob_friends").fetchone()[0],0)
-        with self.assertRaisesRegex(ValueError,"already reviewed"):
+        with self.assertRaisesRegex(ValueError,"candidate changed"):
             discovery.review(self.db,item["id"],item["sha256"],"reject","again")
 
     def test_cached_profile_integrity_staleness_and_identity_collision(self):
