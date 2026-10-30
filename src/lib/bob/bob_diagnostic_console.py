@@ -40,6 +40,13 @@ HEALTH_SERVICES={
     "Activity Manager":"manager","Ollama":"ollama",
 }
 MAX_TEXT_BYTES=24000
+SAFE_JOB_STATES=frozenset((
+    "queued","running","completed","draft","approved","rejected",
+    "failed","published","cancelled","uncertain","waiting",
+    "awaiting_verification","verification_failed","verification_expired",
+    "verified_unconfirmed","submitted","verified","expired","blocked",
+    "intentionally","preflight","sending","pending"
+))
 CSS="""<style>
 .bco{max-width:1160px;margin:auto;display:grid;gap:11px}
 .bco-panel{border:1px solid #334f6a;border-radius:14px;padding:clamp(11px,2vw,18px);
@@ -130,6 +137,27 @@ def _health(at, provider=None):
                            "when":at,"id":"","message":name+": "+label})
     return output,True
 
+def _safe_local_message(row):
+    """Existing Logs redaction plus an explicit state allowlist for DB rows.
+
+    The shared Logs viewer may include an unknown SQLite state in its
+    diagnostic summary. Do not copy unexpected state text into Console.
+    """
+    message=row["message"]
+    if row["source"]!="jobs":
+        return message
+    if message.startswith("Comment job: intentionally blocked (database state: failed)."):
+        return message
+    prefix=next((p for p in ("Comment job: ","Original publication job: ",
+                            "Original generation job: ") if message.startswith(p)),None)
+    if prefix is None:
+        return "Stored job summary not recognized; details withheld"
+    state=message[len(prefix):].split(".",1)[0].split(" ",1)[0]
+    if state not in SAFE_JOB_STATES:
+        return "Stored job state is unrecognized; details withheld"
+    return message
+
+
 def collect(opts,*,db_path=None,checkpoint_root=None,
             journal_runner=None,health_provider=None,at=None):
     at=at or datetime.now(timezone.utc)
@@ -171,12 +199,14 @@ def collect(opts,*,db_path=None,checkpoint_root=None,
             continue
         if opts["level"]!="all" and row["level"]!=opts["level"]:
             continue
-        msg=row["message"]
+        msg=_safe_local_message(row)
         if needle and needle not in (msg+" "+row["id"]+" "+row["source"]+" "+row["service"]).casefold():
             continue
         # Values are already allowlisted/classified by the source collector.
         # Never serialize arbitrary DB details, exceptions or journal text.
-        matches.append({k:str(row[k])[:350] for k in ("at","service","level","source","id","message")})
+        entry={k:str(row[k])[:350] for k in ("at","service","level","source","id")}
+        entry["message"]=msg[:350]
+        matches.append(entry)
     matches.sort(key=lambda x:(x["at"],x["source"],x["id"]),reverse=True)
     return {"checked_at":at.isoformat(timespec="seconds"),
             "entries":matches[:MAX_ROWS],
