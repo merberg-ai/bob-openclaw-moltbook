@@ -233,9 +233,7 @@ def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None):
     if not watch:
         return posts[:MAX_TOTAL],0
     try:
-        friend_posts=read_friend_posts(watch,set(seen)|{p["id"] for p in posts if
-                                      not isinstance(p,dict) or "id" in p} if False else set(seen),
-                                      getter=getter)
+        friend_posts=read_friend_posts(watch,set(seen),getter=getter)
     except (ValueError,TypeError,OSError):
         friend_posts=[]
     if not friend_posts:
