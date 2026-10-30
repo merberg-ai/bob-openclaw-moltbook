@@ -255,6 +255,94 @@ def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None,diagnostics=None
     return selected[:MAX_TOTAL],len(friend_posts)
 
 
+def allow_auto_candidate(db,rec):
+    """Fail closed for friend-targeted posts, regardless of how they were found.
+
+    Called both before automatic queue insertion and immediately before an
+    already-queued automatic publication is sent. A valid Scout record alone
+    does NOT authorize posting to a saved friend.
+    """
+    if not isinstance(rec,dict) or rec.get("friend_focus") is True:
+        return False
+    rid=rec.get("run_id")
+    if not isinstance(rid,str) or not common.RUN_ID.fullmatch(rid):
+        return False
+    try:
+        path=common.DATA/("scout-feed-"+rid+".json")
+        if path.is_symlink() or not path.is_file() or path.stat().st_size>512*1024:
+            return False
+        raw=path.read_bytes()
+        if hashlib.sha256(raw).hexdigest()!=rec.get("snapshot_sha256"):
+            return False
+        snapshot=json.loads(raw)
+        if not isinstance(snapshot,dict) or snapshot.get("friend_focus") is True:
+            return False
+        posts=snapshot.get("posts")
+        if not isinstance(posts,list) or any(
+            isinstance(p,dict) and p.get("from_friend") is True for p in posts):
+            return False
+        selected=next((p for p in posts if isinstance(p,dict) and
+                       p.get("id")==rec.get("chosen_post_id")),None)
+        if not isinstance(selected,dict):
+            return False
+        author=selected.get("author")
+        if not isinstance(author,str):
+            return False
+        # FM1's private table may not exist on fresh hosts. A damaged table,
+        # however, must not grant an unintended auto-publication permission.
+        exists=db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='bob_friends'"
+        ).fetchone()
+        if exists and db.execute(
+            "SELECT 1 FROM bob_friends WHERE handle_key=?",(author.casefold(),)
+        ).fetchone():
+            return False
+        return True
+    except (OSError,sqlite3.Error,TypeError,ValueError,KeyError):
+        return False
+
+
+def guarded_auto_candidates(db,max_count=10):
+    """FM3 substitute for the legacy unmanaged auto_candidates helper.
+
+    Preserves the existing exact queue schema, age and human-decision gates,
+    but never auto-queues any saved friend or friend-tagged Scout batch.
+    """
+    if common.setting(db,"auto_enabled","0")!="1":
+        return 0
+    since=common.setting(db,"auto_since","")
+    if not since:
+        return 0
+    count=0
+    for path in sorted(common.DATA.glob("scout-result-*.json")):
+        rid=path.name.removeprefix("scout-result-").removesuffix(".json")
+        obj=common.load_record(rid)
+        if obj is None or not allow_auto_candidate(db,obj):
+            continue
+        try:
+            from datetime import timedelta
+            created=datetime.strptime(rid,"%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            if created.isoformat()<=since:
+                continue
+        except ValueError:
+            continue
+        if db.execute("SELECT 1 FROM decisions WHERE run_id=?",(rid,)).fetchone():
+            continue
+        if db.execute("SELECT 1 FROM publish_jobs WHERE run_id=?",(rid,)).fetchone():
+            continue
+        t=common.now()
+        db.execute(
+            "INSERT INTO publish_jobs(run_id,approval_sha256,post_id,draft_comment,"
+            "mode,state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+            (rid,obj["approval_sha256"],obj["chosen_post_id"],obj["draft_comment"],
+             "auto","queued",t,t))
+        common.event(db,"auto_queued",f"{rid} new validated draft queued")
+        count+=1
+        if count>=max_count:
+            break
+    return count
+
+
 def page(db,csrf,wrap,records):
     on=enabled(db)
     active=_watch(db)
