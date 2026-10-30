@@ -93,7 +93,7 @@ class SocialTimelineTests(unittest.TestCase):
                     run_id=RUN,post_id=PID,
                     snapshot_sha=self.record["snapshot_sha256"],
                     handle="BobBuddy",idea="Maybe AI social memory matters.",
-                    reason="Local reasoning","uncertainty":"This is only an idea.",
+                    reason="Local reasoning",uncertainty="This is only an idea.",
                     confidence="low",status="pending",
                     created_at=now,updated_at=now,review_reason="",version=1)
             ai["sha256"]=scout.ai_seal(ai)
