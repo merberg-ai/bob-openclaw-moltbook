@@ -229,13 +229,15 @@ def read_friend_posts(watch,already_seen,*,getter=_json_get):
     return output[:MAX_POSTS]
 
 
-def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None):
+def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None,diagnostics=None):
     """Returns existing global posts untouched unless owner explicitly opted in.
 
     If friend posts are obtained, reserve FOUR positions for the normal global
     feed; do not allow friendships to dominate every scout decision.
     """
     watch=selected_watch(db_path,date=date)
+    if diagnostics is not None:
+        diagnostics["state"]="no_eligible_active_friends" if not watch else "no_verified_public_posts"
     if not watch:
         return posts[:MAX_TOTAL],0
     try:
@@ -244,6 +246,8 @@ def enrich(posts,seen,*,db_path=None,getter=_json_get,date=None):
         friend_posts=[]
     if not friend_posts:
         return posts[:MAX_TOTAL],0
+    if diagnostics is not None:
+        diagnostics["state"]="friend_posts_included"
     existing={p["id"] for p in friend_posts}
     global_posts=[p for p in posts if isinstance(p,dict) and p.get("id") not in existing]
     # Four normal slots, two prioritized friend slots.
@@ -259,7 +263,9 @@ def page(db,csrf,wrap,records):
     ordered=sorted(active,key=lambda x:(weight[x["relationship"]],x["handle_key"]))
     recent=[]
     for rec in (records or [])[:80]:
-        if isinstance(rec,dict) and rec.get("friend_focus") is True and common.load_record(rec.get("run_id")):
+        if (isinstance(rec,dict) and rec.get("friend_scan_status") in
+            ("friend_posts_included","no_verified_public_posts","no_eligible_active_friends","replayed_friend_snapshot")
+            and common.load_record(rec.get("run_id"))):
             recent.append(rec)
             if len(recent)>=6:
                 break
@@ -298,17 +304,19 @@ def page(db,csrf,wrap,records):
         parts += ['<div class="bfs-card"><strong>@'+e(item["handle"])+'</strong>',
                   '<p class="bfs-tags">'+e(item["relationship"])+
                   ' · '+e(item["display_name"])+'</p></div>']
-    parts += ['</section><section class="bfs-panel"><h2>Recent friend-focused Scout runs</h2>',
+    parts += ['</section><section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
               '<p class="bfs-muted">Results appear after the existing Scout timer '
-              'next runs. Enabling this feature does not run Scout immediately, '
+              'next runs. A missing friend post may mean the public profile or post '
+              'was unavailable or failed source verification; the regular global '
+              'Scout still runs. Enabling does not run Scout immediately, '
               'change its schedule, or create a publication approval.</p>']
     if not recent:
         parts.append('<p class="bfs-muted">No completed friend-focused runs yet.</p>')
     for rec in recent:
         parts += ['<div class="bfs-card"><strong>Scout '+e(rec["run_id"])+'</strong>',
                   '<p class="bfs-muted">'+str(rec.get("friend_source_count",0))+
-                  ' friend source post(s) mixed in · selected author '+
-                  e(rec.get("chosen_author") or "none")+
+                  ' friend source post(s) mixed in · '+e(rec.get("friend_scan_status","unknown"))+
+                  ' · selected author '+e(rec.get("chosen_author") or "none")+
                   ' · status '+e(rec.get("status","unknown"))+'</p>',
                   '<p><a href="/scout">Review Scout drafts</a></p></div>']
     parts += ['</section><p><a href="/moltbook/friends">Manage friends</a></p></div>']
