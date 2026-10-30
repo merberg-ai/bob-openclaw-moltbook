@@ -1,16 +1,26 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.6-oc01-activity1",
-  "from": "v0.7.5-fm32d-focus1",
-  "notes": "OC0 + OC1: verified read-only Bob right now Overview card, bounded policy/queue/worker/timer explanations, truthful idle/blocked/waiting/unknown and separate systemd trigger vs policy eligibility. No automation or publication changes.",
+  "release": "v0.7.6-oc2-automation1",
+  "from": "v0.7.6-oc01-activity1",
+  "notes": "OC2 Automation unified mobile compact status page, existing owner-guarded auto-comment and friend Scout switch forms, schedules/last records; compact Overview Bob right now. No new automation, timers, publication authority or shell.",
   "files": [
     {
-      "name": "bob_operations_diagnostics.py",
-      "source": "src/lib/bob/bob_operations_diagnostics.py"
+      "name": "bob_automation_center.py",
+      "source": "src/lib/bob/bob_automation_center.py"
     },
     {
       "name": "bob_overview.py",
       "source": "src/lib/bob/bob_overview.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v076_oc2_candidate.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v076_oc2_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
