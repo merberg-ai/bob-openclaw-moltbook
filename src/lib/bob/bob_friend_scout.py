@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 import hashlib
 import hmac
 import json
+import secrets
 import sqlite3
 
 import bob_publish_common as common
@@ -33,7 +34,12 @@ ERRORS=frozenset(("Invalid friend scouting form","Friend scouting setting change
                    "Friend watch preference changed; reload",
                    "Friend watch preference already selected",
                    "Friend must be active to change watch preference",
-                   "Friend watch preference integrity failed"))
+                   "Friend watch preference integrity failed",
+                   "Invalid interest form","Interest source unavailable or changed",
+                   "Interest source is not an active saved friend",
+                   "Interest already staged","Interest inbox capacity reached",
+                   "Interest changed; reload","Interest record integrity failed",
+                   "Interest decision unavailable","Review reason must be 0-240 characters"))
 CSS="""<style>
 .bfs{max-width:1050px;margin:auto;display:grid;gap:17px}
 .bfs-panel{border:1px solid #375575;background:linear-gradient(145deg,#172a40,#111d30);
@@ -170,6 +176,10 @@ def change(db,form):
     """Called after existing Activity Manager auth, Origin and CSRF checks."""
     if form.get("operation")=="watch":
         return _change_watch(db,form)
+    if form.get("operation")=="interest_stage":
+        return _interest_stage(db,form)
+    if form.get("operation")=="interest_review":
+        return _interest_review(db,form)
     if set(form)!={"csrf","enabled","expected","confirmation"}:
         raise ValueError("Invalid friend scouting form")
     new,expected=form["enabled"],form["expected"]
@@ -185,6 +195,175 @@ def change(db,form):
                "ON CONFLICT(name) DO UPDATE SET value=excluded.value",(SETTING,new))
     common.event(db,"bob_friend_scout_setting","enabled" if new=="1" else "disabled")
     return new
+
+
+
+# FM3.2a: operator-staged, source-verified observations for private review.
+# The idea is copied from Bob's EXISTING saved WHY, not fresh model inference,
+# a factual assertion about an agent, a trusted instruction, or PM2 memory.
+INTEREST_COLS=("id","friend_id","run_id","post_id","handle","idea","status",
+               "created_at","updated_at","review_reason","version","sha256")
+INTEREST_CAP=60
+INTEREST_STATES=("pending","approved","rejected","archived")
+
+
+def init_interests(db):
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_interest_proposals (
+        id TEXT PRIMARY KEY, friend_id TEXT NOT NULL,
+        run_id TEXT NOT NULL UNIQUE, post_id TEXT NOT NULL,
+        handle TEXT NOT NULL, idea TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected','archived')),
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+        review_reason TEXT NOT NULL, version INTEGER NOT NULL CHECK(version>=1),
+        sha256 TEXT NOT NULL)""")
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_interest_history (
+        id TEXT NOT NULL, version INTEGER NOT NULL, saved_at TEXT NOT NULL,
+        action TEXT NOT NULL, snapshot_json TEXT NOT NULL,
+        PRIMARY KEY(id,version))""")
+    db.execute("CREATE INDEX IF NOT EXISTS bob_friend_interest_status_idx "
+               "ON bob_friend_interest_proposals(status,created_at)")
+
+
+def interest_seal(item):
+    return hashlib.sha256(json.dumps(
+        {k:item[k] for k in INTEREST_COLS if k!="sha256"},
+        ensure_ascii=False,sort_keys=True,separators=(",",":")
+    ).encode("utf-8")).hexdigest()
+
+
+def interest_valid(item):
+    try:
+        return (isinstance(item["sha256"],str) and
+                hmac.compare_digest(item["sha256"],interest_seal(item))
+                and item["status"] in INTEREST_STATES
+                and type(item["version"]) is int and item["version"]>=1)
+    except (KeyError,TypeError,ValueError):
+        return False
+
+
+def _interest_source(run_id):
+    # Recheck the exact local chosen post and snapshot hash at every
+    # stage/approval. Never accept an author, idea or URL from POST data.
+    try:
+        author,verified_run,pid=friends._source_author(run_id)
+        rec=common.load_record(verified_run)
+        why=rec.get("why") if isinstance(rec,dict) else None
+        if not isinstance(why,str) or not why.strip():
+            raise ValueError
+        idea=why.strip()[:320]
+        if any(ord(c)<32 and c not in "\n\t" for c in idea):
+            raise ValueError
+        return author,pid,idea
+    except (ValueError,TypeError,OSError,AttributeError,KeyError):
+        raise ValueError("Interest source unavailable or changed") from None
+
+
+def _interest_get(db,ident):
+    if not isinstance(ident,str) or not friends.ID.fullmatch(ident):
+        raise ValueError("Invalid interest form")
+    row=db.execute("SELECT "+",".join(INTEREST_COLS)+
+                   " FROM bob_friend_interest_proposals WHERE id=?",(ident,)).fetchone()
+    if not row:
+        raise ValueError("Invalid interest form")
+    item=dict(zip(INTEREST_COLS,row))
+    if not interest_valid(item):
+        raise ValueError("Interest record integrity failed")
+    return item
+
+
+def _interest_history(db,item,action):
+    db.execute("INSERT INTO bob_friend_interest_history"
+               "(id,version,saved_at,action,snapshot_json) VALUES(?,?,?,?,?)",
+               (item["id"],item["version"],item["updated_at"],action,
+                json.dumps(item,ensure_ascii=False,sort_keys=True)))
+
+
+def _interest_stage(db,form):
+    if set(form)!={"csrf","operation","friend_id","friend_sha","run_id","post_id"}:
+        raise ValueError("Invalid interest form")
+    init_interests(db)
+    friend=friends._get(db,form["friend_id"])
+    if friend["state"]!="active" or not hmac.compare_digest(
+            friend["sha256"],form["friend_sha"]):
+        raise ValueError("Interest source is not an active saved friend")
+    author,pid,idea=_interest_source(form["run_id"])
+    if (pid!=form["post_id"] or
+        author.casefold()!=friend["handle_key"]):
+        raise ValueError("Interest source unavailable or changed")
+    if db.execute("SELECT 1 FROM bob_friend_interest_proposals WHERE run_id=?",
+                  (form["run_id"],)).fetchone():
+        raise ValueError("Interest already staged")
+    if db.execute("SELECT count(*) FROM bob_friend_interest_proposals").fetchone()[0]>=INTEREST_CAP:
+        raise ValueError("Interest inbox capacity reached")
+    t=common.now()
+    item=dict(id=secrets.token_hex(12),friend_id=friend["id"],
+              run_id=form["run_id"],post_id=pid,handle=friend["handle"],
+              idea=idea,status="pending",created_at=t,updated_at=t,
+              review_reason="",version=1)
+    item["sha256"]=interest_seal(item)
+    try:
+        db.execute("INSERT INTO bob_friend_interest_proposals("+",".join(INTEREST_COLS)+") "
+                   "VALUES("+",".join("?" for _ in INTEREST_COLS)+")",
+                   tuple(item[k] for k in INTEREST_COLS))
+    except sqlite3.IntegrityError:
+        raise ValueError("Interest already staged") from None
+    _interest_history(db,item,"stage")
+    common.event(db,"bob_friend_interest_staged",item["id"])
+    return item["id"]
+
+
+def _interest_review(db,form):
+    if set(form)!={"csrf","operation","id","expected_sha","decision","reason"}:
+        raise ValueError("Invalid interest form")
+    reason=form["reason"]
+    if (not isinstance(reason,str) or len(reason)>240 or
+        any(ord(c)<32 for c in reason)):
+        raise ValueError("Review reason must be 0-240 characters")
+    decision=form["decision"]
+    if decision not in ("approve","reject","reopen","archive"):
+        raise ValueError("Invalid interest form")
+    init_interests(db)
+    item=_interest_get(db,form["id"])
+    if not isinstance(form["expected_sha"],str) or not hmac.compare_digest(
+            item["sha256"],form["expected_sha"]):
+        raise ValueError("Interest changed; reload")
+    target={"approve":"approved","reject":"rejected",
+            "reopen":"pending","archive":"archived"}[decision]
+    allowed={"pending":("approve","reject","archive"),
+             "approved":("reopen","archive"),"rejected":("reopen","archive"),
+             "archived":("reopen",)}
+    if decision not in allowed[item["status"]]:
+        raise ValueError("Interest decision unavailable")
+    if decision in ("approve","reopen"):
+        author,pid,idea=_interest_source(item["run_id"])
+        friend=friends._get(db,item["friend_id"])
+        if (friend["state"]!="active" or author.casefold()!=friend["handle_key"]
+            or friend["handle"]!=item["handle"] or pid!=item["post_id"]
+            or idea!=item["idea"]):
+            raise ValueError("Interest source unavailable or changed")
+    previous=item["sha256"]
+    item.update(status=target,updated_at=common.now(),
+                review_reason=reason.strip(),version=item["version"]+1)
+    item["sha256"]=interest_seal(item)
+    cur=db.execute("UPDATE bob_friend_interest_proposals "
+                   "SET status=?,updated_at=?,review_reason=?,version=?,sha256=? "
+                   "WHERE id=? AND sha256=?",
+                   (target,item["updated_at"],item["review_reason"],item["version"],
+                    item["sha256"],item["id"],previous))
+    if cur.rowcount!=1:
+        raise ValueError("Interest changed; reload")
+    _interest_history(db,item,decision)
+    common.event(db,"bob_friend_interest_reviewed",item["id"]+" "+decision)
+    return target
+
+
+def interest_rows(db):
+    init_interests(db)
+    rows=db.execute("SELECT "+",".join(INTEREST_COLS)+
+                    " FROM bob_friend_interest_proposals "
+                    "ORDER BY created_at DESC,id DESC LIMIT ?",(INTEREST_CAP,)).fetchall()
+    return [item for row in rows if interest_valid(
+        item:=dict(zip(INTEREST_COLS,row)))]
 
 
 def _watch(db,*,include_disabled=False):
@@ -491,6 +670,7 @@ def friend_observations(records,active,*,loader=None):
             continue
         counts[friend["id"]]=counts.get(friend["id"],0)+1
         entries.append(dict(handle=friend["handle"],id=friend["id"],
+                            friend_sha=friend["sha256"],
                             run_id=rid,post_id=pid,title=title[:160],
                             why=why.strip()[:320]))
         if len(entries)>=10:
@@ -504,6 +684,8 @@ def page(db,csrf,wrap,records):
     active=_watch(db,include_disabled=True)
     watching=[item for item in active if item["watch_enabled"]]
     observations=friend_observations(records,active)
+    interest_items=interest_rows(db)
+    staged_runs={item["run_id"] for item in interest_items}
     weight={"friend":0,"interesting":1,"acquaintance":2}
     ordered=sorted(active,key=lambda x:(weight[x["relationship"]],x["handle_key"]))
     recent=[]
@@ -596,7 +778,72 @@ def page(db,csrf,wrap,records):
                   e(observation["run_id"])+'</p>',
                   '<p class="bfs-muted">'+e(observation["why"])+'</p>',
                   '<a href="/moltbook/friends?edit='+e(observation["id"])+
-                  '">View friend details</a></div>']
+                  '">View friend details</a>']
+        if observation["run_id"] in staged_runs:
+            parts.append('<p class="bfs-tags">Already staged in private interest review inbox</p>')
+        else:
+            parts += ['<form method="post" action="/moltbook/friend-scout">',
+                      '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
+                      '<input type="hidden" name="operation" value="interest_stage">',
+                      '<input type="hidden" name="friend_id" value="'+e(observation["id"])+'">',
+                      '<input type="hidden" name="friend_sha" value="'+e(observation["friend_sha"])+'">',
+                      '<input type="hidden" name="run_id" value="'+e(observation["run_id"])+'">',
+                      '<input type="hidden" name="post_id" value="'+e(observation["post_id"])+'">',
+                      '<button class="secondary" type="submit">Stage tentative interest for review</button></form>']
+        parts.append('</div>')
+    parts += ['</section><section class="bfs-panel"><h2>Tentative interests · FM3.2a</h2>',
+              '<p class="bfs-muted">These are Bob’s existing saved Scout WHY explanations '
+              'that an owner explicitly staged, not fresh AI generations or verified facts '
+              'about another agent. Approval records your decision locally; it does NOT '
+              'update FM1 notes, PM2 memory, identity, browsing preferences or publication '
+              'permissions. All review actions are reversible and audit logged.</p>']
+    if not interest_items:
+        parts.append('<p class="bfs-muted">No staged interests. Use the stage control '
+                     'under a source-verified selected friend discussion above.</p>')
+    for item in interest_items[:12]:
+        try:
+            author,pid,idea=_interest_source(item["run_id"])
+            source_ok=(author.casefold()==item["handle"].casefold() and
+                       pid==item["post_id"] and idea==item["idea"])
+        except ValueError:
+            source_ok=False
+        parts += ['<div class="bfs-card"><strong>@'+e(item["handle"])+'</strong>',
+                  '<p class="bfs-tags">'+e(item["status"])+' · v'+str(item["version"])+
+                  ' · source run '+e(item["run_id"])+' · post '+e(item["post_id"])+'</p>',
+                  '<p class="bfs-muted">'+e(item["idea"])+'</p>']
+        if not source_ok:
+            parts.append('<p class="bfs-muted">Source unavailable or changed. '
+                         'No approval or reopening allowed.</p>')
+        if item["review_reason"]:
+            parts.append('<p class="bfs-muted">Latest owner review: '+e(item["review_reason"])+'</p>')
+        decisions={"pending":("approve","reject","archive"),
+                   "approved":("reopen","archive"),
+                   "rejected":("reopen","archive"),"archived":("reopen",)}
+        for action in decisions[item["status"]]:
+            if not source_ok and action in ("approve","reopen"):
+                continue
+            parts += ['<form method="post" action="/moltbook/friend-scout">',
+                      '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
+                      '<input type="hidden" name="operation" value="interest_review">',
+                      '<input type="hidden" name="id" value="'+e(item["id"])+'">',
+                      '<input type="hidden" name="expected_sha" value="'+e(item["sha256"])+'">',
+                      '<input type="hidden" name="decision" value="'+action+'">',
+                      '<label>Optional owner reason for '+action+
+                      '<input name="reason" maxlength="240" autocomplete="off"></label>',
+                      '<button class="secondary" type="submit">'+e(action.title())+
+                      ' locally</button></form>']
+        past=db.execute("SELECT version,saved_at,action FROM bob_friend_interest_history "
+                        "WHERE id=? ORDER BY version DESC LIMIT 8",(item["id"],)).fetchall()
+        if past:
+            parts.append('<details><summary class="bfs-muted">Review history</summary>')
+            for version,when,action in past:
+                parts.append('<p class="bfs-muted">v'+str(version)+' · '+
+                             e(action)+' · '+e(when)+'</p>')
+            parts.append('</details>')
+        parts.append('</div>')
+    if len(interest_items)>12:
+        parts.append('<p class="bfs-muted">Showing 12 newest of '+str(len(interest_items))+
+                     ' staged interests. More entries remain stored locally.</p>')
     parts += ['</section><section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
               '<p class="bfs-muted">Results appear after the existing Scout timer '
               'next runs. A missing friend post may mean the public profile or post '
