@@ -78,18 +78,23 @@ SKIP_CODES=frozenset((
 def record_publisher_skip(db,code,rid=''):
     if code not in SKIP_CODES:
         return
-    recent=db.execute("SELECT at,details FROM publish_events "
-                      "WHERE kind='publisher_skip' ORDER BY id DESC LIMIT 1").fetchone()
-    stamp=datetime.now(timezone.utc)
-    details='code='+code
-    if isinstance(rid,str) and re.fullmatch(r'\d{8}T\d{6}Z',rid):
-        details+=' run='+rid
-    if recent and recent[1]==details:
-        when=parse_time(recent[0])
-        if when and timedelta(0) <= stamp-when < timedelta(minutes=30):
-            return
-    event(db,'publisher_skip',details)
-    db.commit()
+    try:
+        recent=db.execute("SELECT at,details FROM publish_events "
+                          "WHERE kind='publisher_skip' ORDER BY id DESC LIMIT 1").fetchone()
+        stamp=datetime.now(timezone.utc)
+        details='code='+code
+        if isinstance(rid,str) and re.fullmatch(r'\d{8}T\d{6}Z',rid):
+            details+=' run='+rid
+        if recent and recent[1]==details:
+            when=parse_time(recent[0])
+            if when and timedelta(0) <= stamp-when < timedelta(minutes=30):
+                return
+        event(db,'publisher_skip',details)
+        db.commit()
+    except sqlite3.Error:
+        # Never let optional diagnostics change existing publisher behavior
+        # when old/test databases lack event storage or writes are unavailable.
+        return
 
 
 def publisher_step(db):
