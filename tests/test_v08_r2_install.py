@@ -45,8 +45,8 @@ class ShadowActivationTests(unittest.TestCase):
             "JOURNAL": home / ".local/state/bob-v08-activation/journal.json",
             "LOCK": home / ".local/state/bob-v08-activation/lock",
             "STORE": home / ".local/share/bob",
-            "RELEASE_DIR": home / ".local/share/bob/releases/v0.8.0-shadow2",
-            "ARCHIVE": home / ".local/share/bob/releases/v0.8.0-shadow2/bob_v08_package.pyz",
+            "RELEASE_DIR": home / ".local/share/bob/releases/v0.8.0-shadow3",
+            "ARCHIVE": home / ".local/share/bob/releases/v0.8.0-shadow3/bob_v08_package.pyz",
             "POINTER": home / ".local/share/bob/current.json",
             "UNITS": home / ".config/systemd/user"
         }
@@ -112,6 +112,34 @@ class ShadowActivationTests(unittest.TestCase):
         self.assertEqual(inst.activate(), "active")
         self.assertEqual(inst.read_phase()["release"], inst.RELEASE)
         self.assertEqual(inst.deactivate(), "inactive")
+
+    def test_prior_shadow2_inactive_journal_allows_shadow3_activation(self):
+        inst.STATE.mkdir(mode=0o700, parents=True)
+        prior = {
+            "format": "bob-v08-activation-v1",
+            "release": "v0.8.0-shadow2",
+            "phase": "inactive",
+            "bundle_sha": "a" * 64
+        }
+        inst.JOURNAL.write_text(json.dumps(prior))
+        inst.JOURNAL.chmod(0o600)
+        self.assertEqual(inst.read_phase(), prior)
+        self.assertEqual(inst.activate(), "active")
+        self.assertEqual(inst.read_phase()["release"], "v0.8.0-shadow3")
+        self.assertEqual(inst.deactivate(), "inactive")
+
+    def test_prior_shadow2_active_journal_is_rejected(self):
+        inst.STATE.mkdir(mode=0o700, parents=True)
+        prior = {
+            "format": "bob-v08-activation-v1",
+            "release": "v0.8.0-shadow2",
+            "phase": "active",
+            "bundle_sha": "a" * 64
+        }
+        inst.JOURNAL.write_text(json.dumps(prior))
+        inst.JOURNAL.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "invalid_activation_journal"):
+            inst.activate()
 
     def test_old_active_shadow1_journal_must_not_be_upgraded_in_place(self):
         inst.STATE.mkdir(mode=0o700, parents=True)
