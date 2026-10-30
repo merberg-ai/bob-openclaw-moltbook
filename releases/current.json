@@ -1,25 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.6-oc2-automation1",
-  "from": "v0.7.6-oc01-activity1",
-  "notes": "OC2 Automation unified mobile compact status page, existing owner-guarded auto-comment and friend Scout switch forms, schedules/last records; compact Overview Bob right now. No new automation, timers, publication authority or shell.",
+  "release": "v0.7.6-oc3-console1",
+  "from": "v0.7.6-oc2-automation1",
+  "notes": "OC3 authenticated terminal-style read-only Console: safe classified local jobs/events/checkpoints and status, optional bounded explicit journal, severity/source/service filters, pause/scroll/copy/export. No shell or publishing authority.",
   "files": [
     {
-      "name": "bob_automation_center.py",
-      "source": "src/lib/bob/bob_automation_center.py"
-    },
-    {
-      "name": "bob_overview.py",
-      "source": "src/lib/bob/bob_overview.py"
+      "name": "bob_diagnostic_console.py",
+      "source": "src/lib/bob/bob_diagnostic_console.py"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v076_oc2_candidate.py",
+      "builder": "scripts/build_v076_oc3_candidate.py",
       "index": 0
     },
     {
       "name": "navigation_shell.py",
-      "builder": "scripts/build_v076_oc2_candidate.py",
+      "builder": "scripts/build_v076_oc3_candidate.py",
       "index": 1
     }
   ],
