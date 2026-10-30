@@ -172,8 +172,14 @@ class FocusTests(unittest.TestCase):
             self.assertEqual(scout.change(db,form),"approved")
             with self.assertRaisesRegex(ValueError,"changed"):
                 scout.change(db,form)
+            reviewed=scout._focus_get(db,ident)
+            reopened={**form,"expected_sha":reviewed["sha256"],
+                      "decision":"reopen","reason":"Reconsider later"}
+            self.assertEqual(scout.change(db,reopened),"pending")
+            with self.assertRaisesRegex(ValueError,"changed"):
+                scout.change(db,form)
             self.assertEqual(db.execute("SELECT count(*) FROM bob_friend_focus_history "
-                       "WHERE id=?",(ident,)).fetchone()[0],4)
+                       "WHERE id=?",(ident,)).fetchone()[0],5)
             self.assertEqual(db.execute("SELECT count(*) FROM publish_jobs").fetchone()[0],0)
             self.assertEqual(db.execute("SELECT count(*) FROM decisions").fetchone()[0],0)
             self.assertEqual(friends._get(db,self.fid)["notes"],"PRIVATE-NOTES")
