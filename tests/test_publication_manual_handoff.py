@@ -181,6 +181,11 @@ class PublicationHandoffTests(unittest.TestCase):
         with common.connect() as db:
             self.existing(db)
             common.set_setting(db,"auto_enabled","1")
+        with common.connect() as db:
+            self.assertIsNotNone(worker.load_record(RID))
+            self.assertEqual(db.execute("SELECT approval_sha256,post_id,draft_comment "
+              "FROM publish_jobs WHERE run_id=?",(RID,)).fetchone(),
+                (self.record["approval_sha256"],PID,self.record["draft_comment"]))
         emitted=[]
         def get_then_approve(method,path,*args,**kwargs):
             emitted.append(method)
@@ -209,6 +214,11 @@ class PublicationHandoffTests(unittest.TestCase):
         with common.connect() as db:
             self.approve(db)
             common.queue_manual(db,RID)
+        with common.connect() as db:
+            self.assertIsNotNone(worker.load_record(RID))
+            self.assertEqual(db.execute("SELECT approval_sha256,post_id,draft_comment "
+              "FROM publish_jobs WHERE run_id=?",(RID,)).fetchone(),
+                (self.record["approval_sha256"],PID,self.record["draft_comment"]))
         requests=[]
         def stub(method,path,*args,**kwargs):
             requests.append(method)
