@@ -136,7 +136,7 @@ class ManifestAndCommandTests(unittest.TestCase):
     def test_current_release_chains_from_operator_accepted_baseline(self):
         obj = updater.manifest(ROOT)
         self.assertEqual(obj["format"], updater.FORMAT)
-        self.assertTrue(obj["restart_manager"])
+        self.assertEqual(obj["restart_manager"], obj["release"] != "v0.8.0-shadow2")
         if obj["release"] == "v0.7.8-updater2":
             self.assertEqual(obj["from"], "v0.7.6-oc41-polish1")
             self.assertEqual({i["name"] for i in obj["files"]},
@@ -148,6 +148,11 @@ class ManifestAndCommandTests(unittest.TestCase):
                              {"bob_v08_package.pyz", "bob-v08-shadow",
                               "bob-v08-activate", "bob-v08-experience", "bob_v08_bridge.py",
                               "bobctl", "bob-release-updater", "bob-activity-manager", "navigation_shell.py"})
+        elif obj["release"] == "v0.8.0-shadow2":
+            self.assertEqual(obj["from"], "v0.8.0-shadow1")
+            self.assertFalse(obj["restart_manager"])
+            self.assertEqual({i["name"] for i in obj["files"]},
+                             {"bob_v08_package.pyz", "bob-v08-shadow"})
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:

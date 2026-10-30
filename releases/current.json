@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-shadow1",
-  "from": "v0.7.8-updater2",
-  "notes": "R2 real OpenClaw shadow decisions, private event log, authenticated read-only Now/Inbox, reversible versioned shadow timer and owner-requested session-scoped experience digest. No Moltbook writes or global memory modifications.",
+  "release": "v0.8.0-shadow2",
+  "from": "v0.8.0-shadow1",
+  "notes": "R2 shadow OpenClaw --json envelope parser and sanitized model error categories. Requires explicit shadow-deactivate before updating, then shadow-activate; no Moltbook writes or existing publisher changes.",
   "files": [
     {
       "name": "bob_v08_package.pyz",
@@ -13,37 +13,7 @@
       "name": "bob-v08-shadow",
       "builder": "scripts/build_v08_shadow_package.py",
       "index": 1
-    },
-    {
-      "name": "bob-v08-activate",
-      "source": "src/bin/bob-v08-activate"
-    },
-    {
-      "name": "bob-v08-experience",
-      "source": "src/bin/bob-v08-experience"
-    },
-    {
-      "name": "bob_v08_bridge.py",
-      "source": "src/lib/bob/bob_v08_bridge.py"
-    },
-    {
-      "name": "bobctl",
-      "source": "src/bin/bobctl"
-    },
-    {
-      "name": "bob-release-updater",
-      "source": "scripts/bob_release_updater.py"
-    },
-    {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_v08_shadow_dashboard.py",
-      "index": 0
-    },
-    {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_v08_shadow_dashboard.py",
-      "index": 1
     }
   ],
-  "restart_manager": true
+  "restart_manager": false
 }

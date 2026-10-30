@@ -1,3 +1,12 @@
+## R2 host acceptance and targeted transport repair (2026-10-30)
+
+- Owner successfully installed `v0.8.0-shadow1` using a **separate clean `~/bob-next` checkout** after the previous branch-switch implementation repeatedly staged partial R2 changes on main (tracked in issue #57). Activity Manager served its authenticated Shadow Now/Inbox routes, versioned shadow timer activated, and read-only evidence linked to six saved Scout selections. No R2 external Moltbook writes occurred.
+- Manual shadow decision and a scheduled tick recorded `invalid_or_unavailable_model_output` against verified sources. An isolated OpenClaw CLI test proved `--json` returns `status=ok` and a valid reply nested at `result.payloads[0].text`. Shadow1 omitted `--json` and treated stdout as an exact JSON object, a likely transport mismatch (the original raw output was not retained; issue #58).
+- Candidate `v0.8.0-shadow2` is a narrow chained maintenance release, not R3. Fixes envelope extraction with no loosened target/content policy, fixed-category safe error reporting, and a versioned archive activation path requiring deliberate shadow1 deactivation first. Existing shadow events remain; no automatic replay of old failures. Host acceptance is still required after green CI.
+- Leave `main` at the established reviewed R1 baseline. Do not use the faulty branch switch or disturb `~/bob-main`. Keep using the verified separate `~/bob-next` source.
+
+---
+
 # Bob v0.8: autonomy refactor and controlled migration
 
 **Status:** adopted development direction, planning only. No production deployment is authorized by this document.
