@@ -47,7 +47,7 @@ def saved(root,run,author,*,focused=False,chosen=True):
                 snapshot_file="scout-feed-"+run+".json",snapshot_sha256=digest,
                 draft_comment=draft,draft_sha256=hashlib.sha256(draft.encode()).hexdigest(),
                 approval_sha256=hashlib.sha256(
-                    (POST+"\\n"+draft+"\\n"+digest).encode()).hexdigest())
+                    (POST+"\n"+draft+"\n"+digest).encode()).hexdigest())
     (root/("scout-result-"+run+".json")).write_text(json.dumps(record))
     return record
 
