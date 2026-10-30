@@ -133,6 +133,40 @@ class PolicyTests(unittest.TestCase):
             parse_decision(answer(kind="skip").replace('"text": ""', '"text": "no"'),
                            self.obs)
 
+    def test_model_reason_validation_remains_strict_and_diagnostic(self):
+        prompt = decision_prompt(self.obs)
+        self.assertIn("1 to 200 characters total", prompt)
+        self.assertIn("hard validator maximum 220", prompt)
+        for reason in ("A concise reason.", "x" * 200, "x" * 220):
+            with self.subTest(length=len(reason)):
+                self.assertEqual(parse_decision(answer(reason=reason), self.obs).reason,
+                                 reason)
+        for reason, code in (
+            ("", "model_reason_empty"),
+            ("   ", "model_reason_empty"),
+            ("x" * 221, "model_reason_too_long"),
+            ("valid" + chr(0) + "invalid", "model_reason_control_chars")
+        ):
+            with self.subTest(code=code):
+                with self.assertRaisesRegex(ValueError, "^" + code + "$"):
+                    parse_decision(answer(reason=reason), self.obs)
+
+    def test_model_reason_failure_creates_sanitized_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepare_sources(root)
+            event_db = root / "shadow" / "events.sqlite3"
+            rejected = answer(kind="skip", reason="x" * 221)
+            result = run_once(legacy=root, event_db=event_db,
+                              model=Mock(return_value=rejected))
+            self.assertEqual(result["state"], "model_invalid_or_unavailable")
+            self.assertFalse(result["acted"])
+            with EventStore(event_db).open() as db:
+                events = EventStore.recent(db)
+            self.assertEqual(events[0]["kind"], "agent_error")
+            self.assertEqual(events[0]["reason"], "model_reason_too_long")
+            self.assertNotIn("x" * 221, str(events))
+
     def test_default_off_shadow_cannot_authorize(self):
         verdict = check(self.action, PolicyState(self.now), Policy())
         self.assertEqual((verdict.disposition, verdict.reason, verdict.shadow),
