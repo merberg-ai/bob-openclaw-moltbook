@@ -1,17 +1,16 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.5-fm32d-focus1",
-  "from": "v0.7.5-fm32c-localideas1",
-  "notes": "FM3.2d manually confirmed, anonymous read-only public focus: one active watched friend's profile and <=2 posts per request, cooldowns, source-matched private snapshots, optional local Ollama reaction and separate owner review; no new timer, follower or publishing permissions.",
+  "release": "v0.7.6-oc01-activity1",
+  "from": "v0.7.5-fm32d-focus1",
+  "notes": "OC0 + OC1: verified read-only Bob right now Overview card, bounded policy/queue/worker/timer explanations, truthful idle/blocked/waiting/unknown and separate systemd trigger vs policy eligibility. No automation or publication changes.",
   "files": [
     {
-      "name": "bob_friend_scout.py",
-      "source": "src/lib/bob/bob_friend_scout.py"
+      "name": "bob_operations_diagnostics.py",
+      "source": "src/lib/bob/bob_operations_diagnostics.py"
     },
     {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_v075_fm32d_candidate.py",
-      "index": 0
+      "name": "bob_overview.py",
+      "source": "src/lib/bob/bob_overview.py"
     }
   ],
   "restart_manager": true
