@@ -389,7 +389,7 @@ def interest_rows(db):
 
 # FM3.2c: explicit, local-only, source-bound tentative interest generation.
 # This is not an agent tool, a scheduled task, a social action, or memory.
-AI_MODEL=re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,79}\Z")
+AI_MODEL=re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,39}(?::[A-Za-z0-9][A-Za-z0-9_.-]{0,39})?\Z")
 AI_JOB_COLS=("id","friend_id","run_id","post_id","snapshot_sha",
              "status","created_at","updated_at","error_code")
 AI_PROP_COLS=("id","job_id","friend_id","run_id","post_id","snapshot_sha",
