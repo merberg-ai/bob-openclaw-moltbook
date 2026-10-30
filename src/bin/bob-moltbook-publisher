@@ -66,17 +66,51 @@ def can_send(db, *, mode="manual"):
     return activity_allowed(db, "comment", mode=mode)
 
 
+
+# OC4: bounded, metadata-only skip observations. Never store remote text,
+# API payloads or private draft content; do not turn quiet runs into retries.
+SKIP_CODES=frozenset((
+    'NO_QUEUE','AUTO_DISABLED','RATE_OR_BUDGET','GLOBAL_PAUSE',
+    'PREFLIGHT_FAILED','MANUAL_APPROVAL_CHANGED','AUTO_REVIEW_BLOCKED',
+    'FRIEND_PROTECTED','INTEGRITY_BLOCKED','DRAFT_EXPIRED',
+    'DUPLICATE','STALE_CLAIM',
+))
+def record_publisher_skip(db,code,rid=''):
+    if code not in SKIP_CODES:
+        return
+    try:
+        recent=db.execute("SELECT at,details FROM publish_events "
+                          "WHERE kind='publisher_skip' ORDER BY id DESC LIMIT 1").fetchone()
+        stamp=datetime.now(timezone.utc)
+        details='code='+code
+        if isinstance(rid,str) and re.fullmatch(r'\d{8}T\d{6}Z',rid):
+            details+=' run='+rid
+        if recent and recent[1]==details:
+            when=parse_time(recent[0])
+            if when and timedelta(0) <= stamp-when < timedelta(minutes=30):
+                return
+        event(db,'publisher_skip',details)
+        db.commit()
+    except sqlite3.Error:
+        # Never let optional diagnostics change existing publisher behavior
+        # when old/test databases lack event storage or writes are unavailable.
+        return
+
+
 def publisher_step(db):
     auto_candidates(db)
     db.commit()
     # Manual approvals outrank auto drafts. A held/disabled auto item must not
     # starve a newer human-approved reply; rate limits and checks still apply.
     row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY CASE WHEN mode='manual' THEN 0 ELSE 1 END, created_at ASC, run_id ASC LIMIT 1").fetchone()
-    if not row: return 'no queued publications'
+    if not row:
+        record_publisher_skip(db,'NO_QUEUE')
+        return 'no queued publications'
     rid,digest,pid,draft,mode,created=row
     checkpoint('publisher',rid,'validating')
     if mode=='auto' and setting(db,'auto_enabled','0')!='1':
         checkpoint('publisher',rid,'waiting')
+        record_publisher_skip(db,'AUTO_DISABLED',rid)
         return 'auto posting disabled; queued auto drafts held'
     record=load_record(rid)
     if not record or record['approval_sha256']!=digest or record['chosen_post_id']!=pid or record['draft_comment']!=draft:
@@ -84,6 +118,7 @@ def publisher_step(db):
         event(db,'publish_blocked',f'{rid} integrity failure')
         db.commit()
         checkpoint('publisher',rid,'failed')
+        record_publisher_skip(db,'INTEGRITY_BLOCKED',rid)
         return 'invalid draft blocked'
     # FM3: a friend encountered through either the dedicated scan OR the
     # ordinary global feed must never be sent by old auto-comment permission.
@@ -98,12 +133,14 @@ def publisher_step(db):
         event(db,'publish_blocked',f'{rid} friend-targeted auto reply blocked')
         db.commit()
         checkpoint('publisher',rid,'failed')
+        record_publisher_skip(db,'FRIEND_PROTECTED',rid)
         return 'friend-targeted auto reply blocked; requires human review'
     if mode=='manual':
         decision=db.execute('SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
         if decision != (digest,'approved'):
             db.execute("UPDATE publish_jobs SET state='failed',last_error='Human approval missing or changed',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
             checkpoint('publisher',rid,'failed')
+            record_publisher_skip(db,'MANUAL_APPROVAL_CHANGED',rid)
             return 'approval missing; job blocked'
     else:
         if db.execute('SELECT 1 FROM decisions WHERE run_id=?',(rid,)).fetchone():
@@ -115,23 +152,28 @@ def publisher_step(db):
                 return 'job changed during owner review; not sent'
             db.commit()
             checkpoint('publisher',rid,'failed')
+            record_publisher_skip(db,'AUTO_REVIEW_BLOCKED',rid)
             return 'human-reviewed auto draft blocked'
     t=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc)-t > (MAX_AUTO_AGE if mode=='auto' else MAX_MANUAL_AGE):
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Draft expired',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
         checkpoint('publisher',rid,'failed')
+        record_publisher_skip(db,'DRAFT_EXPIRED',rid)
         return 'old draft blocked'
     duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','verified_unconfirmed','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
     if duplicate:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
         checkpoint('publisher',rid,'failed')
+        record_publisher_skip(db,'DUPLICATE',rid)
         return 'duplicate target blocked'
     ready,reason=can_send(db,mode=mode)
     if not ready:
         checkpoint('publisher',rid,'waiting')
+        record_publisher_skip(db,'RATE_OR_BUDGET',rid)
         return reason
     if (Path.home()/'.config/bob-system/paused').exists():
         checkpoint('publisher',rid,'paused')
+        record_publisher_skip(db,'GLOBAL_PAUSE',rid)
         return 'Bob paused'
     checkpoint('publisher',rid,'preflight')
     # Preflight without credentials prevents posting on a deleted/stale discussion.
@@ -144,6 +186,7 @@ def publisher_step(db):
             return 'preflight returned wrong post'
     except (RuntimeError,ValueError,urllib.error.URLError,TimeoutError) as exc:
         checkpoint('publisher',rid,'waiting')
+        record_publisher_skip(db,'PREFLIGHT_FAILED',rid)
         return f'preflight failed: {type(exc).__name__}'
     # Persist intent *before* sending. Any timeout, crash or ambiguous reply
     # leaves state=uncertain; never automatically retry a possible duplicate.
@@ -166,6 +209,7 @@ def publisher_step(db):
     if claimed.rowcount!=1:
         # In particular an owner-approved auto->manual handoff invalidates
         # the publisher's earlier auto selection. Never send stale work.
+        record_publisher_skip(db,'STALE_CLAIM',rid)
         return 'publication queue or owner decision changed; not sent'
     event(db,'publish_attempt',f'{rid} {mode} comment send started')
     db.commit()

@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **OC0+OC1, OC2, and OC3 operator-accepted** through `v0.7.6-oc3-console1` (Oct 30, 2026). **Pre-OC4 publication safety fix candidate:** `v0.7.6-pubfix-manual1`, not yet operator-tested. **OC4 investigator** remains next. No new posting or agent permissions.  
+**Implementation status:** **OC0–OC3 operator-accepted** through `v0.7.6-oc3-console1` (Oct 30, 2026); **publication fix** `v0.7.6-pubfix-manual1` merged but still awaiting operator confirmation. **OC4 code candidate** `v0.7.6-oc4-investigator1` builds on the publication fix and awaits CI/merge/live acceptance. No new posting or agent permissions.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -149,6 +149,15 @@ Suggested distinct UI states:
 
 **Gate:** owner can answer “Why were automatic comments 0/6?” and “Why are six manual comments queued?” from one screen with evidence and no shell, under both healthy idle and real failure fixtures.
 
+### OC4 implementation checkpoint (candidate; not live-accepted)
+
+- **Candidate:** `v0.7.6-oc4-investigator1` from `v0.7.6-pubfix-manual1`; **do not skip publication-fix installation** if the OMEN still runs `v0.7.6-oc3-console1`. Two new installed surfaces: read-only `bob_inactivity.py` and an authenticated `/investigate` page, plus a small Overview link, throttled skip metadata in the existing publisher and generated manager/nav. Existing POST and publication guards unchanged.
+- **Actual evidence:** local read-only capped SQLite history, strict approved/rejected/mismatched review comparison, latest attempted and API-acknowledged publication, valid skip codes, actual systemd trigger (when reported), and separate policy eligibility. Never use a guessed explanation; no raw error, private drafts, prompt, token, model state or any replay action in the investigator.
+- **Safe skip traces:** existing `publish_events` receives `publisher_skip` for allowlisted codes, no text except code/valid run ID. Identical reasons are throttled to 30 minutes; optional telemetry cannot block publishing if the table is unavailable.
+- **Coverage:** differentiate “approved auto blocked before attempt; may need explicit manual queue,” “rejected, intentionally blocked,” “decision missing/mismatched,” “no auto candidates queued,” “manual backlog,” “rate/timer hold,” “no automatic original drafting,” “Scout evidence missing/failure,” and “unknown.” Only source-backed statuses are asserted.
+- **Acceptance:** one guarded `bobctl update` *after* publication fix accepted, browse Overview → Why no activity?, verify four cards and the schedule/eligibility distinction. See [V076-OC4-INACTIVITY.md](V076-OC4-INACTIVITY.md). **No test posting, no toggles.**
+- **Future:** optional copy/export sanitized summary and richer per-run skip instrumentation can be separately prioritized; neither is required for the read-only OC4 first pass. The **Moltbook Experience Digest** is a separate pending MD1/CH1/FM4 design in root [TODO.md](../TODO.md). FM4/FM5 remain paused.
+
 ## 4. Improvements that should NOT get mixed into first release
 
 - **Explicitly separate project idea:** owner-approved automatic original-post **draft creation cadence**, if desired later. It must *not* automatically publish; require opt-in, generation budgets, safety screening, content quality, source limits and manual approval. Existing 0 original attempts is not a failure.
@@ -163,6 +172,6 @@ Suggested distinct UI states:
 - Avoid 14-hour manual test sequences. Synthetic comprehensive CI plus a **single short owner smoke test** for each release, with exact pass/fail and rollback.
 - Real operator screenshot is the problem statement, **not proof** that current services have failed. To confirm a live cause, use existing `/system/status`, `/logs` (publisher/scout) and `/originals` without mutation.
 
-## 6. Fresh-chat handoff: OC4 after Console acceptance
+## 6. Handoff after OC4
 
-> Read `docs/OPERATIONS-CENTER-ROADMAP.md`, `docs/V076-OC3-DIAGNOSTIC-CONSOLE.md`, root `TODO.md` and the current `releases/current.json` from `merberg-ai/bob-openclaw-moltbook`. OC0/OC1 and OC2 were operator-accepted. OC3 candidate `v0.7.6-oc3-console1` is built and CI-tested but needs operator update/acceptance; **do not assume installed until confirmed**. After OC3 is accepted, start **OC4: “Why no activity?”** using OC0 deterministic evidence and existing sanitized queue/logs/Console stream. Add bounded worker skip-reason telemetry, last attempted/last succeeded, manual backlog blockers, real systemd trigger vs policy earliest eligibility, reasons for 0 automatic/originals, and evidence links. Never invent actions or publish/DM/retry from diagnostics. New app releases must upgrade from the **latest operator-confirmed installed version** using `bobctl update`. FM4/FM5 remain paused.
+> Last operator-confirmed baseline from this chat: `v0.7.6-oc3-console1`. The publication-fix `v0.7.6-pubfix-manual1` was merged and given to the operator, but **was not yet explicitly confirmed installed**. OC4 candidate `v0.7.6-oc4-investigator1` builds from that pubfix and must not be marked operator-tested before live validation. Read `docs/V076-PUBFIX-MANUAL-HANDOFF.md`, `docs/V076-OC4-INACTIVITY.md`, root `TODO.md` and `releases/current.json` on `main`. If operator accepts OC4, Operations Center OC0–OC4 is complete as scoped. Next user-requested idea is the private **Moltbook Experience Digest (MD1)** bridging verified Scout/publication/replies into real OpenClaw Gateway/CH1 chat, **not** autonomous memory editing. FM4/FM5 are still explicitly on hold and require owner's later authorization.
