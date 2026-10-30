@@ -37,6 +37,8 @@ def db_fixture(path):
         db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?)",(
             "20261030T143000Z","uncertain","Raw "+SECRET+" "+POST+" "+TOKEN,
             "2026-10-30T14:30:00+00:00"))
+        db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?)",(
+            "20261030T144000Z",SECRET,"", "2026-10-30T14:40:00+00:00"))
         db.execute("CREATE TABLE original_posts(id TEXT,state TEXT,last_error TEXT,updated_at TEXT)")
         db.execute("CREATE TABLE original_requests(id TEXT,state TEXT,error TEXT,created_at TEXT)")
         db.execute("CREATE TABLE publish_events(id INTEGER PRIMARY KEY,at TEXT,kind TEXT,details TEXT)")
@@ -85,6 +87,7 @@ class ConsoleTests(unittest.TestCase):
         for phrase in (SECRET,POST,TOKEN):
             self.assertNotIn(phrase,serialized)
         self.assertNotIn("prompt",serialized.lower())
+        self.assertIn("Stored job state is unrecognized; details withheld",serialized)
         self.assertEqual(data["journal_explicit_only"],True)
         self.assertIsNone(data["sources"]["journal"])
         self.assertTrue(data["sources"]["database"])
