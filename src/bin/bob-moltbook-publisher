@@ -82,7 +82,7 @@ def record_publisher_skip(db,code,rid=''):
                       "WHERE kind='publisher_skip' ORDER BY id DESC LIMIT 1").fetchone()
     stamp=datetime.now(timezone.utc)
     details='code='+code
-    if isinstance(rid,str) and re.fullmatch(r'\\d{8}T\\d{6}Z',rid):
+    if isinstance(rid,str) and re.fullmatch(r'\d{8}T\d{6}Z',rid):
         details+=' run='+rid
     if recent and recent[1]==details:
         when=parse_time(recent[0])
