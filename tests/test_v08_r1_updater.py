@@ -183,6 +183,25 @@ class ManifestAndCommandTests(unittest.TestCase):
         switch.assert_called_once_with(Path("/tmp/mock-repo"), "next")
         self.assertIn("no production changes", output.getvalue())
 
+    def test_failed_chain_reports_safe_specific_versions_without_install(self):
+        current = {"format": updater.FORMAT, "release": "v0.7.6-oc41-polish1",
+                   "files": {}}
+        plan = {"format": updater.FORMAT, "release": "v0.7.8-updater2",
+                "from": "v0.7.7-fm41-social1", "files": [],
+                "restart_manager": False, "notes": "fake"}
+        with patch.object(updater.os, "geteuid", return_value=1000), \
+             patch.object(updater, "checkout_from_config", return_value=Path("/tmp/mock")), \
+             patch.object(updater, "sync_checkout", return_value=None), \
+             patch.object(updater, "registry", return_value=current), \
+             patch.object(updater, "manifest", return_value=plan), \
+             patch.object(updater, "update", side_effect=AssertionError("install")), \
+             patch.object(sys, "argv", ["bob-release-updater"]), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(updater.main(), 1)
+        self.assertIn("Reason: release chain mismatch: installed v0.7.6-oc41-polish1",
+                      output.getvalue())
+        self.assertIn("expected v0.7.7-fm41-social1", output.getvalue())
+
     def test_failed_channel_approval_does_not_run_switch(self):
         with patch.object(updater.os, "geteuid", return_value=1000), \
              patch.object(updater, "checkout_from_config", return_value=Path("/tmp/mock-repo")), \
