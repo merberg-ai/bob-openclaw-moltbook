@@ -199,6 +199,8 @@ def enable():
                 MEMORY.unlink(missing_ok=True)
             else:
                 _atomic(MEMORY, before)
+            if existing_config is None and BACKUP.is_file():
+                BACKUP.unlink()
             raise
         return "enabled"
     finally:
@@ -224,8 +226,12 @@ def refresh():
         if len(updated) > MAX_MEM:
             raise ValueError("context_file_oversized")
         _atomic(MEMORY, updated)
-        _save_config(enabled=True, block_sha=_sha(block.encode()),
-                     had_memory=config["had_memory"])
+        try:
+            _save_config(enabled=True, block_sha=_sha(block.encode()),
+                         had_memory=config["had_memory"])
+        except (OSError, ValueError):
+            _atomic(MEMORY, raw)
+            raise
         return "refreshed"
     finally:
         os.close(fd)
@@ -248,8 +254,12 @@ def disable():
             MEMORY.unlink()
         else:
             _atomic(MEMORY, (updated + "\n").encode())
-        _save_config(enabled=False, block_sha=config["block_sha"],
-                     had_memory=config["had_memory"])
+        try:
+            _save_config(enabled=False, block_sha=config["block_sha"],
+                         had_memory=config["had_memory"])
+        except (OSError, ValueError):
+            _atomic(MEMORY, raw)
+            raise
         return "disabled"
     finally:
         os.close(fd)
