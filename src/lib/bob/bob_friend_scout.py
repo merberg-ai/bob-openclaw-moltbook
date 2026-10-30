@@ -800,7 +800,10 @@ def page(db,csrf,wrap,records):
     if not interest_items:
         parts.append('<p class="bfs-muted">No staged interests. Use the stage control '
                      'under a source-verified selected friend discussion above.</p>')
-    for item in interest_items[:12]:
+    for index,item in enumerate(interest_items):
+        if index==12:
+            parts.append('<details><summary class="bfs-muted">Older staged interests ('+
+                         str(len(interest_items)-12)+')</summary>')
         try:
             author,pid,idea=_interest_source(item["run_id"])
             source_ok=(author.casefold()==item["handle"].casefold() and
@@ -842,8 +845,7 @@ def page(db,csrf,wrap,records):
             parts.append('</details>')
         parts.append('</div>')
     if len(interest_items)>12:
-        parts.append('<p class="bfs-muted">Showing 12 newest of '+str(len(interest_items))+
-                     ' staged interests. More entries remain stored locally.</p>')
+        parts.append('</details>')
     parts += ['</section><section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
               '<p class="bfs-muted">Results appear after the existing Scout timer '
               'next runs. A missing friend post may mean the public profile or post '
