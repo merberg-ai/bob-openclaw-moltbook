@@ -2,7 +2,7 @@
   "format": "bob-updater-v1",
   "release": "v0.8.0-shadow1",
   "from": "v0.7.8-updater2",
-  "notes": "R2 shadow-only OpenClaw decisions, source-verifiable experience digest, authenticated read-only Now/Inbox, separate operator-approved shadow timer and Gateway context. No new Moltbook writes.",
+  "notes": "R2 shadow-only actual OpenClaw decision engine, private event/experience record, authenticated Now/Inbox, opt-in Gateway context and reversible versioned timer activation. No Moltbook writes.",
   "files": [
     {
       "name": "bob_v08_package.pyz",
@@ -29,6 +29,10 @@
     {
       "name": "bobctl",
       "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
     },
     {
       "name": "bob-activity-manager",
