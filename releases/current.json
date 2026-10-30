@@ -1,12 +1,17 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.5-fm32a-interests1",
-  "from": "v0.7.5-fm31-watch1",
-  "notes": "FM3.2a private source-verified Scout WHY interest staging and reversible owner review. One existing managed module; no network additions, new permissions or auto-publishing.",
+  "release": "v0.7.5-fm32b-watchlist1",
+  "from": "v0.7.5-fm32a-interests1",
+  "notes": "FM3.2b ten-per-page Friend Scout filters and independent saved Scout recency. Preserve existing auth/CSRF, local watch preferences and publication guard; no network or job changes.",
   "files": [
     {
       "name": "bob_friend_scout.py",
       "source": "src/lib/bob/bob_friend_scout.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v075_fm32b_candidate.py",
+      "index": 0
     }
   ],
   "restart_manager": true
