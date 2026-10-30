@@ -182,6 +182,27 @@ class InterestsTests(unittest.TestCase):
                 scout.change(db,self.review_form(item,"approve","x"*241))
             self.assertEqual(scout.interest_rows(db)[0]["status"],"pending")
 
+    def test_older_inbox_items_remain_accessible_at_capacity(self):
+        with self.db() as db:
+            scout.init_interests(db)
+            for index in range(13):
+                stamp=f"20261029T2150{index:02d}Z"
+                item=dict(id=f"{index:024x}",friend_id=self.ident,
+                          run_id=stamp,post_id=PID,handle="FriendOne",
+                          idea="Source unavailable example",status="pending",
+                          created_at="2026-10-30T05:00:00+00:00",
+                          updated_at="2026-10-30T05:00:00+00:00",
+                          review_reason="",version=1)
+                item["sha256"]=scout.interest_seal(item)
+                db.execute("INSERT INTO bob_friend_interest_proposals("+
+                           ",".join(scout.INTEREST_COLS)+") VALUES("+
+                           ",".join("?" for _ in scout.INTEREST_COLS)+")",
+                           tuple(item[k] for k in scout.INTEREST_COLS))
+            html=scout.page(db,"test",lambda title,body,path:body,[])
+        self.assertIn("Older staged interests (1)",html)
+        self.assertEqual(html.count("Source unavailable or changed. No approval"),13)
+        self.assertEqual(html.count('name="decision" value="archive"'),13)
+
     def test_untrusted_why_is_escaped_and_never_executed(self):
         rec=self.make_record(why="<img src=x onerror=alert(1)>")
         with self.db() as db:
