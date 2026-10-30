@@ -469,6 +469,7 @@ Usage: bobctl COMMAND
   update          Check GitHub release and optionally apply verified update
   update --check  Read-only release check (may fast-forward the development checkout)
   update --recover Restore interrupted code update from sealed journal
+  update --rollback-to v0.7.8-updater2  Revert R2 code after shadow deactivation
   shadow-status  Read-only v0.8 versioned activation status
   shadow-activate  Separately approve v0.8 shadow timer (no publishing)
   shadow-deactivate  Stop and undo reviewed v0.8 shadow activation
@@ -498,7 +499,8 @@ def main(argv=None):
     if name == "update":
         valid = (len(args) == 1 or
                  len(args) == 2 and args[1] in ("--check", "--recover") or
-                 len(args) == 3 and args[1] == "--channel" and args[2] in ("main", "next"))
+                 len(args) == 3 and (args[1] == "--channel" and args[2] in ("main", "next")
+                     or args[1] == "--rollback-to" and args[2] == "v0.7.8-updater2"))
         if not valid:
             help_text()
             return 2
