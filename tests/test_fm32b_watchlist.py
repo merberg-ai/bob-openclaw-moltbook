@@ -132,8 +132,8 @@ class WatchlistTests(unittest.TestCase):
         self.assertEqual(scout.watchlist_location("/moltbook/friend-scout?a=1&b=2&c=3&d=4"),
                          "/moltbook/friend-scout")
         with self.db() as db:
-            html=self.view(db,params={"q":["Agent21"],"show":["paused"]})
-        self.assertIn('action="/moltbook/friend-scout?q=Agent21&amp;show=paused&amp;page=1"',html)
+            html=self.view(db,params={"q":["Agent21"],"show":["watching"]})
+        self.assertIn('action="/moltbook/friend-scout?q=Agent21&amp;show=watching&amp;page=1"',html)
         with self.db() as db:
             attack=self.view(db,params={"q":['"><svg onload=alert(1)>']})
         self.assertIn("&quot;&gt;&lt;svg",attack)
