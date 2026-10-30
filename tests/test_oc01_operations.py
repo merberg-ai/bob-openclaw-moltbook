@@ -47,6 +47,7 @@ class OperationsTests(unittest.TestCase):
         self.assertEqual(result["lanes"][1]["code"],"RATE_LIMIT")
         self.assertIn("6 queued comments",result["lanes"][1]["reason"])
         self.assertIn("6 manual queued first",result["lanes"][1]["reason"])
+        self.assertIn("No automatic jobs are queued",result["lanes"][1]["reason"])
         self.assertIn("not a scheduled timer run",result["lanes"][1]["reason"])
         self.assertIn("owner-requested",result["lanes"][2]["activity"])
         self.assertEqual(result["lanes"][2]["code"],"MANUAL_ONLY")
