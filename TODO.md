@@ -2,8 +2,8 @@
 
 **Last reviewed:** October 30, 2026 (America/Los_Angeles)  
 **Canonical repo:** `merberg-ai/bob-openclaw-moltbook`, `main`  
-**Operator-tested deployed baseline:** `v0.7.6-oc41-polish1` (OC0–OC4.1 completed; operator reported Oct 30, 2026 that the OC4.1 update works as expected)  
-**Status:** FM3 complete; **FM4 explicitly resumed by operator on October 30, 2026**. FM4.1 private timeline release candidate `v0.7.7-fm41-social1` pending CI/live acceptance. **FM5 remains planned and unimplemented**; real Moltbook following requires a separate FM5.2 permission design. CH1 remains planned.  
+**Operator-tested deployed baseline:** `v0.7.7-fm41-social1` (FM4.1 Social Memory Timeline operator-tested and accepted October 30, 2026; PR #49, 599 offline tests passed)  
+**Status:** FM1–FM3 complete, **FM4.1 operator-accepted**. **Next Friends engineering phase: FM4.2** revisable social impressions and owner corrections, then separately opted-in FM4.3 recall. FM5 remains planned and unimplemented; actual Moltbook following needs separate FM5.2 authorization. MD1 and CH1 are independently planned, not yet implemented.  
 **Deployment contract:** future implementation through `bobctl update` with verified private backup, installed-module import checks, reversible release and short live acceptance. A Git commit alone never changes the running Activity Manager.
 
 ## Current development streams
@@ -11,7 +11,7 @@
 | Stream | Progress | Next |
 | --- | --- | --- |
 | Personality (PM1) and Memory (PM2) | Implemented / operator-tested | Maintain existing explicit memory recall and owner review boundaries |
-| **Friends (FM1–FM4.1)** | FM3 fully accepted; **FM4 resumed; FM4.1 release candidate** `v0.7.7-fm41-social1` | Private source-verified Social Memory Timeline (observed Scout, reviewed interests, local reactions, publication records). [FM4.1 release notes](docs/V077-FM41-SOCIAL-MEMORY.md). After owner PASS: FM4.2 revisable impressions, FM4.3 opt-in recall; FM5 platform following separately authorized later. |
+| **Friends (FM1–FM4.1)** | **FM4.1 installed and operator-accepted** (`v0.7.7-fm41-social1`, PR #49, 599 offline tests) | **Next: FM4.2** evolving, source-linked per-agent impressions, revisions and owner corrections; then FM4.3 optional social recall. [FM4.1 accepted release](docs/V077-FM41-SOCIAL-MEMORY.md). No Moltbook following until separately authorized FM5.2. |
 | **Operations Center: activity / automation / console / inactivity investigation** | **OC0–OC4.1 complete, installed and operator-accepted** | Working baseline `v0.7.6-oc41-polish1` (PR #47, 591 CI tests). Remains maintained; FM4 has since resumed. [OC4.1 release notes](docs/V076-OC41-DIAGNOSTIC-POLISH.md). |
 | Logs & Diagnostics | Installed / operator-tested | Reuse existing bounded redacted journal, job, event and checkpoint collectors rather than duplicate raw logging |
 | **Direct Bob Chat (CH1)** | **Planned here, not started** | Gateway compatibility spike, then authenticated LAN chat UI |
@@ -30,11 +30,11 @@
 
 **Passed October 30, 2026:** The operator tested `v0.7.5-fm32d-focus1` through the normal `bobctl update` and confirmed it works as expected. This closes FM3.2d and FM3 as scoped. PR [#38](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/38) merged to main, with **537 passing synthetic offline tests**. This is a documentation acceptance checkpoint, **not a new code release**. Keep `releases/current.json` unchanged until an actual next software release.
 
-**Priority cleared:** The operator accepted OC0–OC4.1 and explicitly requested resuming FM4. FM4.1 is a private read-only candidate; it does **not** automatically grant FM4.2/4.3, external follows, chat memory integration or FM5 autonomy. Continue in small independently accepted releases.
+**Priority cleared / FM4.1 PASS:** The operator accepted OC0–OC4.1, resumed FM4 and confirmed the installed read-only Social Memory Timeline works as expected. This acceptance does **not** automatically grant FM4.2/4.3, external follows, chat memory integration or FM5 autonomy. Continue in small independently accepted releases.
 
-**FM4 hold lifted; FM4.1 is underway:** a small private, source-verifiable, per-agent **Social Memory Timeline** distinguishing actual saved observations, Bob's tentative ideas and owner-reviewed records. Start with read-only evidence linked from FM1/FM2 and existing FM3.2a–d data, timestamps and corruption checks; do not silently write to PM2 memory or `SOUL.md`, change Scout priorities or authorize outreach. FM4.2 can add revisable impressions and owner corrections; FM4.3 can add explicitly enabled bounded recall. FM5.1 independent exploration and FM5.2 separately approved public interactions remain further off. Full architecture, rules, acceptance and copyable kickoff: [docs/FRIENDS-ROADMAP-AND-HANDOFF.md](docs/FRIENDS-ROADMAP-AND-HANDOFF.md).
+**FM4.1 PASSED; resume at FM4.2:** the accepted Social Memory Timeline displays source-verifiable saved observations, Bob's tentative ideas and owner-reviewed records, without writing PM2 memories, `SOUL.md`, FM1 notes or sending Moltbook actions. Next implement revisable impressions with correction and audit, then independently opt-in FM4.3 recall. FM5.1 autonomous discovery and FM5.2 separately authorized platform follow/unfollow remain future work. Full architecture and handoff: [Friends roadmap](docs/FRIENDS-ROADMAP-AND-HANDOFF.md).
 
-**Future versioning:** last operator-confirmed installed release is `v0.7.6-oc41-polish1`. FM4.1 candidate `v0.7.7-fm41-social1` upgrades from exactly that version. Repository merge does not establish live acceptance; preserve guarded `bobctl update` with backup/rollback.
+**Future versioning:** last operator-confirmed installed release is **`v0.7.7-fm41-social1`**, accepted October 30, 2026. The next application release (FM4.2 unless superseded) must use exactly `from: v0.7.7-fm41-social1`; preserve guarded `bobctl update`, backups and rollback. **This documentation checkpoint does not change `releases/current.json` or install software.**
 
 ---
 
