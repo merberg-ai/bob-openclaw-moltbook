@@ -1,3 +1,11 @@
+## R2 shadow3 reason-contract acceptance candidate (2026-10-30)
+
+- The owner installed and manually tested `v0.8.0-shadow2` successfully with shadow timer inactive; the newest verified source (`20261030T210137Z`) failed strict validator with `invalid_model_reason`, not a transport or source-target error. Raw field contents were deliberately not saved, so root condition among empty/oversized/control chars is unknown.
+- Proposed `v0.8.0-shadow3`: explicitly request a single-line reason of 1..200 characters, preserve hard 220-character cap, emit safe separate failure codes and keep all other policy/transport checks unchanged. Two-file chained shadow-only release from `v0.8.0-shadow2`, no dashboard restart or new Moltbook actions. Synthetic validation and operator acceptance are both required.
+- Avoid the broken same-checkout branch switch (issue #57). Source updates on the verified separate `~/bob-next` checkout only. Do not activate the timer until an operator-reviewed manual `shadow_decision` succeeds.
+
+---
+
 ## R2 host acceptance and targeted transport repair (2026-10-30)
 
 - Owner successfully installed `v0.8.0-shadow1` using a **separate clean `~/bob-next` checkout** after the previous branch-switch implementation repeatedly staged partial R2 changes on main (tracked in issue #57). Activity Manager served its authenticated Shadow Now/Inbox routes, versioned shadow timer activated, and read-only evidence linked to six saved Scout selections. No R2 external Moltbook writes occurred.
