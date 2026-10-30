@@ -11,10 +11,11 @@ from datetime import datetime,timezone
 from html import escape
 from http.client import HTTPSConnection
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode,parse_qs,urlsplit
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import sqlite3
 
@@ -29,6 +30,7 @@ MAX_POSTS=2
 MAX_TOTAL=6
 MAX_RESPONSE=65536
 MAX_PREVIEW=10
+WATCH_FILTERS=("all","watching","paused","issues")
 ERRORS=frozenset(("Invalid friend scouting form","Friend scouting setting changed; reload",
                    "Confirmation phrase does not match",
                    "Friend watch preference changed; reload",
@@ -49,14 +51,22 @@ border-radius:15px;padding:clamp(15px,2.5vw,23px)}
 .bfs-card{padding:13px;background:#12243a;border:1px solid #3c5473;border-radius:11px;margin:12px 0}
 .bfs-tags{font-size:.82rem;color:#b0d2ef}
 .bfs label{display:grid;gap:7px;margin:10px 0;font-weight:650}
+.bfs-filter{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;
+gap:12px;align-items:end;margin:12px 0}
+.bfs-filter button{margin-bottom:10px}
+.bfs select{max-width:100%;min-height:44px;width:100%;box-sizing:border-box;
+padding:10px;background:#102034;color:#eff6ff;border:1px solid #607d98;
+border-radius:9px;font:inherit}
+.bfs-links{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0}
+.bfs-links a{color:#b6dcff}
 .bfs input{max-width:100%;min-height:44px;width:100%;box-sizing:border-box;
 padding:10px;border:1px solid #607d98;background:#102034;color:#eff6ff;border-radius:9px;font:inherit}
 .bfs button{border:1px solid #86b4e0;background:#276398;color:#fff;
 border-radius:9px;min-height:44px;padding:10px 18px;font:inherit;cursor:pointer;font-weight:700}
 .bfs button.secondary{background:#2b3f55}
-.bfs button:focus-visible,.bfs input:focus-visible{outline:2px solid #95d3ff;outline-offset:2px}
+.bfs button:focus-visible,.bfs input:focus-visible,.bfs select:focus-visible{outline:2px solid #95d3ff;outline-offset:2px}
 .bfs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media(max-width:720px){.bfs-grid{grid-template-columns:1fr}.bfs button{width:100%}}
+@media(max-width:720px){.bfs-grid,.bfs-filter{grid-template-columns:1fr}.bfs button{width:100%}.bfs-filter button{margin-bottom:0}}
 </style>"""
 
 
@@ -678,7 +688,89 @@ def friend_observations(records,active,*,loader=None):
     return entries
 
 
-def page(db,csrf,wrap,records):
+
+# FM3.2b is a read-only view of the existing sealed private directory and
+# saved Scout evidence. Query strings are display controls, not permissions.
+def _filter_params(params):
+    def one(key):
+        values=params.get(key,[]) if isinstance(params,dict) else []
+        return values[0] if isinstance(values,list) and len(values)==1 and isinstance(values[0],str) else ""
+    search=one("q").strip()[:64]
+    show=one("show")
+    show=show if show in WATCH_FILTERS else "all"
+    raw=one("page")
+    number=int(raw) if re.fullmatch(r"[1-9][0-9]{0,2}",raw) else 1
+    return search,show,number
+
+
+def watchlist_location(request_path):
+    """Canonical same-origin redirect preserving only bounded view controls."""
+    try:
+        parsed=urlsplit(request_path)
+        if parsed.path!="/moltbook/friend-scout":
+            return "/moltbook/friend-scout"
+        values=parse_qs(parsed.query[:256],keep_blank_values=True,max_num_fields=3)
+        search,show,number=_filter_params(values)
+    except (ValueError,TypeError,AttributeError):
+        return "/moltbook/friend-scout"
+    return "/moltbook/friend-scout?"+urlencode(
+        {"q":search,"show":show,"page":number})
+
+
+def friend_activity(records,active,*,loader=None):
+    """Evidence only, not live activity or inferred trust.
+
+    "Observed" is a verified saved friend-focused post marker, not merely
+    a profile lookup or social interaction. "Selected" is a verified saved
+    chosen author/post, even when encountered in the normal global feed.
+    No source => no timestamp. At most the newest 100 saved Scout reports.
+    """
+    known={f["handle_key"]:f["id"] for f in active}
+    output={}
+    for item in (records or [])[:100]:
+        rid=item.get("run_id") if isinstance(item,dict) else None
+        if not isinstance(rid,str) or not common.RUN_ID.fullmatch(rid):
+            continue
+        try:
+            when=datetime.strptime(rid,"%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            rec=(loader or common.load_record)(rid)
+            if not isinstance(rec,dict) or rec.get("run_id")!=rid:
+                continue
+            path=common.DATA/("scout-feed-"+rid+".json")
+            if (path.is_symlink() or not path.is_file() or
+                path.stat().st_size>512*1024):
+                continue
+            raw=path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=rec.get("snapshot_sha256"):
+                continue
+            feed=json.loads(raw)
+            posts=feed.get("posts") if isinstance(feed,dict) else None
+            if not isinstance(posts,list):
+                continue
+            stamp=when.strftime("%Y-%m-%d %H:%M UTC")
+            for post in posts[:MAX_TOTAL]:
+                if not isinstance(post,dict):
+                    continue
+                author=post.get("author")
+                pid=post.get("id")
+                if (not isinstance(author,str) or not isinstance(pid,str) or
+                    not common.UUID.fullmatch(pid)):
+                    continue
+                ident=known.get(author.casefold())
+                if ident is None:
+                    continue
+                state=output.setdefault(ident,{})
+                if post.get("from_friend") is True and rid>state.get("observed_run",""):
+                    state.update(observed_run=rid,observed_at=stamp)
+                if (pid==rec.get("chosen_post_id") and
+                    author==rec.get("chosen_author") and rid>state.get("selected_run","")):
+                    state.update(selected_run=rid,selected_at=stamp)
+        except (OSError,TypeError,ValueError,KeyError,AttributeError):
+            continue
+    return output
+
+
+def page(db,csrf,wrap,records,params=None):
     init_preferences(db)
     on=enabled(db)
     active=_watch(db,include_disabled=True)
@@ -688,6 +780,24 @@ def page(db,csrf,wrap,records):
     staged_runs={item["run_id"] for item in interest_items}
     weight={"friend":0,"interesting":1,"acquaintance":2}
     ordered=sorted(active,key=lambda x:(weight[x["relationship"]],x["handle_key"]))
+    search,show,number=_filter_params(params)
+    query=search.casefold()
+    matching=[item for item in ordered if
+              (not query or query in item["handle"].casefold()
+               or query in item["display_name"].casefold()) and
+              (show=="all" or
+               show=="watching" and item["watch_enabled"] or
+               show=="paused" and not item["watch_enabled"] and not item["watch_problem"] or
+               show=="issues" and item["watch_problem"])]
+    total=len(matching)
+    pages=max(1,(total+MAX_PREVIEW-1)//MAX_PREVIEW)
+    number=min(number,pages)
+    visible=matching[(number-1)*MAX_PREVIEW:number*MAX_PREVIEW]
+    def watch_uri(n):
+        return watchlist_location("/moltbook/friend-scout?"+urlencode(
+            {"q":search,"show":show,"page":n}))
+    action=watch_uri(number)
+    activity=friend_activity(records,active)
     recent=[]
     for rec in (records or [])[:80]:
         if (isinstance(rec,dict) and rec.get("friend_scan_status") in
@@ -725,22 +835,48 @@ def page(db,csrf,wrap,records):
               'Pause one agent without muting or archiving the friendship. '
               'Changes affect only the next Scout run and are recorded locally. '
               'No follows, posting permissions or private notes are sent to Moltbook. '
-              'Bob still chooses which discussion interests him.</p>']
+              'Bob still chooses which discussion interests him.</p>',
+              '<form method="get" action="/moltbook/friend-scout" class="bfs-filter">',
+              '<label>Find a friend<input type="search" name="q" maxlength="64" value="'+e(search)+
+              '" placeholder="Handle or display name"></label>',
+              '<label>Watch status<select name="show">']
+    for option,label in (("all","All active"),("watching","Watched"),
+                         ("paused","Paused"),("issues","Integrity issues")):
+        parts.append('<option value="'+option+'"'+(" selected" if option==show else "")+
+                     '>'+label+'</option>')
+    parts += ['</select></label><button type="submit">Filter</button></form>',
+              '<p class="bfs-muted">'+str(total)+' matching of '+str(len(active))+
+              ' verified active friends · page '+str(number)+' of '+str(pages)+
+              ' · up to '+str(MAX_PREVIEW)+' per page</p>']
     if not active:
         parts.append('<p class="bfs-muted">No active verified friends. '
                      'Add agents in Moltbook → Friends or reactivate an archived entry.</p>')
-    for item in ordered[:MAX_PREVIEW]:
+    if active and not visible:
+        parts.append('<p class="bfs-muted">No friends match these filters.</p>')
+    for item in visible:
         state=("Preference integrity problem: not watched" if item["watch_problem"]
                else "Watched by Scout" if item["watch_enabled"]
                else "Not watched by Scout")
         parts += ['<div class="bfs-card"><strong>@'+e(item["handle"])+'</strong>',
                   '<p class="bfs-tags">'+e(item["relationship"])+' · '+e(item["display_name"])+
                   ' · '+e(state)+'</p>']
+        evidence=activity.get(item["id"],{})
+        if evidence.get("observed_at"):
+            parts.append('<p class="bfs-muted">Last verified friend-focused source: '+
+                         e(evidence["observed_at"])+' · Scout '+e(evidence["observed_run"])+
+                         '</p>')
+        if evidence.get("selected_at"):
+            parts.append('<p class="bfs-muted">Last selected discussion: '+
+                         e(evidence["selected_at"])+' · Scout '+e(evidence["selected_run"])+
+                         '</p>')
+        if not evidence:
+            parts.append('<p class="bfs-muted">No verified saved friend-focused or '
+                         'selected discussion in the 100 most recent Scout records.</p>')
         if item["watch_problem"]:
             parts.append('<p class="bfs-muted">Stored watch preference integrity failed. '
                          'No scouting will occur for this agent until repaired.</p>')
         else:
-            parts += ['<form method="post" action="/moltbook/friend-scout">',
+            parts += ['<form method="post" action="'+e(action)+'">',
                       '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
                       '<input type="hidden" name="operation" value="watch">',
                       '<input type="hidden" name="id" value="'+e(item["id"])+'">',
@@ -761,9 +897,12 @@ def page(db,csrf,wrap,records):
                              ('watched' if flag else 'paused')+' · '+e(when)+'</p>')
             parts.append('</details>')
         parts.append('</div>')
-    if len(ordered)>MAX_PREVIEW:
-        parts.append('<p class="bfs-muted">Showing the first 10 active agents. '
-                     'Other friends remain governed by their saved watch preferences.</p>')
+    parts.append('<nav class="bfs-links" aria-label="Friend watchlist pages">')
+    if number>1:
+        parts.append('<a href="'+e(watch_uri(number-1))+'">Previous page</a>')
+    if number<pages:
+        parts.append('<a href="'+e(watch_uri(number+1))+'">Next page</a>')
+    parts.append('</nav>')
     parts += ['</section><section class="bfs-panel"><h2>Bob’s selected friend discussions</h2>',
               '<p class="bfs-muted">These are existing, source-verified Scout choices '
               'and Bob’s recorded WHY rationale, not new reflections or proof of '
