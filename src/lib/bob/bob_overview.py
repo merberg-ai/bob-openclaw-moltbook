@@ -14,6 +14,7 @@ import sqlite3
 
 from bob_live_status import snapshot as live_status
 from bob_activity_limits import summary as limit_summary, last_attempt
+from bob_operations_diagnostics import collect as operations_collect
 from navigation_shell import wrap
 
 DB = Path.home() / ".config/moltbook/activity-queue.sqlite3"
@@ -113,7 +114,9 @@ def snapshot(*, path=DB):
     status = live_status()
     data = recorded(path)
     pause = PAUSED.exists() and not PAUSED.is_symlink()
+    ops=operations_collect(data,status["services"],status["workers"],pause)
     return {
+        "operations": ops,
         "checked_at": status["checked_at"],
         "paused": pause,
         "services": status["services"][:12],
@@ -194,6 +197,24 @@ STYLE = """<style>
  min-height:44px;border-radius:10px;font:inherit;cursor:pointer}
 .bo-alert{border-left:3px solid #e9b575;padding:8px 12px;background:#49382144;
  color:#f3d9af;font-size:.86rem;line-height:1.5}
+.bo-now{border-color:#3b618a;background:radial-gradient(circle at 95% 0%,#24517b88 0%,transparent 45%),linear-gradient(145deg,#152c47,#0b172a)}
+.bo-now-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.bo-now-headline{font-size:1.08rem;font-weight:800;line-height:1.45;margin:12px 0 4px}
+.bo-now-detail{color:#c2d6ea;font-size:.85rem;line-height:1.5;overflow-wrap:anywhere;margin:0 0 14px}
+.bo-now-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.bo-now-lane{background:#0d2036;border:1px solid #345575;border-radius:11px;padding:11px 10px;min-width:0}
+.bo-now-lane b{font-size:.85rem;display:block;margin-bottom:5px}
+.bo-now-lane p{font-size:.76rem;color:#bfd0e3;overflow-wrap:anywhere;line-height:1.42;margin:6px 0}
+.bo-now-lane small{font-size:.71rem;color:#a5bdd7;overflow-wrap:anywhere}
+.bo-now-lane a{font-size:.75rem}
+.bo-now-dot{width:9px;height:9px;display:inline-block;background:#8191a5;border-radius:50%;margin-right:7px;vertical-align:middle}
+.bo-now-dot[data-tone=active]{background:#55c8ff;box-shadow:0 0 0 4px #55c8ff22;animation:bo-beat 1.4s ease-in-out infinite}
+.bo-now-dot[data-tone=blocked]{background:#f7a8a8}
+.bo-now-dot[data-tone=waiting]{background:#f0ce85}
+.bo-now-dot[data-tone=idle]{background:#86ddbd}
+@keyframes bo-beat{50%{box-shadow:0 0 0 8px #55c8ff00}}
+@media(max-width:820px){.bo-now-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:370px){.bo-now-grid{grid-template-columns:1fr}}
 .bo[aria-busy=true] .bo-action{opacity:.65}
 @media(max-width:740px){.bo-grid{grid-template-columns:1fr}.bo-caps{gap:7px}
  .bo-cap{padding:12px 6px}.bo-ring{width:88px;height:88px}
@@ -296,6 +317,38 @@ JS = r"""'use strict';
       });
       if (!events.childElementCount) events.textContent='No recorded events yet.';
     }
+    const ops=d.operations;
+    if (ops && Array.isArray(ops.lanes)) {
+      txt('now-headline',String(ops.headline||'Current activity unconfirmed'));
+      txt('now-detail',String(ops.detail||'No verified activity explanation available.'));
+      txt('now-checked',String(ops.checked_at||'Unknown'));
+      const overall=id('now-state');
+      if(overall){overall.textContent=String(ops.state||'unknown');overall.dataset.tone=String(ops.state||'unknown');}
+      const current=id('now-lanes');
+      if(current){
+        current.replaceChildren();
+        const labels={scout:'Scout',publisher:'Comment publisher',original:'Original posts',dependencies:'Gateway + Ollama'};
+        const links={scout:'/logs?service=scout',publisher:'/logs?service=publisher',original:'/originals',dependencies:'/system/status'};
+        ops.lanes.slice(0,4).forEach(item=>{
+          if(!item || !Object.prototype.hasOwnProperty.call(labels,String(item.key)))return;
+          const key=String(item.key);
+          const card=document.createElement('div');card.className='bo-now-lane';
+          const head=document.createElement('b');
+          const dot=document.createElement('span');dot.className='bo-now-dot';dot.dataset.tone=String(item.state||'unknown');
+          head.append(dot,document.createTextNode(labels[key]));
+          const activity=document.createElement('p');activity.textContent=String(item.activity||'Status unconfirmed');
+          const reason=document.createElement('small');
+          reason.textContent=String(item.reason||'')+(item.next_scheduled?' · Systemd next: '+String(item.next_scheduled):'');
+          const link=document.createElement('a');link.href=links[key];link.textContent='Inspect evidence';
+          card.append(head,activity,reason,document.createElement('br'),link);
+          current.append(card);
+        });
+      }
+    } else {
+      txt('now-headline','Current activity unavailable');
+      txt('now-detail','No verified activity explanation. See System Status and Logs.');
+      const current=id('now-lanes');if(current)current.replaceChildren();
+    }
     services.replaceChildren();
     d.services.slice(0,12).forEach(x=>row(services,String(x.name||'Service'),String(x.state||'unknown')));
     workers.replaceChildren();
@@ -387,6 +440,46 @@ def _rows(items, *, worker=False):
     return "".join(result)
 
 
+def _operations_html(data):
+    """Escaped SSR fallback. JS updates through textContent, never innerHTML."""
+    ops=data.get("operations") or {}
+    lanes=ops.get("lanes") if isinstance(ops,dict) else []
+    lanes=lanes if isinstance(lanes,list) else []
+    names={"scout":"Scout","publisher":"Comment publisher",
+           "original":"Original posts","dependencies":"Gateway + Ollama"}
+    links={"scout":"/logs?service=scout","publisher":"/logs?service=publisher",
+           "original":"/originals","dependencies":"/system/status"}
+    cards=[]
+    for item in lanes[:4]:
+        if not isinstance(item,dict) or item.get("key") not in names:
+            continue
+        key=item["key"]
+        state=item.get("state","unknown")
+        state=state if state in ("active","waiting","blocked","idle","unknown") else "unknown"
+        extra=(" · Systemd next: "+str(item["next_scheduled"])
+               if item.get("next_scheduled") else "")
+        cards.append('<div class="bo-now-lane"><b><span class="bo-now-dot" data-tone="'+
+                     state+'"></span>'+esc(names[key])+'</b><p>'+
+                     esc(item.get("activity","Status unconfirmed"))+'</p><small>'+
+                     esc(str(item.get("reason",""))+extra)+'</small><br>'
+                     '<a href="'+links[key]+'">Inspect evidence</a></div>')
+    state=ops.get("state","unknown")
+    state=state if state in ("active","waiting","blocked","idle","unknown") else "unknown"
+    return ('<section class="bo-panel bo-now" aria-label="Bob right now">'
+            '<div class="bo-now-top"><h2>Bob right now</h2>'
+            '<span id="bo-now-state" class="bo-pill" data-tone="'+state+'">'+
+            esc(state)+'</span></div>'
+            '<p id="bo-now-headline" class="bo-now-headline">'+
+            esc(ops.get("headline","Current activity unconfirmed"))+'</p>'
+            '<p id="bo-now-detail" class="bo-now-detail">'+
+            esc(ops.get("detail","No verified status available."))+'</p>'
+            '<div id="bo-now-lanes" class="bo-now-grid">'+''.join(cards)+'</div>'
+            '<p class="bo-muted">Evidence checked: <span id="bo-now-checked">'+
+            esc(ops.get("checked_at","Unknown"))+'</span>. '
+            'Read-only observations; no inferred work or scheduled publications.</p>'
+            '</section>')
+
+
 def page(data):
     metrics=data["metrics"]
     avail=bool(metrics.get("available"))
@@ -423,10 +516,11 @@ def page(data):
           esc("Auto comments enabled" if metrics.get("auto_enabled") else
               "Auto comments disabled" if avail else "Metrics unavailable")+
           '</span></div><div class="bo-caps">'+cards+'</div>'
-          '<p class="bo-sub">Earliest possible next comment: <b id="bo-next-comment">'+
+          '<p class="bo-sub">Earliest policy-permitted comment (not scheduled): <b id="bo-next-comment">'+
           esc(times.get("comments","Unknown"))+'</b><br>'
-          'Earliest possible next original post: <b id="bo-next-original">'+
+          'Earliest policy-permitted original (not scheduled): <b id="bo-next-original">'+
           esc(times.get("originals","Unknown"))+'</b></p></section>'
+          +_operations_html(data)+
           '<div class="bo-grid"><section class="bo-panel"><div class="bo-panel-head"><h2>Queue &amp; publication</h2>'
           '<a href="/manage" class="bo-muted">Manage queues</a></div><div class="bo-facts">'+
           _fact("comments-queued",count("comments_queued"),"Comments queued","/manage?tab=activity&state=queued")+
