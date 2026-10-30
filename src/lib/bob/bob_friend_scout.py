@@ -164,7 +164,7 @@ def profile_posts(agent,*,getter=_json_get):
     """Never trust profile post bodies, author names or URLs as authoritative."""
     handle=friends.handle(agent["handle"])
     envelope=getter(ENDPOINT+"?"+urlencode({"name":handle}))
-    if not envelope:
+    if not isinstance(envelope,dict) or envelope.get("success") is not True:
         return []
     identity=envelope.get("agent")
     name=identity.get("name") if isinstance(identity,dict) else None
