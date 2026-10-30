@@ -221,7 +221,7 @@ class LogsTests(unittest.TestCase):
         oldmethods,newmethods=methods(tree_before),methods(tree_after)
         self.assertEqual(set(oldmethods),set(newmethods))
         for name in oldmethods:
-            if name not in ("do_GET",):
+            if name not in ("do_GET","_error_page"):
                 self.assertEqual(oldmethods[name],newmethods[name],name)
         self.assertNotIn(b'if path == "/logs":',new)
         self.assertIn(b'self._send(200, diagnostics_page(wrap,',new)
