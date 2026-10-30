@@ -102,13 +102,17 @@ class LogsTests(unittest.TestCase):
         result,ok=logs._db_entries(self.dbpath)
         self.assertTrue(ok)
         text="\n".join(r["message"] for r in result)
-        self.assertIn("manual approval required",text)
+        self.assertIn("manual review",text)
         self.assertIn("Moltbook HTTP 429",text)
         self.assertIn("Detailed error withheld",text)
         self.assertIn("Verification challenge expired",text)
         self.assertNotIn(SECRET,text)
         self.assertNotIn(POST_TEXT,text)
         self.assertNotIn("badprivate",text)
+        blocked=[r for r in result if r["source"]=="jobs" and r["id"]==RID]
+        self.assertEqual(len(blocked),1)
+        self.assertEqual(blocked[0]["level"],"warning")
+        self.assertIn("intentionally blocked",blocked[0]["message"])
         self.assertEqual(len([r for r in result if r["source"]=="events"
                               and r["message"]=="Publication blocked by safety check"]),1)
         self.assertTrue(all(len(x["message"])<=350 for x in result))
@@ -136,14 +140,14 @@ class LogsTests(unittest.TestCase):
                                        "window":["forever"],"q":[SECRET*20]}),
                          self.opts())
         self.assertEqual(logs.options({"service":["scout","publisher"]})["service"],"all")
-        result,count,_=logs.collect(self.opts(service="publisher",level="error",
+        result,count,_=logs.collect(self.opts(service="publisher",level="warning",
                              source="jobs",q=RID),
                              db_path=self.dbpath,checkpoint_root=self.cp,
                              journal_runner=lambda *a,**kw: self.fail("no journal"),at=AT)
         self.assertEqual(len(result),1)
         self.assertEqual(count,1)
         self.assertEqual(result[0]["id"],RID)
-        self.assertIn("manual approval",result[0]["message"])
+        self.assertIn("manual review",result[0]["message"])
         result,count,_=logs.collect(self.opts(service="publisher",level="error",
                               source="jobs",q="nonsense"),
                               db_path=self.dbpath,checkpoint_root=self.cp,
@@ -189,11 +193,11 @@ class LogsTests(unittest.TestCase):
         self.assertIn("No entries match these filters",html)
         self.assertNotIn(SECRET,html)
         self.assertNotIn(POST_TEXT,html)
-        html=logs.page(lambda t,b,p:b,{"service":["publisher"],"level":["error"],
+        html=logs.page(lambda t,b,p:b,{"service":["publisher"],"level":["warning"],
                     "source":["jobs"],"q":[RID]},db_path=self.dbpath,
                     checkpoint_root=self.cp,journal_runner=runner,at=AT)
         self.assertIn(RID,html)
-        self.assertIn("Friend-targeted reply blocked",html)
+        self.assertIn("saved friend requires manual review",html)
         self.assertNotIn(SECRET,html)
         self.assertIn("UTC",html)
 
@@ -202,8 +206,79 @@ class LogsTests(unittest.TestCase):
         self.assertEqual(len(records),1)
         self.assertEqual(records[0]["source"],"checkpoints")
         self.assertEqual(records[0]["level"],"error")
-        self.assertIn("inspect logs",records[0]["message"])
+        self.assertIn("correlating with stored jobs",records[0]["message"])
         self.assertNotIn("Bearer",records[0]["message"])
+
+    def test_auto_comment_block_labelled_warning_not_publication_failure(self):
+        with sqlite3.connect(self.dbpath) as db:
+            t=(AT-timedelta(minutes=2)).isoformat()
+            db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?)",
+                       ("20261029T224412Z","failed","Human decision already exists",t))
+        rows,available=logs._db_entries(self.dbpath)
+        self.assertTrue(available)
+        block=next(row for row in rows if row["id"]=="20261029T224412Z"
+                   and row["source"]=="jobs")
+        self.assertEqual(block["level"],"warning")
+        self.assertIn("owner review decision",block["message"])
+        self.assertIn("not sent",block["message"])
+        self.assertIn("database state: failed",block["message"])
+
+    def test_failed_checkpoint_correlates_same_run_job_and_does_not_repeat_inspect_logs(self):
+        with sqlite3.connect(self.dbpath) as db:
+            t=(AT-timedelta(minutes=2)).isoformat()
+            db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?)",
+                       ("20261029T224412Z","failed","Human decision already exists",t))
+        synthetic=dict(worker="publisher",job_id="20261029T224412Z",
+                       stage="failed",message="Worker step failed; inspect logs",
+                       updated_at=(AT-timedelta(minutes=2)).isoformat(),
+                       stale=False)
+        with patch.object(logs,"read_checkpoints",return_value=[synthetic]):
+            result,count,_=logs.collect(self.opts(source="checkpoints",
+                            service="publisher",level="warning"),
+                            db_path=self.dbpath,
+                            journal_runner=lambda *args,**kw: type("Result",(),{
+                                "returncode":1,"stdout":b""})(),
+                            at=AT)
+        self.assertEqual(count,1)
+        self.assertEqual(result[0]["source"],"checkpoints")
+        self.assertIn("owner review decision",result[0]["message"])
+        self.assertNotIn("inspect logs",result[0]["message"])
+        self.assertEqual(result[0]["level"],"warning")
+
+    def test_scout_checkpoint_time_correlates_sanitized_journal_without_false_certainty(self):
+        synthetic=dict(worker="scout",job_id=RID,
+                       stage="failed",message="Worker step failed; inspect logs",
+                       updated_at=(AT-timedelta(minutes=5)).isoformat(),
+                       stale=False)
+        runner,_=fake_journal()
+        with patch.object(logs,"read_checkpoints",return_value=[synthetic]):
+            result,count,sources=logs.collect(self.opts(source="checkpoints",
+                                         service="scout",level="error"),
+                                         db_path=self.dbpath,
+                                         journal_runner=runner,at=AT)
+        self.assertTrue(sources["journal"])
+        self.assertEqual(count,1)
+        self.assertIn("Moltbook HTTP 503",result[0]["message"])
+        self.assertIn("not a proven cause",result[0]["message"])
+        self.assertNotIn(SECRET,result[0]["message"])
+        self.assertNotIn("inspect logs",result[0]["message"])
+
+    def test_unavailable_journal_gives_explicit_unknown_cause(self):
+        synthetic=dict(worker="scout",job_id=RID,
+                       stage="failed",message="Worker step failed; inspect logs",
+                       updated_at=(AT-timedelta(minutes=5)).isoformat(),
+                       stale=False)
+        with patch.object(logs,"read_checkpoints",return_value=[synthetic]):
+            result,count,sources=logs.collect(self.opts(source="checkpoints",
+                                         service="scout",level="error"),
+                                         db_path=self.dbpath,
+                                         journal_runner=lambda *args,**kw: (_ for _ in ()).throw(
+                                             OSError("SECRET IN EXECUTION")),at=AT)
+        self.assertEqual(count,1)
+        self.assertFalse(sources["journal"])
+        self.assertIn("cause is unknown",result[0]["message"])
+        self.assertNotIn("inspect logs",result[0]["message"])
+        self.assertNotIn("SECRET",result[0]["message"])
 
     def test_builder_adds_only_readonly_get_branch_and_navigation(self):
         old,oldnav=before.build()
