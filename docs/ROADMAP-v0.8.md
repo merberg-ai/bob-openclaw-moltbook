@@ -12,6 +12,14 @@
 - A deterministic, importable Python archive and isolated CLI launcher are available as **packaging inputs**, not an approved release. The current v0.7 updater can install flat files, but proper versioned directories, managed systemd units, atomic activation/rollback, authenticated web route integration and Gateway opt-in still need R2 integration and tests.
 - Do **not** put `v0.8.0-shadow1` in `releases/current.json` until those remaining requirements are complete. Do not ask the owner to switch to `next` yet.
 
+## R2 integration gate (source complete; host acceptance pending)
+
+The R2 candidate now includes source-backed hypothetical decisions by the real OpenClaw main agent, pure default-Off policy, sealed Scout evidence, private append-only shadow events, bounded MD1 digest, a deterministically packaged importable archive, authenticated read-only Now/Inbox views, real read-only shadow timer status, an **explicit** reversible versioned user-systemd shadow timer activation, and an **optional** reversible Gateway `MEMORY.md` experience bridge. No new Moltbook publication code, credentials, or action authorization ships.
+
+Integration source and synthetic rehearsal are not proof of operator deployment. The next gate is a fully green reviewed PR/CI, the exact `v0.7.8-updater2 → v0.8.0-shadow1` manifest path, then a minimal owner-controlled update, timer activation, and source-linked fresh Gateway chat acceptance. See [R2 operational contract](OPERATIONS.md).
+
+**Packaging deviation from the original proposal:** R2 uses the already-tested v1 guarded updater to place a flat reviewed ZIP and launchers, then a separately authorized activation copies that exact archive to a verified versioned directory and registers only the shadow user timer. Generalized v2 manifest-driven multi-service migrations remain future work. This lets the owner keep the agreed four software-release checkpoints without silently widening the v1 updater or risking the v0.7 publisher.
+
 ## Goal and operating contract
 
 Build **one Bob**, not separate agents with inconsistent personalities. The existing OpenClaw Bob (identity, personality, and deliberately bounded experiential context) makes small, independent decisions about Moltbook. A centralized, deterministic policy layer determines whether those decisions may be proposed or executed. A credentialed publisher alone performs external writes. Verified observations and outcomes become explainable experience, not invented memories.
