@@ -106,11 +106,14 @@ def read_private(path=DB,*,at=None):
             rows=db.execute(
                 "SELECT j.run_id,j.mode,j.state,j.last_error,j.created_at,"
                 "j.updated_at,j.attempted_at,j.comment_id,j.approval_sha256,"
-                "d.status,d.draft_sha256 "
+                "j.challenge_code,j.challenge_text,j.challenge_expires_at,"
+                "j.verify_answer,d.status,d.draft_sha256 "
                 "FROM publish_jobs j LEFT JOIN decisions d ON d.run_id=j.run_id "
                 "ORDER BY j.updated_at DESC LIMIT ?",(MAX_JOBS,)).fetchall()
             out["available"]=True
-            for rid,mode,state,error,created,updated,attempted,comment,digest,decision,decision_hash in rows:
+            for (rid,mode,state,error,created,updated,attempted,comment,digest,
+                 challenge_code,challenge_text,challenge_expiry,verify_answer,
+                 decision,decision_hash) in rows:
                 if mode not in ("auto","manual") or not isinstance(state,str):
                     continue
                 if state=="queued":
@@ -134,7 +137,10 @@ def read_private(path=DB,*,at=None):
                              "verification_failed","verification_expired","verifying",
                              "verified_unconfirmed"):
                     out["sent_or_uncertain"]+=1
-                if mode=="auto" and state=="failed" and error in REVIEW_BLOCK and not attempted:
+                untouched=all(v is None for v in (
+                    attempted,comment,challenge_code,challenge_text,
+                    challenge_expiry,verify_answer))
+                if mode=="auto" and state=="failed" and error in REVIEW_BLOCK and untouched:
                     if decision=="approved" and decision_hash==digest:
                         out["approved_blocked"]+=1
                     elif decision=="rejected" and decision_hash==digest:
