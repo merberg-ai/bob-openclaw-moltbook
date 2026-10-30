@@ -1,21 +1,29 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.4-fm2-discovery1",
-  "from": "v0.7.4-fm1-friends1",
-  "notes": "FM2 explicit read-only Moltbook agent profile lookup with anonymous fixed-host HTTPS, bounded timestamped private cache, Bob's source-linked Scout rationale as staged friend suggestions, and owner approval/rejection. No credentials, follow/unfollow, messages, posts, autonomous jobs or permission changes.",
+  "release": "v0.7.4-fm3-friend-scout1",
+  "from": "v0.7.4-fm2-discovery1",
+  "notes": "FM3 owner opt-in friend-focused Scout on existing schedule: max two checksum-verified active friends, anonymous bounded profile+post GETs, four normal-feed posts reserved, review-first draft workflow. Friend-focused Scout snapshots explicitly excluded from legacy auto-comment queue, even if auto-comment setting enabled. No follows, messages, votes, tools, new timers or permission grants.",
   "files": [
     {
-      "name": "bob_friend_discovery.py",
-      "source": "src/lib/bob/bob_friend_discovery.py"
+      "name": "bob_friend_scout.py",
+      "source": "src/lib/bob/bob_friend_scout.py"
+    },
+    {
+      "name": "bob_publish_common.py",
+      "source": "src/lib/bob/bob_publish_common.py"
+    },
+    {
+      "name": "bob-moltbook-scout",
+      "source": "src/bin/bob-moltbook-scout"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v074_fm2_discovery_candidate.py",
+      "builder": "scripts/build_v074_fm3_friend_scout_candidate.py",
       "index": 0
     },
     {
       "name": "navigation_shell.py",
-      "builder": "scripts/build_v074_fm2_discovery_candidate.py",
+      "builder": "scripts/build_v074_fm3_friend_scout_candidate.py",
       "index": 1
     }
   ],
