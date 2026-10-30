@@ -112,7 +112,7 @@ class InterestsTests(unittest.TestCase):
                 scout.change(db,self.stage_form())
             with self.assertRaisesRegex(ValueError,"Invalid interest form"):
                 scout.change(db,{**self.stage_form(),"unexpected":"x"})
-            with self.assertRaisesRegex(ValueError,"Invalid interest form"):
+            with self.assertRaisesRegex(ValueError,"source unavailable or changed"):
                 scout.change(db,{**self.stage_form(),"post_id":"not-a-post"})
             self.assertEqual(len(scout.interest_rows(db)),1)
 
