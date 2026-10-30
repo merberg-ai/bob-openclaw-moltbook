@@ -109,6 +109,20 @@ def auto_candidates(db, max_count=10):
         rid=p.name.removeprefix('scout-result-').removesuffix('.json')
         obj=load_record(rid)
         if obj is None: continue
+        # Friend-focused discovery is deliberately manual-publication-only.
+        # Independently inspect the already-integrity-verified Scout feed,
+        # not just the mutable friend_focus result metadata. This guard
+        # remains effective even if the result's new flag is removed.
+        if obj.get('friend_focus') is True:
+            continue
+        try:
+            source=json.loads((DATA/f'scout-feed-{rid}.json').read_text(encoding='utf-8'))
+            if source.get('friend_focus') is True or any(
+                isinstance(p,dict) and p.get('from_friend') is True
+                for p in source.get('posts',[])):
+                continue
+        except (OSError,TypeError,ValueError,AttributeError):
+            continue
         try:
             created=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
             if created.isoformat() <= since: continue
