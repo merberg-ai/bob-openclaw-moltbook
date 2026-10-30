@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.5-fm32c-localideas1",
-  "from": "v0.7.5-fm32b-watchlist1",
-  "notes": "FM3.2c owner-triggered loopback Ollama tentative interests from SHA-verified saved friend selections; private digest-reviewed proposals, no new Scout reads or social/publication authority.",
+  "release": "v0.7.5-fm32d-focus1",
+  "from": "v0.7.5-fm32c-localideas1",
+  "notes": "FM3.2d manually confirmed, anonymous read-only public focus: one active watched friend's profile and <=2 posts per request, cooldowns, source-matched private snapshots, optional local Ollama reaction and separate owner review; no new timer, follower or publishing permissions.",
   "files": [
     {
       "name": "bob_friend_scout.py",
@@ -10,7 +10,7 @@
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v075_fm32c_candidate.py",
+      "builder": "scripts/build_v075_fm32d_candidate.py",
       "index": 0
     }
   ],
