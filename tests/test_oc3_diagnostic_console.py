@@ -139,8 +139,8 @@ class ConsoleTests(unittest.TestCase):
 
     def test_html_escapes_unsafe_search_and_uses_only_same_origin_assets(self):
         opts={"q":['<img src=x onerror="alert(1)">']}
-        with patch.object(console,"collect",side_effect=lambda opt:self.collect()):
-            html=console.page(lambda title,body,route:body,opts)
+        html=console.page(lambda title,body,route:body,opts,
+                          collector=lambda opt:self.collect())
         self.assertIn("Diagnostic Console",html)
         self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;",html)
         self.assertNotIn("<img src=x onerror",html)
