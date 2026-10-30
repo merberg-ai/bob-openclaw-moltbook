@@ -1,21 +1,30 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.6-pubfix-manual1",
-  "from": "v0.7.6-oc3-console1",
-  "notes": "Repair explicit owner-approved automatic draft to manual queue handoff before any send; preserve strict duplicate/uncertain protections, guarded worker claim and visible Publish action. OC4 follows after acceptance.",
+  "release": "v0.7.6-oc4-investigator1",
+  "from": "v0.7.6-pubfix-manual1",
+  "notes": "OC4 safe Why No Activity view: read-only source-grounded reasons and owner-decision distinctions, throttled metadata-only publisher skip events and compact Overview link; preserves protected publication and auth flows.",
   "files": [
     {
-      "name": "bob_publish_common.py",
-      "source": "src/lib/bob/bob_publish_common.py"
+      "name": "bob_inactivity.py",
+      "source": "src/lib/bob/bob_inactivity.py"
     },
     {
       "name": "bob-moltbook-publisher",
       "source": "src/bin/bob-moltbook-publisher"
     },
     {
+      "name": "bob_overview.py",
+      "source": "src/lib/bob/bob_overview.py"
+    },
+    {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v076_pubfix_handoff_candidate.py",
+      "builder": "scripts/build_v076_oc4_candidate.py",
       "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v076_oc4_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
