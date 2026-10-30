@@ -47,7 +47,15 @@ ERRORS=frozenset(("Invalid friend scouting form","Friend scouting setting change
                    "Local interest AI requires a verified active saved friend",
                    "Local interest AI already running","Local interest AI run limit reached",
                    "Local interest AI inbox capacity reached","Local interest AI proposal changed",
-                   "Local interest AI proposal unavailable","Local interest AI decision unavailable"))
+                   "Local interest AI proposal unavailable","Local interest AI decision unavailable",
+                   "Public focus form invalid","Public focus requires friend scouting enabled",
+                   "Public focus requires an active watched friend",
+                   "Public focus state changed; reload","Public focus confirmation does not match",
+                   "Public focus job already active","Public focus is cooling down",
+                   "Public focus daily budget reached","Public focus history capacity reached",
+                   "Public focus source changed or friend paused",
+                   "Public focus review unavailable","Public focus decision unavailable",
+                   "Public focus review changed; reload"))
 CSS="""<style>
 .bfs{max-width:1050px;margin:auto;display:grid;gap:17px}
 .bfs-panel{border:1px solid #375575;background:linear-gradient(145deg,#172a40,#111d30);
@@ -200,6 +208,10 @@ def change(db,form):
         return "ai-job:"+interest_ai_start(db,form)
     if form.get("operation")=="interest_ai_review":
         return interest_ai_review(db,form)
+    if form.get("operation")=="focus_inspect":
+        return "focus-job:"+focus_start(db,form)
+    if form.get("operation")=="focus_review":
+        return focus_review(db,form)
     if set(form)!={"csrf","enabled","expected","confirmation"}:
         raise ValueError("Invalid friend scouting form")
     new,expected=form["enabled"],form["expected"]
@@ -751,6 +763,376 @@ def interest_ai_rows(db):
     return [item for row in rows if _ai_valid(item:=dict(zip(AI_PROP_COLS,row)))]
 
 
+
+# FM3.2d: optional owner-triggered read-only focus on ONE watched public friend.
+# No new Scout timer, no credentials, no posts, no platform follow/message.
+FOCUS_CONFIRM="INSPECT PUBLIC ACTIVITY"
+FOCUS_COLS=("id","friend_id","friend_sha","watch_sha","handle","status",
+            "created_at","updated_at","error_code","result_json","idea_json",
+            "review_status","review_reason","version","sha256")
+FOCUS_MAX_ROWS=100
+FOCUS_GLOBAL_COOLDOWN=900
+FOCUS_FRIEND_COOLDOWN=21600
+FOCUS_DAILY=6
+FOCUS_FAILURES={
+    "source_changed":"Friend was changed or paused; no inspection saved.",
+    "profile_unavailable":"Matching public profile was unavailable; no snapshot saved.",
+    "interrupted":"Inspection interrupted; no automatic retry.",
+    "model_unavailable":"Public snapshot saved; local AI reaction unavailable.",
+}
+
+
+def focus_init(db):
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_focus_jobs(
+        id TEXT PRIMARY KEY,friend_id TEXT NOT NULL,friend_sha TEXT NOT NULL,
+        watch_sha TEXT NOT NULL,handle TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('queued','running','completed','failed')),
+        created_at TEXT NOT NULL,updated_at TEXT NOT NULL,error_code TEXT NOT NULL,
+        result_json TEXT NOT NULL,idea_json TEXT NOT NULL,
+        review_status TEXT NOT NULL CHECK(review_status IN ('none','pending','approved','rejected')),
+        review_reason TEXT NOT NULL,version INTEGER NOT NULL CHECK(version>=1),
+        sha256 TEXT NOT NULL)""")
+    db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS bob_friend_focus_one_active
+                  ON bob_friend_focus_jobs ((1)) WHERE status IN ('queued','running')""")
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_focus_history(
+        id TEXT NOT NULL,version INTEGER NOT NULL,
+        saved_at TEXT NOT NULL,action TEXT NOT NULL,snapshot_json TEXT NOT NULL,
+        PRIMARY KEY(id,version))""")
+
+
+def focus_seal(item):
+    return hashlib.sha256(json.dumps(
+        {k:item[k] for k in FOCUS_COLS if k!="sha256"},
+        sort_keys=True,ensure_ascii=False,separators=(",",":")).encode()).hexdigest()
+
+
+def focus_valid(item):
+    try:
+        return (isinstance(item["sha256"],str) and
+                hmac.compare_digest(item["sha256"],focus_seal(item)) and
+                type(item["version"]) is int and item["version"]>=1)
+    except (TypeError,ValueError,KeyError):
+        return False
+
+
+def _focus_get(db,ident):
+    if not isinstance(ident,str) or not friends.ID.fullmatch(ident):
+        raise ValueError("Public focus review unavailable")
+    row=db.execute("SELECT "+",".join(FOCUS_COLS)+" FROM bob_friend_focus_jobs "
+                   "WHERE id=?",(ident,)).fetchone()
+    if not row:
+        raise ValueError("Public focus review unavailable")
+    item=dict(zip(FOCUS_COLS,row))
+    if not focus_valid(item):
+        raise ValueError("Public focus review unavailable")
+    return item
+
+
+def _focus_history(db,item,action):
+    db.execute("INSERT INTO bob_friend_focus_history(id,version,saved_at,action,"
+               "snapshot_json) VALUES(?,?,?,?,?)",
+               (item["id"],item["version"],item["updated_at"],action,
+                json.dumps(item,sort_keys=True,ensure_ascii=False)))
+
+
+def _focus_update(db,item,action):
+    previous=item["sha256"]
+    item["version"]+=1
+    item["updated_at"]=common.now()
+    item["sha256"]=focus_seal(item)
+    fields=[k for k in FOCUS_COLS if k not in ("id",)]
+    cursor=db.execute("UPDATE bob_friend_focus_jobs SET "+
+                      ",".join(k+"=?" for k in fields)+
+                      " WHERE id=? AND sha256=?",
+                      tuple(item[k] for k in fields)+(item["id"],previous))
+    if cursor.rowcount!=1:
+        raise ValueError("Public focus review changed; reload")
+    _focus_history(db,item,action)
+
+
+def _focus_friend(db,job):
+    if not enabled(db):
+        raise ValueError("Public focus requires friend scouting enabled")
+    active={entry["id"]:entry for entry in _watch(db,include_disabled=False)}
+    friend=active.get(job["friend_id"])
+    if (not friend or friend["state"]!="active" or
+        not hmac.compare_digest(friend["sha256"],job["friend_sha"]) or
+        not hmac.compare_digest(friend["watch_sha"],job["watch_sha"]) or
+        friend["handle"]!=job["handle"]):
+        raise ValueError("Public focus source changed or friend paused")
+    return friend
+
+
+def _focus_recent(db):
+    focus_init(db)
+    return [item for row in db.execute("SELECT "+",".join(FOCUS_COLS)+
+            " FROM bob_friend_focus_jobs ORDER BY created_at DESC,id DESC LIMIT 15")
+            if focus_valid(item:=dict(zip(FOCUS_COLS,row)))]
+
+
+def focus_start(db,form):
+    if set(form)!={"csrf","operation","id","friend_sha","watch_sha","confirmation"}:
+        raise ValueError("Public focus form invalid")
+    if form["confirmation"]!=FOCUS_CONFIRM:
+        raise ValueError("Public focus confirmation does not match")
+    if not isinstance(form["id"],str) or not friends.ID.fullmatch(form["id"]):
+        raise ValueError("Public focus form invalid")
+    focus_init(db)
+    friend=_focus_friend(db,dict(friend_id=form["id"],friend_sha=form["friend_sha"],
+                               watch_sha=form["watch_sha"],
+                               handle=friends._get(db,form["id"])["handle"]))
+    now=datetime.now(timezone.utc)
+    if db.execute("SELECT 1 FROM bob_friend_focus_jobs "
+                  "WHERE status IN ('queued','running')").fetchone():
+        raise ValueError("Public focus job already active")
+    rows=db.execute("SELECT created_at,friend_id FROM bob_friend_focus_jobs "
+                    "ORDER BY created_at DESC LIMIT 100").fetchall()
+    if len(rows)>=FOCUS_MAX_ROWS:
+        raise ValueError("Public focus history capacity reached")
+    day=0
+    for raw,fid in rows:
+        try:
+            age=(now-datetime.fromisoformat(raw)).total_seconds()
+        except (TypeError,ValueError):
+            raise ValueError("Public focus history capacity reached") from None
+        if age<0:
+            raise ValueError("Public focus is cooling down")
+        if age<FOCUS_GLOBAL_COOLDOWN:
+            raise ValueError("Public focus is cooling down")
+        if fid==friend["id"] and age<FOCUS_FRIEND_COOLDOWN:
+            raise ValueError("Public focus is cooling down")
+        if age<86400:
+            day+=1
+    if day>=FOCUS_DAILY:
+        raise ValueError("Public focus daily budget reached")
+    item=dict(id=secrets.token_hex(12),friend_id=friend["id"],
+              friend_sha=friend["sha256"],watch_sha=friend["watch_sha"],
+              handle=friend["handle"],status="queued",created_at=common.now(),
+              updated_at=common.now(),error_code="",result_json="",idea_json="",
+              review_status="none",review_reason="",version=1)
+    item["sha256"]=focus_seal(item)
+    try:
+        db.execute("INSERT INTO bob_friend_focus_jobs("+",".join(FOCUS_COLS)+") "
+                   "VALUES("+",".join("?" for _ in FOCUS_COLS)+")",
+                   tuple(item[k] for k in FOCUS_COLS))
+    except sqlite3.IntegrityError:
+        raise ValueError("Public focus job already active") from None
+    _focus_history(db,item,"requested")
+    common.event(db,"bob_friend_focus_requested",item["id"])
+    return item["id"]
+
+
+def focus_fetch(friend,*,getter=None):
+    """Maximum three anonymous fixed-host HTTPS GETs: one profile, two posts.
+
+    Moltbook API-reported handle/UUID match is not account ownership proof.
+    No network-controlled URL/hostname/redirect/credential is accepted.
+    """
+    get=getter or _json_get
+    handle=friends.handle(friend["handle"])
+    envelope=get(ENDPOINT+"?"+urlencode({"name":handle}))
+    if not isinstance(envelope,dict) or envelope.get("success") is not True:
+        raise ValueError("Public profile unavailable")
+    profile=envelope.get("agent")
+    if not isinstance(profile,dict) or not isinstance(profile.get("name"),str):
+        raise ValueError("Public profile unavailable")
+    if profile["name"].casefold()!=handle.casefold():
+        raise ValueError("Public profile unavailable")
+    agent_id=profile.get("id")
+    if not isinstance(agent_id,str) or not common.UUID.fullmatch(agent_id):
+        raise ValueError("Public profile unavailable")
+    description=profile.get("description")
+    result={"handle":handle,"agent_id":agent_id,
+            "description":description[:320] if isinstance(description,str) else "",
+            "posts":[]}
+    recent=envelope.get("recentPosts",profile.get("recentPosts",[]))
+    if not isinstance(recent,list):
+        recent=[]
+    seen=set()
+    for item in recent[:12]:
+        if len(result["posts"])>=2 or len(seen)>=2:
+            break
+        pid=item.get("id") if isinstance(item,dict) else None
+        if not isinstance(pid,str) or not common.UUID.fullmatch(pid) or pid in seen:
+            continue
+        seen.add(pid)
+        source=get("/api/v1/posts/"+pid)
+        post=source.get("post") if isinstance(source,dict) else None
+        if not isinstance(post,dict) or post.get("id")!=pid:
+            continue
+        author=post.get("author")
+        if not isinstance(author,dict) or not isinstance(author.get("name"),str):
+            continue
+        if author["name"].casefold()!=handle.casefold():
+            continue
+        if author.get("id") is not None and author.get("id")!=agent_id:
+            continue
+        title,content=post.get("title"),post.get("content")
+        if not isinstance(title,str) or not isinstance(content,str) or not content.strip():
+            continue
+        result["posts"].append({"id":pid,"title":title[:160],
+                                "excerpt":content[:360]})
+    return result
+
+
+def _focus_fail(db,job_id,code):
+    item=_focus_get(db,job_id)
+    if item["status"] not in ("running","queued"):
+        return
+    item["status"]="failed"
+    item["error_code"]=code if code in FOCUS_FAILURES else "profile_unavailable"
+    _focus_update(db,item,"failed")
+
+
+def focus_worker(job_id,connect):
+    """One queued request. No retry, publication tool, agent task or DM."""
+    try:
+        with connect() as db:
+            focus_init(db)
+            job=_focus_get(db,job_id)
+            if job["status"]!="queued":
+                return
+            friend=_focus_friend(db,job)
+            job["status"]="running"
+            _focus_update(db,job,"running")
+        result=focus_fetch(friend)
+        # Source is rechecked after IO: owner can pause while request runs.
+        with connect() as db:
+            job=_focus_get(db,job_id)
+            _focus_friend(db,job)
+        idea=None
+        if result["posts"]:
+            chosen=result["posts"][0]
+            context={"run_id":"manual-focus:"+job_id,
+                     "post_id":chosen["id"],"handle":result["handle"],
+                     "title":chosen["title"],"content":chosen["excerpt"]}
+            try:
+                idea=_ai_candidate(_ai_model(context),chosen["id"])
+            except (OSError,TimeoutError,RuntimeError,ValueError,TypeError):
+                idea=None
+        with connect() as db:
+            job=_focus_get(db,job_id)
+            _focus_friend(db,job)
+            if job["status"]!="running":
+                return
+            job["result_json"]=json.dumps(result,ensure_ascii=False,sort_keys=True)
+            job["idea_json"]=json.dumps(idea,ensure_ascii=False,sort_keys=True) if idea else ""
+            job["review_status"]="pending" if idea else "none"
+            job["status"]="completed"
+            job["error_code"]="model_unavailable" if result["posts"] and idea is None else ""
+            _focus_update(db,job,"completed")
+            common.event(db,"bob_friend_focus_completed",job_id)
+    except Exception as exc:
+        code="source_changed" if isinstance(exc,ValueError) and (
+             str(exc).startswith("Public focus ") or "paused" in str(exc)) else "profile_unavailable"
+        try:
+            with connect() as db:
+                _focus_fail(db,job_id,code)
+        except (sqlite3.Error,ValueError,TypeError):
+            pass
+
+
+def focus_repair(db):
+    from datetime import timedelta
+    focus_init(db)
+    cutoff=(datetime.now(timezone.utc)-timedelta(minutes=3)).isoformat()
+    rows=db.execute("SELECT id FROM bob_friend_focus_jobs "
+                    "WHERE status IN ('queued','running') AND updated_at<?",
+                    (cutoff,)).fetchall()
+    for (ident,) in rows:
+        _focus_fail(db,ident,"interrupted")
+
+
+def focus_review(db,form):
+    if set(form)!={"csrf","operation","id","expected_sha","decision","reason"}:
+        raise ValueError("Public focus form invalid")
+    if form["decision"] not in ("approve","reject"):
+        raise ValueError("Public focus decision unavailable")
+    reason=form["reason"]
+    if not isinstance(reason,str) or not 1<=len(reason.strip())<=240 or (
+        any(ord(c)<32 for c in reason)):
+        raise ValueError("Review reason must be 0-240 characters")
+    focus_init(db)
+    item=_focus_get(db,form["id"])
+    if not isinstance(form["expected_sha"],str) or not hmac.compare_digest(
+            item["sha256"],form["expected_sha"]):
+        raise ValueError("Public focus review changed; reload")
+    if item["status"]!="completed" or item["review_status"]!="pending":
+        raise ValueError("Public focus decision unavailable")
+    _focus_friend(db,item)
+    # The result and model idea are covered by the sealed item and history.
+    if not item["idea_json"]:
+        raise ValueError("Public focus review unavailable")
+    item["review_status"]="approved" if form["decision"]=="approve" else "rejected"
+    item["review_reason"]=reason.strip()
+    _focus_update(db,item,form["decision"])
+    common.event(db,"bob_friend_focus_reviewed",item["id"]+" "+form["decision"])
+    return item["review_status"]
+
+
+def focus_markup(db,csrf):
+    """Only private, source-sealed, locally reviewed public observation cards."""
+    focus_repair(db)
+    items=_focus_recent(db)
+    parts=['<section class="bfs-panel"><h2>Manual public focus · FM3.2d</h2>',
+           '<p class="bfs-muted">Explicit confirmation only: at most one public profile '
+           'and two public posts using anonymous HTTPS; cooldowns apply. This is an '
+           'API-reported snapshot, NOT a real-time presence signal or proof of '
+           'friendship. Optional local AI ideas are uncertain until reviewed. '
+           'No posts, DMs, follows or background inspections.</p>']
+    if not items:
+        parts.append('<p class="bfs-muted">No manual public inspections yet.</p>')
+    for job in items:
+        parts += ['<div class="bfs-card"><strong>@'+e(job["handle"])+'</strong>',
+                  '<p class="bfs-tags">'+e(job["status"])+' · requested '+
+                  e(job["created_at"])+'</p>']
+        if job["status"]=="failed":
+            parts.append('<p class="bfs-muted">'+e(FOCUS_FAILURES.get(
+                job["error_code"],"Inspection unavailable."))+'</p>')
+        if job["status"]=="completed":
+            try:
+                data=json.loads(job["result_json"])
+                if not isinstance(data,dict) or data.get("handle")!=job["handle"]:
+                    raise ValueError
+                parts.append('<p class="bfs-muted">API-matched profile · '+
+                             e(data.get("agent_id",""))+'</p>')
+                parts.append('<p class="bfs-muted">'+e(data.get("description",""))+'</p>')
+                for post in data.get("posts",[])[:2]:
+                    parts += ['<p class="bfs-muted"><strong>Public post: '+
+                              e(post["title"])+'</strong> · '+e(post["id"])+'</p>',
+                              '<p class="bfs-muted">'+e(post["excerpt"])+'</p>']
+            except (ValueError,TypeError,KeyError,IndexError,AttributeError):
+                parts.append('<p class="bfs-muted">Stored snapshot unreadable.</p>')
+            if job["idea_json"]:
+                try:
+                    idea=json.loads(job["idea_json"])
+                    parts += ['<p class="bfs-muted"><strong>Bob’s tentative reaction (local only): </strong>'+
+                              e(idea["idea"])+'</p>',
+                              '<p class="bfs-muted">Reason: '+e(idea["reason"])+
+                              ' · Uncertainty: '+e(idea["uncertainty"])+
+                              ' · confidence '+e(idea["confidence"])+
+                              ' · review '+e(job["review_status"])+'</p>']
+                    if job["review_status"]=="pending":
+                        for decision in ("approve","reject"):
+                            parts += ['<form method="post" action="/moltbook/friend-scout">',
+                                      '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
+                                      '<input type="hidden" name="operation" value="focus_review">',
+                                      '<input type="hidden" name="id" value="'+e(job["id"])+'">',
+                                      '<input type="hidden" name="expected_sha" value="'+e(job["sha256"])+'">',
+                                      '<input type="hidden" name="decision" value="'+decision+'">',
+                                      '<label>Owner reason<input name="reason" required maxlength="240"></label>',
+                                      '<button class="secondary" type="submit">'+
+                                      e(decision.title())+' local reaction</button></form>']
+                except (ValueError,TypeError,KeyError,AttributeError):
+                    parts.append('<p class="bfs-muted">Local reaction unreadable.</p>')
+            elif job["error_code"]=="model_unavailable":
+                parts.append('<p class="bfs-muted">Public snapshot saved. '
+                             'Local Ollama reaction unavailable or not useful.</p>')
+        parts.append('</div>')
+    parts.append('</section>')
+    return "".join(parts)
+
+
 def _watch(db,*,include_disabled=False):
     prefs=_preferences(db)
     if prefs is None:
@@ -1254,6 +1636,27 @@ def page(db,csrf,wrap,records,params=None):
         if not evidence:
             parts.append('<p class="bfs-muted">No verified saved friend-focused or '
                          'selected discussion in the 100 most recent Scout records.</p>')
+        if not enabled(db):
+            parts.append('<p class="bfs-muted">Manual inspection is disabled while '
+                         'global friend scouting is off.</p>')
+        elif not item["watch_enabled"]:
+            parts.append('<p class="bfs-muted">Resume watching before inspecting '
+                         'this public profile.</p>')
+        elif item["watch_problem"]:
+            parts.append('<p class="bfs-muted">Fix preference integrity first.</p>')
+        else:
+            parts += ['<details><summary class="bfs-muted">Inspect public activity '
+                      '(confirmation required)</summary>',
+                      '<form method="post" action="'+e(action)+'">',
+                      '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
+                      '<input type="hidden" name="operation" value="focus_inspect">',
+                      '<input type="hidden" name="id" value="'+e(item["id"])+'">',
+                      '<input type="hidden" name="friend_sha" value="'+e(item["sha256"])+'">',
+                      '<input type="hidden" name="watch_sha" value="'+e(item["watch_sha"])+'">',
+                      '<label>Type '+FOCUS_CONFIRM+'<input name="confirmation" required '
+                      'maxlength="40" autocomplete="off" placeholder="'+FOCUS_CONFIRM+'"></label>',
+                      '<button type="submit">Inspect 1 public profile + up to 2 posts</button>',
+                      '</form></details>']
         if item["watch_problem"]:
             parts.append('<p class="bfs-muted">Stored watch preference integrity failed. '
                          'No scouting will occur for this agent until repaired.</p>')
@@ -1435,7 +1838,9 @@ def page(db,csrf,wrap,records,params=None):
         parts.append('</div>')
     if len(ai_items)>10:
         parts.append('</details>')
-    parts += ['</section><section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
+    parts.append('</section>')
+    parts.append(focus_markup(db,csrf))
+    parts += ['<section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
               '<p class="bfs-muted">Results appear after the existing Scout timer '
               'next runs. A missing friend post may mean the public profile or post '
               'was unavailable or failed source verification; the regular global '
