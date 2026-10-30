@@ -1,6 +1,6 @@
 # FM3: opt-in friend-focused Scout
 
-**Candidate release:** v0.7.4-fm3-friend-scout1 (from operator-tested v0.7.4-fm2-discovery1).
+**Candidate release:** v0.7.4-fm3-friend-scout2 (from operator-tested v0.7.4-fm2-discovery1).
 
 ## What FM3 adds
 
@@ -17,7 +17,7 @@ When the owner types **ENABLE FRIEND SCOUTING** and enables the feature, Bob's *
 
 ### Important publishing permission
 
-**Friend-focused Scout drafts are NEVER eligible for the legacy automatic comment publisher.** The preexisting global auto-comment setting is not permission to message friends. **Even a saved friend appearing naturally in the ordinary global feed is excluded from automatic queueing:** the publisher checks the selected post author against the local Friends directory. A malformed existing directory fails closed rather than silently bypassing the guard. The common auto-candidate collector checks the *hash-verified saved snapshot* for friend-source markers and skips it even if the friend_focus flag in the result JSON is missing. You can review and **manually approve and queue** a specific reply using the existing Scout review workflow. A full manual queue action remains a separate operator decision.
+**Friend-focused Scout drafts are NEVER eligible for the legacy automatic comment publisher.** The preexisting global auto-comment setting is not permission to message friends. **Even a saved friend appearing naturally in the ordinary global feed is excluded from automatic queueing:** the publisher checks the selected post author against the local Friends directory. A malformed existing directory fails closed rather than silently bypassing the guard. The managed publisher calls an FM3 guarded auto-candidate collector that checks the *hash-verified saved snapshot* for friend-source markers and saved friend authors, independently of the result JSON metadata. It also rechecks before sending any already-queued automatic reply. You can review and **manually approve and queue** a specific reply using the existing Scout review workflow. A full manual queue action remains a separate operator decision.
 
 The feature does not autonomously send following/friend requests, comments, direct messages, votes, posts or profile changes. No new scheduler is installed, and turning FM3 off stops its extra reads at the next Scout run, without retracting already-generated drafts.
 
@@ -33,13 +33,13 @@ Profiles may expose recentPosts at the response root or inside the agent payload
 
 ## Files / data / update
 
-Update manifest installs five files: the new bob_friend_scout.py, changes to bob-moltbook-scout and bob_publish_common.py, generated Activity Manager and navigation_shell.py. Activity Manager restarts. Existing Scout process picks up the new script on its next scheduled run. No new schema is created. The only persistent setting is bob_friend_scout_enabled in the existing private publish_settings table, with a small audit event on owner toggle.
+Update manifest installs five files: the new bob_friend_scout.py, changes to the existing managed bob-moltbook-scout and bob-moltbook-publisher workers, generated Activity Manager and navigation_shell.py. The previously installed bob_publish_common.py helper remains untouched and unmanaged. Activity Manager restarts. Existing Scout process picks up the new script on its next scheduled run. No new schema is created. The only persistent setting is bob_friend_scout_enabled in the existing private publish_settings table, with a small audit event on owner toggle.
 
 The existing versioned updater performs exact checksum validation, protected private database backup and code-only rollback if manager readiness fails. All other previous pages and publication permissions are unchanged.
 
 ## Operator acceptance
 
-1. Run one command, **bobctl update**, in OpenClawLab. Confirm **v0.7.4-fm2-discovery1 → v0.7.4-fm3-friend-scout1**; type UPDATE.
+1. Run one command, **bobctl update**, in OpenClawLab. Confirm **v0.7.4-fm2-discovery1 → v0.7.4-fm3-friend-scout2**; type UPDATE.
 2. Open **Moltbook → Friend Scout** in the authenticated LAN dashboard. It should start **Disabled**. Check the eligible active friend count and watchlist; muted/archived entries should not appear.
 3. Type **ENABLE FRIEND SCOUTING** and click enable. Verify the page says **Enabled**, without running Scout or posting anything immediately.
 4. After the next ordinary Scout run, inspect the **Recent friend-focused Scout runs** section and **Scout & Review**. If a watched agent exposes public recent posts, up to two friend posts may be included; the rest remain normal global discussions. The model may still prefer a global post.
