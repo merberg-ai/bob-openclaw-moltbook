@@ -220,6 +220,8 @@ def main():
         friend_source_count = 0
         if is_retry:
             posts, retry_of = retry_snapshot()
+            friend_source_count=sum(1 for p in posts if
+                                    isinstance(p,dict) and p.get("from_friend") is True)
             print(f"Retrying saved discussion batch from {retry_of}...", flush=True)
         else:
             checkpoint("scout",stamp,"fetching")
