@@ -1,9 +1,9 @@
 # Bob 💀 — Project TODO
 
-**Last reviewed:** October 29, 2026 (America/Los_Angeles)  
+**Last reviewed:** October 30, 2026 (America/Los_Angeles)  
 **Canonical repo:** `merberg-ai/bob-openclaw-moltbook`, `main`  
-**Operator-tested deployed baseline:** `v0.7.5-fm31-watch1`  
-**Status:** Roadmap only. **CH1 not implemented, tested on host, or installed.**  
+**Operator-tested deployed baseline:** `v0.7.5-fm32d-focus1` (FM3 complete, operator PASS on Oct 30, 2026)  
+**Status:** FM3 complete; **FM4/FM5 on hold** until operator's other issues and new feature are handled. **CH1 remains planned only, not implemented or installed.**  
 **Deployment contract:** future implementation through `bobctl update` with verified private backup, installed-module import checks, reversible release and short live acceptance. A Git commit alone never changes the running Activity Manager.
 
 ## Current development streams
@@ -11,10 +11,22 @@
 | Stream | Progress | Next |
 | --- | --- | --- |
 | Personality (PM1) and Memory (PM2) | Implemented / operator-tested | Maintain existing explicit memory recall and owner review boundaries |
-| Friends (FM1, FM2, FM3, FM3.1) | Implemented / operator-tested | **FM3.2**, followed by **FM4** (social memory) and **FM5** (independent discovery); see [FM1–FM5 roadmap & fresh-chat handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md) |
+| **Friends (FM1–FM3.2d)** | **All FM3 phases complete, operator-accepted**; final release `v0.7.5-fm32d-focus1`, PR #38, 537 CI tests | **HOLD** until unrelated issues and separate requested feature are addressed. Then resume **FM4.1 evidence-linked Social Memory Timeline**, later FM5 only with explicit approval. See [Friends roadmap & resumption handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md) |
 | Logs & Diagnostics | Installed / operator-tested | Future persistent sanitized startup-failure summaries; journal rotation can erase early import errors |
 | **Direct Bob Chat (CH1)** | **Planned here, not started** | Gateway compatibility spike, then authenticated LAN chat UI |
 | Fresh-host installer | Deferred | Keep current WSL/Windows startup, services and updater intact |
+
+## Friends work: paused after final FM3 acceptance
+
+**Passed October 30, 2026:** The operator tested `v0.7.5-fm32d-focus1` through the normal `bobctl update` and confirmed it works as expected. This closes FM3.2d and FM3 as scoped. PR [#38](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/38) merged to main, with **537 passing synthetic offline tests**. This is a documentation acceptance checkpoint, **not a new code release**. Keep `releases/current.json` unchanged until an actual next software release.
+
+**Explicit priority before any more Friends work:** operator-observed issues and a separate desired feature, details not yet provided. Do not assume that feature is CH1 (Direct Bob Chat), do not start FM4 or FM5 on your own, and do not grant new external social permissions.
+
+**Resume Friends at FM4.1** only after the operator lifts the hold: a small private, source-verifiable, per-agent **Social Memory Timeline** distinguishing actual saved observations, Bob's tentative ideas and owner-reviewed records. Start with read-only evidence linked from FM1/FM2 and existing FM3.2a–d data, timestamps and corruption checks; do not silently write to PM2 memory or `SOUL.md`, change Scout priorities or authorize outreach. FM4.2 can add revisable impressions and owner corrections; FM4.3 can add explicitly enabled bounded recall. FM5.1 independent exploration and FM5.2 separately approved public interactions remain further off. Full architecture, rules, acceptance and copyable kickoff: [docs/FRIENDS-ROADMAP-AND-HANDOFF.md](docs/FRIENDS-ROADMAP-AND-HANDOFF.md).
+
+**Future versioning:** the last operator-confirmed installed release is `v0.7.5-fm32d-focus1`. The `from` field of any subsequent `bobctl update` release must match the most recent accepted installed version, including intervening bug fixes/new features; it is not necessarily still FM3.2d by the time FM4 resumes.
+
+---
 
 The earlier Scout `ModuleNotFoundError: bob_publish_common` was repaired through `v0.7.5-scout-importfix1`; the operator installed the shared helper and reset the historical failed status. Separately verify a later **timer-driven complete Scout run** when convenient. Don't restart services simply to satisfy this plan.
 
