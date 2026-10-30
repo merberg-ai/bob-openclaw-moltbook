@@ -129,6 +129,8 @@ class InterestAITests(unittest.TestCase):
                 fs.change(db,self.form())
             fs._ai_fail(db,job,"interrupted")
             fs.change(db,self.form())
+            second=db.execute("SELECT id FROM bob_friend_ai_jobs WHERE status='queued'").fetchone()[0]
+            fs._ai_fail(db,second,"interrupted")
         with self.db() as db:
             with self.assertRaisesRegex(ValueError,"run limit"):
                 fs.change(db,self.form())
