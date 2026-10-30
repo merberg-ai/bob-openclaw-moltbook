@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-import json
 import os
 import subprocess
 import tempfile
@@ -41,7 +40,6 @@ def ask_once(*, source=DATA, model=None):
                "-" + secrets.token_hex(4))
     if model is not None:
         return model(prompt, session)
-    from .shadow import openclaw_decide
     # Existing OpenClaw CLI adapter accepts shadow session keys only, so use
     # the same bounded subprocess pattern with an experience-only session.
     env = dict(os.environ)
