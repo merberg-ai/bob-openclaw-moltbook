@@ -1,3 +1,20 @@
+## R2 shadow2 transport repair (2026-10-30; operator acceptance pending)
+
+**Why:** The owner's live `openclaw agent --json --message-file` diagnostic returned exit 0, `status: ok`, and one valid JSON reply at `result.payloads[0].text`. The installed shadow1 subprocess did **not** request `--json` and treated raw stdout as the five-field decision object, producing `model_invalid_or_unavailable`. This supports a transport mismatch; the exact original raw response was deliberately not saved. Shadow1 correctly made zero Moltbook writes. See issue #58.
+
+**Maintenance release:** `v0.8.0-shadow2` chains **only** from owner-installed `v0.8.0-shadow1`, updates the deterministic Python archive and shadow launcher, does **not** restart Activity Manager, and does not modify the v0.7 Scout, publisher, queues or credentials. The parser requests `--json`, checks the OpenClaw status/result envelope and exactly one text payload, then runs the same strict source-bound decision validator. Error events now use fixed sanitized categories without logging model text, stderr, or credentials.
+
+**Important operator sequence, after reviewed PR and green CI:**
+1. The owner already stopped `bob-v08-shadow.timer` during diagnosis. Run `bobctl shadow-deactivate` and type `DEACTIVATE-SHADOW` to remove the **verified shadow1** timer, pointer and immutable archive. Check `bobctl shadow-status` says `inactive`. Stopping the timer is **not** equivalent to deactivation.
+2. Only after confirmed inactive: `bobctl update --check` should offer exactly `v0.8.0-shadow2` from installed `v0.8.0-shadow1`. Run `bobctl update` and type `UPDATE` once.
+3. `bobctl shadow-status` should show `release: v0.8.0-shadow2`, `installed: inactive`. Run `bobctl shadow-activate`, type `ACTIVATE-SHADOW`, then `bobctl shadow-status`.
+4. Run `bobctl shadow-once` exactly once. A valid result is `state: shadow_decision`, with `acted: false`; `no_new_verified_sources` means all known Scout sources were already consumed. If still invalid, inspect **sanitized** reason on Shadow Inbox, do not keep retrying.
+5. Shadow1's previously failed selections are **not automatically replayed**. Its private shadow event database is retained intact. Do not clear events, unseal reports, or attempt re-publication to force an acceptance.
+
+**Boundaries:** `bobctl shadow-deactivate` before the upgrade is mandatory: old shadow1 activation state cannot be silently migrated in place. Shadow2 recognizes only a prior **inactive** shadow1 activation journal and explicitly activates its own archive. If any step refuses, STOP, preserve journals, and do not reset Git or reinstall.
+
+---
+
 ## R2 v0.8 shadow installation and acceptance (next-channel candidate)
 
 **Prerequisite:** the owner has already installed and accepted `v0.7.8-updater2` on the OMEN. R2 is the separately reviewed `v0.8.0-shadow1` release on the `next` branch. Do **not** run these commands merely because the candidate exists; first confirm its PR/CI and merged manifest, and that the installed registry still reports v0.7.8.
