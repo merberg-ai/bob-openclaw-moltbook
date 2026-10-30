@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src"))
 import build_v08_shadow_package as package
-from bob_v08.inspect import read_status, now_content, inbox_content, render_now
+from bob_v08.inspect import read_status, now_content, inbox_content, render_now, timer_observation
 
 
 class PackageSmokeTests(unittest.TestCase):
@@ -97,6 +97,25 @@ class ReadOnlyViewTests(unittest.TestCase):
         self.assertNotIn(injected, inbox)
         self.assertIn("&lt;script&gt;", inbox)
         self.assertIn("max-width:380px", page)
+
+    def test_actual_timer_metadata_not_invented_from_budget_clock(self):
+        class Result:
+            returncode = 0
+            stdout = ("ActiveState=active\\n"
+                      "NextElapseUSecRealtime=Fri 2026-10-30 21:40:00 UTC\\n")
+        with unittest.mock.patch("bob_v08.inspect.subprocess.run", return_value=Result()) as cmd:
+            timer = timer_observation()
+        self.assertEqual(timer["state"], "active")
+        self.assertIn("2026-10-30", timer["next"])
+        self.assertEqual(cmd.call_args.args[0][:3],
+                         ["systemctl", "--user", "show"])
+        with tempfile.TemporaryDirectory() as root:
+            status = read_status(Path(root) / "missing.sqlite3", timer=timer)
+            self.assertTrue(status["scheduled"])
+            self.assertIn("2026-10-30", now_content(status))
+        with unittest.mock.patch("bob_v08.inspect.subprocess.run",
+                                 side_effect=OSError("missing")):
+            self.assertEqual(timer_observation()["state"], "unknown")
 
     def test_wrapper_used_for_authenticated_route_integration(self):
         with tempfile.TemporaryDirectory() as root:
