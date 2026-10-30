@@ -488,6 +488,7 @@ def _operations_html(data):
             '<p class="bo-muted">Evidence checked: <span id="bo-now-checked">'+
             esc(ops.get("checked_at","Unknown"))+'</span>. '
             'Read-only observations; no inferred work or scheduled publications.</p>'
+            '<p class="bo-muted"><a href="/investigate">Why no activity? Inspect recorded blockers</a></p>'
             '</section>')
 
 
