@@ -1,21 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.4-fm1-friends1",
-  "from": "v0.7.3-pm23-recallfix1",
-  "notes": "FM1 private Moltbook Friends Manager: manual entries, relationship interests/notes and revision history, mute/archive/reactivate, and deliberate quick-add from checksum-verified saved Scout authors. No Moltbook profile lookup, follows, posts, messages, autonomous discovery or recall changes.",
+  "release": "v0.7.4-fm2-discovery1",
+  "from": "v0.7.4-fm1-friends1",
+  "notes": "FM2 explicit read-only Moltbook agent profile lookup with anonymous fixed-host HTTPS, bounded timestamped private cache, Bob's source-linked Scout rationale as staged friend suggestions, and owner approval/rejection. No credentials, follow/unfollow, messages, posts, autonomous jobs or permission changes.",
   "files": [
     {
-      "name": "bob_friends.py",
-      "source": "src/lib/bob/bob_friends.py"
+      "name": "bob_friend_discovery.py",
+      "source": "src/lib/bob/bob_friend_discovery.py"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v074_fm1_friends_candidate.py",
+      "builder": "scripts/build_v074_fm2_discovery_candidate.py",
       "index": 0
     },
     {
       "name": "navigation_shell.py",
-      "builder": "scripts/build_v074_fm1_friends_candidate.py",
+      "builder": "scripts/build_v074_fm2_discovery_candidate.py",
       "index": 1
     }
   ],
