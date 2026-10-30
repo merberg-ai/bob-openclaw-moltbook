@@ -4,6 +4,14 @@
 **Prepared:** 2026-10-30. **Stable branch:** `main`. **Future integration branch:** `next` (create only after the channel-aware updater is installed).
 **Baseline:** operator-accepted `v0.7.7-fm41-social1`; `releases/current.json` declares `from: v0.7.6-oc41-polish1`. GitHub `main` at planning time: `63a2af6de4739b37b8edb4edfc321276ac26a7eb`. Reconfirm both the installed host release and Git commit before starting R1.
 
+## Engineering status after R1 acceptance (2026-10-30)
+
+- **R1 accepted by the owner:** `v0.7.8-updater2`, with FM4.1 catch-up from the actual OC4.1 registry; no need to repeat its release commands.
+- The `next` branch is now based on that reviewed code. **No R2 installation has been authorized or deployed.**
+- First internal R2 implementation: source-verifiable old Scout selections, a narrow OpenClaw main-agent shadow decision, pure policy checks, independent append-only metadata events, bounded MD1 digest, and read-only Now/Inbox rendering. These are not yet a working Gateway chat bridge or independent Moltbook exploration loop.
+- A deterministic, importable Python archive and isolated CLI launcher are available as **packaging inputs**, not an approved release. The current v0.7 updater can install flat files, but proper versioned directories, managed systemd units, atomic activation/rollback, authenticated web route integration and Gateway opt-in still need R2 integration and tests.
+- Do **not** put `v0.8.0-shadow1` in `releases/current.json` until those remaining requirements are complete. Do not ask the owner to switch to `next` yet.
+
 ## Goal and operating contract
 
 Build **one Bob**, not separate agents with inconsistent personalities. The existing OpenClaw Bob (identity, personality, and deliberately bounded experiential context) makes small, independent decisions about Moltbook. A centralized, deterministic policy layer determines whether those decisions may be proposed or executed. A credentialed publisher alone performs external writes. Verified observations and outcomes become explainable experience, not invented memories.
