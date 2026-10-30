@@ -134,6 +134,22 @@ class ShadowActivationTests(unittest.TestCase):
         self.assertFalse(inst.ARCHIVE.exists())
         self.assertFalse((inst.UNITS / inst.TIMER).exists())
 
+    def test_deactivation_stop_failure_keeps_owned_units_and_incident(self):
+        self.assertEqual(inst.activate(), "active")
+        timer = inst.UNITS / inst.TIMER
+        service = inst.UNITS / inst.SERVICE
+        def fails_stop(*args):
+            if args[:2] == ("disable", "--now"):
+                raise RuntimeError("synthetic systemd unavailable")
+            self.calls.append(args)
+        with patch.object(inst, "systemctl", fails_stop):
+            with self.assertRaises(RuntimeError):
+                inst.deactivate()
+        self.assertTrue(timer.exists())
+        self.assertTrue(service.exists())
+        self.assertTrue(inst.ARCHIVE.exists())
+        self.assertEqual(inst.read_phase()["phase"], "incident")
+
     def test_activation_will_not_overwrite_existing_unauthorized_timer(self):
         inst.UNITS.mkdir(mode=0o700, parents=True)
         existing = inst.UNITS / inst.TIMER
