@@ -46,7 +46,7 @@ class ShadowActivationTests(unittest.TestCase):
             "LOCK": home / ".local/state/bob-v08-activation/lock",
             "STORE": home / ".local/share/bob",
             "RELEASE_DIR": home / ".local/share/bob/releases/v0.8.0-shadow2",
-            "ARCHIVE": home / ".local/share/bob/releases/v0.8.0-shadow1/bob_v08_package.pyz",
+            "ARCHIVE": home / ".local/share/bob/releases/v0.8.0-shadow2/bob_v08_package.pyz",
             "POINTER": home / ".local/share/bob/current.json",
             "UNITS": home / ".config/systemd/user"
         }
