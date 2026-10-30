@@ -88,6 +88,8 @@ def _safe_error_reason(exc: Exception) -> str:
                 "shadow_agent_envelope_invalid", "shadow_agent_payload_invalid",
                 "invalid_model_json", "invalid_model_shape",
                 "unverified_model_target", "invalid_model_reason",
+                "model_reason_empty", "model_reason_too_long",
+                "model_reason_control_chars",
                 "skip_must_not_contain_text", "invalid_comment_length",
                 "unsafe_comment_text", "copied_untrusted_text"):
         return code
