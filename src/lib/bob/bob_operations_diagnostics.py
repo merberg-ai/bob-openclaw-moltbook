@@ -163,14 +163,19 @@ def explain(metrics,services,workers,paused,*,at=None,timers=None):
         due=_eligible_time(info,"comments",now)
         backlog=f"{queued} queued comment"+("s" if queued!=1 else "")+". "
         priority=(f"{manual} manual queued first. " if manual else "")
+        auto_note=("No automatic jobs are queued; this does not prove why Scout "
+                   "did not produce an eligible one. " if auto==0 and
+                   info.get("auto_enabled") is True else
+                   "Automatic posting is disabled. " if info.get("auto_enabled") is False
+                   else "")
         if due:
             publisher=_entry("publisher","waiting","Comments awaiting policy eligibility",
-                backlog+priority+"Minimum interval or daily budget prevents an attempt until the displayed policy time. This is not a scheduled timer run.",
+                backlog+priority+auto_note+"Minimum interval or daily budget prevents an attempt until the displayed policy time. This is not a scheduled timer run.",
                 "recorded_queue_and_rate_policy",checkpoint("publisher"),
                 "/manage?tab=activity&state=queued","RATE_LIMIT",clock("publisher"))
         else:
             publisher=_entry("publisher","waiting","Comments queued; next worker action unconfirmed",
-                backlog+priority+"Policy slot may be open, but no current send is confirmed; inspect publisher timer and logs.",
+                backlog+priority+auto_note+"Policy slot may be open, but no current send is confirmed; inspect publisher timer and logs.",
                 "recorded_queue_not_process_proof",checkpoint("publisher"),
                 "/logs?service=publisher","WAITING_WORKER",clock("publisher"))
     else:
