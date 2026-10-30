@@ -1,16 +1,22 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.6-oc41-polish1",
-  "from": "v0.7.6-oc4-investigator1",
-  "notes": "OC4.1 diagnostic-only polish: source-dated historical review counts, bounded source-verified potential manual handoff links, recent Scout/publisher activity, and fixed-unit read-only systemd timer JSON fallback. No posting or automation permissions changed.",
+  "release": "v0.7.7-fm41-social1",
+  "from": "v0.7.6-oc41-polish1",
+  "notes": "FM4.1 private read-only evidence-linked per-agent Social Memory Timeline using sealed FM1/FM3 records and verified Scout and publisher outcomes. No new memory/publishing/following capabilities or network/model calls.",
   "files": [
     {
-      "name": "bob_inactivity.py",
-      "source": "src/lib/bob/bob_inactivity.py"
+      "name": "bob_social_memory.py",
+      "source": "src/lib/bob/bob_social_memory.py"
     },
     {
-      "name": "bob_operations_diagnostics.py",
-      "source": "src/lib/bob/bob_operations_diagnostics.py"
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v076_fm41_candidate.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v076_fm41_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
