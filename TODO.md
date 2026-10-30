@@ -14,6 +14,8 @@
 - [ ] **G1 experience acceptance:** use the already-installed owner-confirmed `bobctl shadow-experience` one-shot (typed `ASK-BOB`) to test a private, source-grounded response from the *real* OpenClaw main agent. Confirm it distinguishes saved selections, publication states and unknown public visibility; no global memory writes. General persistent Gateway/CH1 context is **not** part of R2.
 - [ ] After representative natural ticks, at least one scheduled tick, and bounded experience validation, record R2/G1 acceptance. Only then advance to the **R3 guarded cutover engineering gate**: exact v0.7 permission/queue parity, one credentialed publisher, atomic reservation and pre-send recheck, failure/rollback rehearsals, and explicit owner authorization before any new writes. `main` remains the stable reviewed baseline; source development continues on `next` via clean `~/bob-next`.
 
+**R3.0 engineering inventory:** [read-only cutover map and safety gates](docs/R3-CUTOVER-INVENTORY.md). This design work can proceed without turning off the existing publisher or enabling v0.8 writes.
+
 **Do not do:** reset/erase shadow events, automatically replay failed Scout sources, silently enable v0.8 publishing, or treat the planned NEXT time as a completed run.
 
 ---
