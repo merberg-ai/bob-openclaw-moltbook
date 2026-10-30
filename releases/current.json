@@ -1,20 +1,20 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.4-fm3-friend-scout1",
+  "release": "v0.7.4-fm3-friend-scout2",
   "from": "v0.7.4-fm2-discovery1",
-  "notes": "FM3 owner opt-in friend-focused Scout on existing schedule: max two checksum-verified active friends, anonymous bounded profile+post GETs, four normal-feed posts reserved, review-first draft workflow. Friend-focused Scout snapshots explicitly excluded from legacy auto-comment queue, even if auto-comment setting enabled. No follows, messages, votes, tools, new timers or permission grants.",
+  "notes": "FM3 owner opt-in friend scouting with bounded anonymous reads, prioritized real posts, and publisher-enforced manual-only friend replies (including global-feed friend authors). Uses only updater-managed publisher worker rather than modifying unmanaged shared helper; 5 files, no new timers, follows or messaging.",
   "files": [
     {
       "name": "bob_friend_scout.py",
       "source": "src/lib/bob/bob_friend_scout.py"
     },
     {
-      "name": "bob_publish_common.py",
-      "source": "src/lib/bob/bob_publish_common.py"
-    },
-    {
       "name": "bob-moltbook-scout",
       "source": "src/bin/bob-moltbook-scout"
+    },
+    {
+      "name": "bob-moltbook-publisher",
+      "source": "src/bin/bob-moltbook-publisher"
     },
     {
       "name": "bob-activity-manager",
