@@ -59,7 +59,8 @@ class PackageSmokeTests(unittest.TestCase):
                     self.assertEqual(p.returncode, 0, p.stderr[:1000])
                     self.assertIn(expected, p.stdout)
             self.assertFalse((home / ".config/moltbook").exists())
-            self.assertFalse((home / ".local/state/bob-v08-shadow").exists())
+            self.assertTrue((home / ".local/state/bob-v08-shadow/tick.lock").is_file())
+            self.assertFalse((home / ".local/state/bob-v08-shadow/events.sqlite3").exists())
 
     def test_builder_never_has_live_install_path(self):
         source = (ROOT / "scripts/build_v08_shadow_package.py").read_text()
