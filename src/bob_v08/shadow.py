@@ -96,6 +96,26 @@ def _safe_error_reason(exc: Exception) -> str:
     return "invalid_or_unavailable_model_output"
 
 
+def _verified_action_hint(raw: str | None, observed) -> str:
+    """Classify only a pinned, correctly-shaped proposal; otherwise unknown.
+
+    This diagnostic never logs model text or accepts a model-supplied target.
+    """
+    if not isinstance(raw, str) or not 0 < len(raw) <= 8192:
+        return "unknown"
+    try:
+        value = json.loads(raw.strip())
+    except (TypeError, ValueError):
+        return "unknown"
+    if (not isinstance(value, dict) or set(value) !=
+            {"type", "source_run", "target_id", "reason", "text"}
+            or value.get("source_run") != observed.run_id
+            or value.get("target_id") != observed.post_id):
+        return "unknown"
+    kind = value.get("type")
+    return kind if kind in ("skip", "comment") else "unknown"
+
+
 def run_once(*, legacy: Path = LEGACY, event_db: Path = EVENT_DB,
              model: Callable[[str, str], str] = openclaw_decide,
              policy: Policy | None = None):
@@ -122,6 +142,7 @@ def run_once(*, legacy: Path = LEGACY, event_db: Path = EVENT_DB,
                      correlation=_correlation("seen", observed.run_id, observed.post_id))
         # Persist provenance before inference in case OpenClaw fails.
         db.commit()
+        raw = None
         try:
             raw = model(decision_prompt(observed),
                         "moltbook-v08-shadow-" + observed.run_id)
@@ -130,12 +151,16 @@ def run_once(*, legacy: Path = LEGACY, event_db: Path = EVENT_DB,
             store.append(db, source_run=observed.run_id, post_id=observed.post_id,
                          kind="agent_error", state="invalid",
                          reason=_safe_error_reason(exc),
+                         action_type=_verified_action_hint(raw, observed),
                          correlation=_correlation("error", observed.run_id, observed.post_id))
             return {"state": "model_invalid_or_unavailable", "acted": False,
                     "source_run": observed.run_id}
         store.append(db, source_run=observed.run_id, post_id=observed.post_id,
                      kind="decision", state="decided",
-                     reason="bob_decision_" + action.kind, action_type=action.kind,
+                     reason=("bob_decision_skip_unexplained"
+                             if action.kind == "skip" and not action.reason
+                             else "bob_decision_" + action.kind),
+                     action_type=action.kind,
                      correlation=_correlation("decision", observed.run_id, observed.post_id))
         verdict = check(action, PolicyState(datetime.now(timezone.utc)), policy)
         store.append(db, source_run=observed.run_id, post_id=observed.post_id,
