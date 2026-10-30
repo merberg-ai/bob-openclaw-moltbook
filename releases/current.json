@@ -1,23 +1,17 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.7-fm41-social1",
-  "from": "v0.7.6-oc41-polish1",
-  "notes": "FM4.1 private read-only evidence-linked per-agent Social Memory Timeline using sealed FM1/FM3 records and verified Scout and publisher outcomes. No new memory/publishing/following capabilities or network/model calls.",
+  "release": "v0.7.8-updater2",
+  "from": "v0.7.7-fm41-social1",
+  "notes": "R1 backwards-compatible updater: guarded main/next source selection, strict channel config and flat v2 manifest validation. No new workers, authority, service changes or Moltbook writes.",
   "files": [
     {
-      "name": "bob_social_memory.py",
-      "source": "src/lib/bob/bob_social_memory.py"
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
     },
     {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_v076_fm41_candidate.py",
-      "index": 0
-    },
-    {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_v076_fm41_candidate.py",
-      "index": 1
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
     }
   ],
-  "restart_manager": true
+  "restart_manager": false
 }
