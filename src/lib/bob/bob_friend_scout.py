@@ -29,7 +29,11 @@ MAX_TOTAL=6
 MAX_RESPONSE=65536
 MAX_PREVIEW=10
 ERRORS=frozenset(("Invalid friend scouting form","Friend scouting setting changed; reload",
-                   "Confirmation phrase does not match"))
+                   "Confirmation phrase does not match",
+                   "Friend watch preference changed; reload",
+                   "Friend watch preference already selected",
+                   "Friend must be active to change watch preference",
+                   "Friend watch preference integrity failed"))
 CSS="""<style>
 .bfs{max-width:1050px;margin:auto;display:grid;gap:17px}
 .bfs-panel{border:1px solid #375575;background:linear-gradient(145deg,#172a40,#111d30);
@@ -62,8 +66,110 @@ def enabled(db):
         return False
 
 
+# FM3.1 preferences live in the EXISTING backed-up private queue DB.
+# A missing preference is explicitly "watch on" for backwards compatibility;
+# a malformed/tampered stored preference is fail-closed (watch off).
+PREF_COLS=("friend_id","enabled","version","updated_at","sha256")
+
+
+def init_preferences(db):
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_watch_prefs (
+        friend_id TEXT PRIMARY KEY, enabled INTEGER NOT NULL
+            CHECK(enabled IN (0,1)),
+        version INTEGER NOT NULL CHECK(version>=1),
+        updated_at TEXT NOT NULL, sha256 TEXT NOT NULL)""")
+    db.execute("""CREATE TABLE IF NOT EXISTS bob_friend_watch_history (
+        friend_id TEXT NOT NULL, version INTEGER NOT NULL,
+        enabled INTEGER NOT NULL, changed_at TEXT NOT NULL,
+        PRIMARY KEY(friend_id,version))""")
+
+
+def pref_seal(row):
+    return hashlib.sha256(json.dumps(
+        {k:row[k] for k in PREF_COLS if k!="sha256"},
+        sort_keys=True,separators=(",",":")
+    ).encode("utf-8")).hexdigest()
+
+
+def pref_valid(item):
+    try:
+        return (type(item["enabled"]) is int and item["enabled"] in (0,1)
+                and type(item["version"]) is int and item["version"]>=1
+                and isinstance(item["sha256"],str)
+                and hmac.compare_digest(item["sha256"],pref_seal(item)))
+    except (KeyError,TypeError,ValueError):
+        return False
+
+
+def _preferences(db):
+    """Read-only Scout treats absent table as legacy defaults; corruption
+    or an unreadable existing table blocks friend-focused reads.
+    """
+    try:
+        exists=db.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                          "AND name='bob_friend_watch_prefs'").fetchone()
+        if not exists:
+            return {}
+        rows=db.execute("SELECT "+",".join(PREF_COLS)+" FROM bob_friend_watch_prefs").fetchall()
+        return {row[0]:dict(zip(PREF_COLS,row)) for row in rows}
+    except sqlite3.Error:
+        return None
+
+
+def _change_watch(db,form):
+    if set(form)!={"csrf","operation","id","friend_sha","watch_sha","watch_enabled"}:
+        raise ValueError("Invalid friend scouting form")
+    if form["watch_enabled"] not in ("0","1"):
+        raise ValueError("Invalid friend scouting form")
+    if not isinstance(form["watch_sha"],str):
+        raise ValueError("Invalid friend scouting form")
+    init_preferences(db)
+    friend=friends._get(db,form["id"])
+    if friend["state"]!="active":
+        raise ValueError("Friend must be active to change watch preference")
+    if not isinstance(form["friend_sha"],str) or not hmac.compare_digest(
+            friend["sha256"],form["friend_sha"]):
+        raise ValueError("Friend watch preference changed; reload")
+    row=db.execute("SELECT "+",".join(PREF_COLS)+" FROM bob_friend_watch_prefs "
+                   "WHERE friend_id=?",(friend["id"],)).fetchone()
+    prev=dict(zip(PREF_COLS,row)) if row else None
+    if prev and not pref_valid(prev):
+        raise ValueError("Friend watch preference integrity failed")
+    expected=prev["sha256"] if prev else "default"
+    if not hmac.compare_digest(form["watch_sha"],expected):
+        raise ValueError("Friend watch preference changed; reload")
+    new=int(form["watch_enabled"])
+    if new==(prev["enabled"] if prev else 1):
+        raise ValueError("Friend watch preference already selected")
+    item=dict(friend_id=friend["id"],enabled=new,
+              version=prev["version"]+1 if prev else 1,
+              updated_at=common.now())
+    item["sha256"]=pref_seal(item)
+    if prev:
+        cur=db.execute("UPDATE bob_friend_watch_prefs SET enabled=?,version=?,"
+                       "updated_at=?,sha256=? WHERE friend_id=? AND sha256=?",
+                       (new,item["version"],item["updated_at"],item["sha256"],
+                        friend["id"],prev["sha256"]))
+        if cur.rowcount!=1:
+            raise ValueError("Friend watch preference changed; reload")
+    else:
+        try:
+            db.execute("INSERT INTO bob_friend_watch_prefs("+",".join(PREF_COLS)+") "
+                       "VALUES(?,?,?,?,?)",tuple(item[k] for k in PREF_COLS))
+        except sqlite3.IntegrityError:
+            raise ValueError("Friend watch preference changed; reload") from None
+    db.execute("INSERT INTO bob_friend_watch_history"
+               "(friend_id,version,enabled,changed_at) VALUES(?,?,?,?)",
+               (friend["id"],item["version"],new,item["updated_at"]))
+    common.event(db,"bob_friend_watch_changed",
+                 friend["id"]+" "+("enabled" if new else "disabled"))
+    return str(new)
+
+
 def change(db,form):
     """Called after existing Activity Manager auth, Origin and CSRF checks."""
+    if form.get("operation")=="watch":
+        return _change_watch(db,form)
     if set(form)!={"csrf","enabled","expected","confirmation"}:
         raise ValueError("Invalid friend scouting form")
     new,expected=form["enabled"],form["expected"]
@@ -81,7 +187,10 @@ def change(db,form):
     return new
 
 
-def _watch(db):
+def _watch(db,*,include_disabled=False):
+    prefs=_preferences(db)
+    if prefs is None:
+        return []  # Pref table exists but is unreadable: fail closed.
     try:
         rows=db.execute("SELECT "+",".join(friends.COLS)+
                         " FROM bob_friends WHERE state='active' "
@@ -96,11 +205,17 @@ def _watch(db):
                 and isinstance(item["sha256"],str)
                 and hmac.compare_digest(item["sha256"],friends.seal(item))
                 and item["handle_key"]==friends.handle(item["handle"]).casefold()):
-                result.append(item)
+                pref=prefs.get(item["id"])
+                valid=pref is None or pref_valid(pref)
+                item["watch_enabled"]=(pref["enabled"]==1 if pref else True) if valid else False
+                item["watch_sha"]=(pref["sha256"] if pref and valid else
+                                   "default" if pref is None else "")
+                item["watch_problem"]=not valid
+                if include_disabled or item["watch_enabled"]:
+                    result.append(item)
         except (TypeError,ValueError,KeyError):
             continue
-    # Bob's own explicit friendship labels weight selection without requiring
-    # a platform follow; 'interesting' is eligible too. Mute/archive excluded.
+    # A friend is eligible for selection ONLY when active and watched.
     weight={"friend":0,"interesting":1,"acquaintance":2}
     return sorted(result,key=lambda f:(weight[f["relationship"]],f["handle_key"]))
 
@@ -343,10 +458,52 @@ def guarded_auto_candidates(db,max_count=10):
     return count
 
 
+def friend_observations(records,active,*,loader=None):
+    """Read-only selected discussion history with verified Scout provenance.
+
+    These are Bob's actual previous WHY rationales, not new AI generations,
+    independent opinions, verified identities or proof of a friendship.
+    """
+    known={f["handle_key"]:f for f in active}
+    entries=[]
+    counts={}
+    for item in (records or [])[:100]:
+        if not isinstance(item,dict):
+            continue
+        rid=item.get("run_id")
+        if not isinstance(rid,str) or not common.RUN_ID.fullmatch(rid):
+            continue
+        rec=(loader or common.load_record)(rid)
+        if not isinstance(rec,dict) or rec.get("run_id")!=rid:
+            continue
+        why=rec.get("why")
+        title=rec.get("chosen_title")
+        if not isinstance(why,str) or not why.strip():
+            continue
+        if not isinstance(title,str):
+            title=""
+        try:
+            author,verified_id,pid=friends._source_author(rid,loader=loader)
+        except (ValueError,TypeError,OSError):
+            continue
+        friend=known.get(author.casefold())
+        if not friend or counts.get(friend["id"],0)>=3:
+            continue
+        counts[friend["id"]]=counts.get(friend["id"],0)+1
+        entries.append(dict(handle=friend["handle"],id=friend["id"],
+                            run_id=rid,post_id=pid,title=title[:160],
+                            why=why.strip()[:320]))
+        if len(entries)>=10:
+            break
+    return entries
+
+
 def page(db,csrf,wrap,records):
+    init_preferences(db)
     on=enabled(db)
-    active=_watch(db)
-    today=datetime.now(timezone.utc).date()
+    active=_watch(db,include_disabled=True)
+    watching=[item for item in active if item["watch_enabled"]]
+    observations=friend_observations(records,active)
     weight={"friend":0,"interesting":1,"acquaintance":2}
     ordered=sorted(active,key=lambda x:(weight[x["relationship"]],x["handle_key"]))
     recent=[]
@@ -363,8 +520,8 @@ def page(db,csrf,wrap,records):
            'mixing them with at least 4 global discussions. Bob chooses freely '
            'among the resulting real posts. NO platform following or messaging.</p>',
            '<p class="bfs-muted"><strong>Status: '+("Enabled" if on else "Disabled")+
-           '</strong> · '+str(len(active))+' eligible active friends. '
-           'Muted and archived entries are never scanned.</p>',
+           '</strong> · '+str(len(watching))+' watched / '+str(len(active))+
+           ' active verified friends. Muted and archived entries are never scanned.</p>',
            '<p class="bfs-muted"><strong>Publication boundary:</strong> friend-focused '
            'Scout batches are never eligible for automatic comment queueing, '
            'even if global auto-comments are enabled. You must explicitly '
@@ -381,17 +538,65 @@ def page(db,csrf,wrap,records):
                   '<input name="confirmation" required maxlength="40" autocomplete="off" '
                   'placeholder="'+CONFIRM+'"></label>',
                   '<button type="submit">Enable friend scouting</button>']
-    parts += ['</form></section><section class="bfs-panel"><h2>Eligible watchlist</h2>',
-              '<p class="bfs-muted">Relationship preference: friend, interesting, '
-              'acquaintance. Only verified private directory rows are eligible. '
-              'One priority slot favors friends; the other rotates daily through other active agents.</p>']
+    parts += ['</form></section><section class="bfs-panel"><h2>Individual friend watch preferences · FM3.1</h2>',
+              '<p class="bfs-muted">Watch is ON by default for existing active friends. '
+              'Pause one agent without muting or archiving the friendship. '
+              'Changes affect only the next Scout run and are recorded locally. '
+              'No follows, posting permissions or private notes are sent to Moltbook. '
+              'Bob still chooses which discussion interests him.</p>']
     if not active:
-        parts.append('<p class="bfs-muted">No eligible active directory entries. '
+        parts.append('<p class="bfs-muted">No active verified friends. '
                      'Add agents in Moltbook → Friends or reactivate an archived entry.</p>')
     for item in ordered[:MAX_PREVIEW]:
+        state=("Preference integrity problem: not watched" if item["watch_problem"]
+               else "Watched by Scout" if item["watch_enabled"]
+               else "Not watched by Scout")
         parts += ['<div class="bfs-card"><strong>@'+e(item["handle"])+'</strong>',
-                  '<p class="bfs-tags">'+e(item["relationship"])+
-                  ' · '+e(item["display_name"])+'</p></div>']
+                  '<p class="bfs-tags">'+e(item["relationship"])+' · '+e(item["display_name"])+
+                  ' · '+e(state)+'</p>']
+        if item["watch_problem"]:
+            parts.append('<p class="bfs-muted">Stored watch preference integrity failed. '
+                         'No scouting will occur for this agent until repaired.</p>')
+        else:
+            parts += ['<form method="post" action="/moltbook/friend-scout">',
+                      '<input type="hidden" name="csrf" value="'+e(csrf)+'">',
+                      '<input type="hidden" name="operation" value="watch">',
+                      '<input type="hidden" name="id" value="'+e(item["id"])+'">',
+                      '<input type="hidden" name="friend_sha" value="'+e(item["sha256"])+'">',
+                      '<input type="hidden" name="watch_sha" value="'+e(item["watch_sha"])+'">',
+                      '<input type="hidden" name="watch_enabled" value="'+(
+                          "0" if item["watch_enabled"] else "1")+'">',
+                      '<button class="secondary" type="submit">'+(
+                          "Pause watching this friend" if item["watch_enabled"]
+                          else "Resume watching this friend")+'</button></form>']
+        past=db.execute("SELECT version,enabled,changed_at FROM bob_friend_watch_history "
+                        "WHERE friend_id=? ORDER BY version DESC LIMIT 3",
+                        (item["id"],)).fetchall()
+        if past:
+            parts += ['<details><summary class="bfs-muted">Recent watch changes</summary>']
+            for v,flag,when in past:
+                parts.append('<p class="bfs-muted">v'+str(v)+' · '+
+                             ('watched' if flag else 'paused')+' · '+e(when)+'</p>')
+            parts.append('</details>')
+        parts.append('</div>')
+    if len(ordered)>MAX_PREVIEW:
+        parts.append('<p class="bfs-muted">Showing the first 10 active agents. '
+                     'Other friends remain governed by their saved watch preferences.</p>')
+    parts += ['</section><section class="bfs-panel"><h2>Bob’s selected friend discussions</h2>',
+              '<p class="bfs-muted">These are existing, source-verified Scout choices '
+              'and Bob’s recorded WHY rationale, not new reflections or proof of '
+              'friendship. Only selected posts appear here; simply scanning a '
+              'friend does not create an observation.</p>']
+    if not observations:
+        parts.append('<p class="bfs-muted">Bob has not selected a verifiable discussion '
+                     'from an active saved friend yet.</p>')
+    for observation in observations:
+        parts += ['<div class="bfs-card"><strong>@'+e(observation["handle"])+'</strong>',
+                  '<p class="bfs-tags">'+e(observation["title"])+' · '+
+                  e(observation["run_id"])+'</p>',
+                  '<p class="bfs-muted">'+e(observation["why"])+'</p>',
+                  '<a href="/moltbook/friends?edit='+e(observation["id"])+
+                  '">View friend details</a></div>']
     parts += ['</section><section class="bfs-panel"><h2>Recent friend scouting activity</h2>',
               '<p class="bfs-muted">Results appear after the existing Scout timer '
               'next runs. A missing friend post may mean the public profile or post '
