@@ -168,8 +168,8 @@ class FM31Tests(unittest.TestCase):
             self.assertTrue(checked["watch_problem"])
             with self.assertRaisesRegex(ValueError,"integrity failed"):
                 scout.change(db,toggle_form(self.friend("FriendOne"),"default",1))
-        html=scout.page(self.db().__enter__(),"csrf",lambda t,b,p:b,[]) if False else ""
-        self.assertEqual(html,"")  # No ability to silently bypass a sealed record.
+        # A valid stored preference must be restored through a controlled
+        # operator repair; a tampered row never auto-enables scanning.
 
     def test_muted_and_archived_excluded_independent_of_pref(self):
         with self.db() as db:
@@ -225,6 +225,7 @@ class FM31Tests(unittest.TestCase):
 
     def test_existing_optin_form_and_global_auto_permissions_unmodified(self):
         with self.db() as db:
+            scout.init_preferences(db)
             with self.assertRaisesRegex(ValueError,"Confirmation"):
                 scout.change(db,dict(csrf="x",enabled="1",expected="0",confirmation="no"))
             scout.change(db,dict(csrf="x",enabled="1",expected="0",
