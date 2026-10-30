@@ -147,7 +147,7 @@ class ManifestAndCommandTests(unittest.TestCase):
             self.assertEqual({i["name"] for i in obj["files"]},
                              {"bob_v08_package.pyz", "bob-v08-shadow",
                               "bob-v08-activate", "bob-v08-context", "bob_v08_bridge.py",
-                              "bobctl", "bob-activity-manager", "navigation_shell.py"})
+                              "bobctl", "bob-release-updater", "bob-activity-manager", "navigation_shell.py"})
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:
