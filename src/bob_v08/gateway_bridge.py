@@ -32,6 +32,8 @@ BEGIN = "<!-- BOB_V08_VERIFIED_EXPERIENCE_START -->"
 END = "<!-- BOB_V08_VERIFIED_EXPERIENCE_END -->"
 MAX_MEM = 64 * 1024
 MAX_CONTEXT = 3500
+TOPICS = ("ai", "linux", "radio", "memory", "security", "art", "music",
+          "science", "software", "code", "gaming", "privacy", "agents", "ethics")
 
 
 def _sha(raw):
@@ -99,18 +101,21 @@ def _managed_block():
                 or not isinstance(post, str) or not UUID.fullmatch(post)
                 or not isinstance(pub, dict)):
             continue
-        # Title/author remain explicitly untrusted and are NOT instructions.
-        def inline(value, cap):
-            if not isinstance(value, str):
-                return ""
-            return re.sub(r"[\x00-\x1f<>\\\x60]", " ", value)[:cap].strip()
+        # Never put raw third-party writing into a trusted bootstrap file.
+        # Fixed allowlisted topic hints are extracted from a saved untrusted
+        # title; they are *hints*, not claims about beliefs or friendship.
+        title = item.get("title", "")
+        words = set(re.findall(r"[a-z]{2,}", title.casefold()[:120])) if isinstance(title, str) else set()
+        hints = sorted(words.intersection(TOPICS))[:5]
         state = pub.get("state", "unknown")
         if not isinstance(state, str) or not re.fullmatch(r"[a-z_]{1,48}", state):
             state = "unknown"
+        when = item.get("observed_at", "")
+        if not isinstance(when, str) or not re.fullmatch(r"[0-9T:+.Z-]{1,45}", when):
+            when = ""
         rows.append({"run": run, "post": post,
-                     "title_untrusted": inline(item.get("title"), 100),
-                     "author_untrusted": inline(item.get("author"), 60),
-                     "observed_at": inline(item.get("observed_at"), 45),
+                     "topic_hints_not_verified": hints,
+                     "observed_at": when,
                      "publication_state": state,
                      "public_visibility": "NOT_INDEPENDENTLY_RECHECKED"})
     info = json.dumps(rows, ensure_ascii=True, separators=(",", ":"))
