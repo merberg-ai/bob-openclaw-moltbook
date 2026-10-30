@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.5-fm31-watch1",
-  "from": "v0.7.5-scout-importfix1",
-  "notes": "FM3.1 individual friend watch preferences and read-only Bob discussion observations. Active verified friends watched by default for compatibility; owner can pause/resume each without muting/archiving. SHA-sealed private SQLite preferences, revision history, optimistic edit checks. Existing Scout selects only watched active friends; no new requests or publishing authority.",
+  "release": "v0.7.5-fm32a-interests1",
+  "from": "v0.7.5-fm31-watch1",
+  "notes": "FM3.2a private source-verified Scout WHY interest staging and reversible owner review. One existing managed module; no network additions, new permissions or auto-publishing.",
   "files": [
     {
       "name": "bob_friend_scout.py",
