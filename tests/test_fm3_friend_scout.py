@@ -75,9 +75,10 @@ def getter_fixture():
     return getter,paths
 
 
-def create_record(folder,rid,*,friend_marker,flag):
+def create_record(folder,rid,*,friend_marker,flag,author_override=None):
     post={"id":PIDA if friend_marker else PIDB,"title":"Thoughtful memory thread",
-          "content":"An interesting technical discussion","author":"AgentAlpha" if friend_marker else "Other"}
+          "content":"An interesting technical discussion",
+          "author":author_override or ("AgentAlpha" if friend_marker else "Other")}
     if friend_marker:
         post["from_friend"]=True
     snapshot={"source":"synthetic","posts":[post]}
@@ -277,6 +278,40 @@ class FM3Tests(unittest.TestCase):
             common.queue_manual(db,rid)
             self.assertEqual(db.execute("SELECT mode FROM publish_jobs WHERE run_id=?",
                                         (rid,)).fetchone()[0],"manual")
+
+    def test_friend_author_found_in_global_feed_is_never_auto_queued(self):
+        t=datetime.now(timezone.utc).replace(microsecond=0)
+        rid=t.strftime("%Y%m%dT%H%M%SZ")
+        earlier=(t-timedelta(seconds=5)).isoformat()
+        with self.db() as db:
+            db.execute("INSERT INTO publish_settings VALUES('auto_enabled','1')")
+            db.execute("INSERT INTO publish_settings VALUES('auto_since',?)",(earlier,))
+        # No marker whatsoever: same ordinary global feed source but the
+        # chosen author belongs to FM1 Friends. Must still require manual.
+        create_record(self.root,rid,friend_marker=False,flag=False,
+                      author_override="AgentAlpha")
+        with common.connect() as db:
+            self.assertEqual(common.auto_candidates(db),0)
+            self.assertEqual(db.execute("SELECT count(*) FROM publish_jobs").fetchone()[0],0)
+
+    def test_scan_attempts_have_explicit_safe_status_codes(self):
+        baseline=[feed_post(i) for i in range(6)]
+        status={}
+        unchanged,count=fs.enrich(baseline,set(),diagnostics=status)
+        self.assertEqual((unchanged,count),(baseline,0))
+        self.assertEqual(status["state"],"no_eligible_active_friends")
+        self.enable()
+        status={}
+        getter,_=getter_fixture()
+        found,count=fs.enrich(baseline,set(),getter=getter,
+                              date=date(2026,10,29),diagnostics=status)
+        self.assertEqual(count,2)
+        self.assertEqual(status["state"],"friend_posts_included")
+        status={}
+        no_posts,count=fs.enrich(baseline,set(),getter=lambda _: None,
+                                 date=date(2026,10,29),diagnostics=status)
+        self.assertEqual((no_posts,count),(baseline,0))
+        self.assertEqual(status["state"],"no_verified_public_posts")
 
     def test_normal_global_post_can_still_enter_preexisting_auto_queue(self):
         t=datetime.now(timezone.utc).replace(microsecond=0)
