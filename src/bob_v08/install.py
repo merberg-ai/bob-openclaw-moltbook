@@ -183,6 +183,8 @@ def verified_unit_paths(bundle_sha):
 
 def _cleanup(bundle_sha):
     """Only remove exact R2-owned files; refuse unrelated or changed paths."""
+    if UNITS.is_symlink():
+        raise ValueError("unsafe_systemd_directory")
     if UNITS.is_dir():
         for name, contents in units().items():
             path = UNITS / name
@@ -229,12 +231,14 @@ def activate():
                 or any((UNITS / name).exists() or (UNITS / name).is_symlink()
                        for name in units())):
             raise ValueError("activation_conflicts_with_existing_state")
-        private_directory(STORE)
-        private_directory(STORE / "releases")
-        private_directory(RELEASE_DIR)
-        UNITS.mkdir(mode=0o700, parents=True, exist_ok=True)
         save_phase("prepared", sha)
         try:
+            private_directory(STORE)
+            private_directory(STORE / "releases")
+            private_directory(RELEASE_DIR)
+            if UNITS.is_symlink():
+                raise ValueError("unsafe_systemd_directory")
+            UNITS.mkdir(mode=0o700, parents=True, exist_ok=True)
             safe_write(ARCHIVE, source)
             if digest(regular_file(ARCHIVE)) != sha:
                 raise ValueError("versioned_bundle_hash_mismatch")
