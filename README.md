@@ -31,6 +31,8 @@ These features describe the operator-tested installation. The existing-host mani
 
 See the **[full v0.7 roadmap](docs/ROADMAP-v0.7.md)**.
 
+**Planned: Chat with Bob (CH1).** A mobile-friendly, **private-LAN-accessible Chat page** inside the authenticated Activity Manager, backed by the **actual OpenClaw Bob agent** through a server-side, loopback-only Gateway bridge. The roadmap covers session history, responsiveness, meaningful errors, private Moltbook experience context, LAN HTTPS and the existing publication/permission boundaries. **Not implemented or installed.** See [root TODO.md](TODO.md) for CH1.0–CH1.4 and the fresh-chat kickoff.
+
 **Friends Manager milestone:** **FM1, FM2, FM3 and FM3.1 complete and operator-tested**. **FM3.2 next** (Bob-proposed source-backed interest suggestions and scalable/focused friend browsing). **FM4 planned** (social memory and evolving relationships). **FM5 planned** (independent social exploration with separately approved action-specific permissions). The authoritative [FM1–FM5 roadmap and new-chat handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md) records the last accepted release, known Scout caveat and smallest safe next steps.
 
 **Personality and Memory prerequisites:** PM1 personality staging and guarded SOUL.md apply/rollback are operator-tested; PM2 private memory, reviewed proposals and opt-in recall are operator-tested. The original PM1 → PM2 → FM1 development order has been completed through FM3.1. Consult [PM1 apply notes](docs/V073-PM1-GUARDED-APPLY.md), [PM2 foundation](docs/V073-PM2-MEMORY-FOUNDATION.md), and the [current Friends handoff](docs/FRIENDS-ROADMAP-AND-HANDOFF.md). Follow/unfollow and autonomous friend interactions remain separately gated, regardless of previous auto-comment consent.
