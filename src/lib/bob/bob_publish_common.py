@@ -104,6 +104,15 @@ def auto_candidates(db, max_count=10):
     since=setting(db,'auto_since','')
     if not since: return 0
     count=0
+    # If FM1 has ever been initialized, even a friend appearing through the
+    # NORMAL global feed requires manual review. A batch flag alone cannot
+    # enforce separate social permissions. A corrupt directory fails closed.
+    try:
+        has_friends=db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='bob_friends'"
+        ).fetchone() is not None
+    except sqlite3.Error:
+        return 0
     # Restrict to genuinely new records created after opt-in; never post old backlog.
     for p in sorted(DATA.glob('scout-result-*.json')):
         rid=p.name.removeprefix('scout-result-').removesuffix('.json')
@@ -121,6 +130,20 @@ def auto_candidates(db, max_count=10):
                 isinstance(p,dict) and p.get('from_friend') is True
                 for p in source.get('posts',[])):
                 continue
+            selected=next((p for p in source.get('posts',[]) if
+                           isinstance(p,dict) and p.get('id')==obj.get('chosen_post_id')),None)
+            if not isinstance(selected,dict):
+                continue
+            author=selected.get('author')
+            if has_friends:
+                if not isinstance(author,str):
+                    continue
+                try:
+                    if db.execute("SELECT 1 FROM bob_friends WHERE handle_key=?",
+                                  (author.casefold(),)).fetchone():
+                        continue
+                except sqlite3.Error:
+                    continue
         except (OSError,TypeError,ValueError,AttributeError):
             continue
         try:
