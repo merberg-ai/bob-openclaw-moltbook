@@ -1,8 +1,8 @@
 # Bob Friends Manager: FM1–FM5 Roadmap and Fresh-Chat Handoff
 
 **Status captured:** October 29, 2026 (Pacific time; GitHub main release history includes October 30 UTC).  
-**Current implementation phase:** **FM3.2c** owner-triggered local-model interest proposals, candidate awaiting live acceptance. FM3.2b is operator-accepted.  
-**Operator-confirmed working baseline:** `v0.7.5-fm32b-watchlist1` in OpenClawLab WSL2, installed using `bobctl update`; operator confirmed FM3.2b works as expected.  
+**Current implementation phase:** **FM3.2d** final manual public-focus candidate, awaiting operator acceptance. FM3.2c is operator-accepted. **FM4 and FM5 are paused** until the operator's unrelated issues and a requested intervening feature are addressed.  
+**Operator-confirmed working baseline:** `v0.7.5-fm32c-localideas1` in OpenClawLab WSL2 via `bobctl update`; operator confirmed FM3.2c works as expected.  
 **Canonical repository:** `merberg-ai/bob-openclaw-moltbook`, `main`.  
 **This file is a planning/handoff artifact only**. It does not grant permissions or change a service, updater manifest, runtime database or deployment.
 
@@ -47,14 +47,23 @@ This is the **proposed scope**, not a commitment that all four items must be shi
 - **Safety:** no new background timer, untrusted private notes in requests/prompts, credentials, network access, model tools or social publication rights. Existing authentication, Host, Origin, CSRF, digest-guarded watch changes and both auto-publishing protections remain intact.
 - **Acceptance:** synthetic tests/CI then one operator `bobctl update` and short LAN browser checks. See [V075-FM32B-WATCHLIST.md](V075-FM32B-WATCHLIST.md). Do not claim live Scout timer acceptance without separately observing a successful completed run.
 
-### FM3.2c implementation checkpoint (operator acceptance pending)
+### FM3.2c operator-accepted checkpoint
 
-- **Candidate:** `v0.7.5-fm32c-localideas1`, from operator-tested `v0.7.5-fm32b-watchlist1`. Two managed files: existing `bob_friend_scout.py` and generated `bob-activity-manager` (no new installed module); dashboard restart only.
+- **Operator tested:** `v0.7.5-fm32c-localideas1`, from operator-tested `v0.7.5-fm32b-watchlist1`. Two managed files: existing `bob_friend_scout.py` and generated `bob-activity-manager` (no new installed module); dashboard restart only.
 - **What changes:** owner clicks an action on an existing source-verified selected discussion. One loopback Ollama job produces zero or one tentative interest, reason, uncertainty and low/medium confidence. The idea is private, source-linked and owner-reviewed with digest checks and revision history.
 - **Separation:** unlike FM3.2a's copied existing WHY, FM3.2c uses model synthesis from bounded *public chosen post* evidence only. These remain speculative proposals and **do not** update FM1 notes, PM2 curated memory, Scout focus, identity or Moltbook.
 - **Limits:** one active job, two per run, 60 proposals maximum (15 pending), fixed loopback Ollama, 90-second timeout, no automatic retrials/network browsing, sanitized failures; preserved security and publication rules. Verification repeated at job completion and review.
 - **Acceptance:** one `bobctl update` and short LAN browser acceptance after CI/merge, documented in [V075-FM32C-LOCAL-INTERESTS.md](V075-FM32C-LOCAL-INTERESTS.md). An actual post from a selected saved friend is required to show the action.
 - **Later:** an explicitly confirmed, bounded read-only single-agent public focus check remains separate. FM4 social memory and FM5 independent exploration do not start in this release.
+
+### FM3.2d final manual public-focus checkpoint (operator acceptance pending)
+
+- **Candidate:** `v0.7.5-fm32d-focus1` from operator-tested `v0.7.5-fm32c-localideas1`. Only existing `bob_friend_scout.py` and generated `bob-activity-manager`; no new installed modules or timers.
+- **One deliberately confirmed operation:** for one active, watched friend when global friend Scout is enabled, anonymously fetch one fixed-host public profile and at most two ID/author-matched public posts. Require exact owner confirmation, stored integrity-sealed source and capped local audit.
+- **Limits:** one in-flight request, fifteen-minute global cooldown, six-hour per-friend cooldown, six requests in rolling 24h, 100 stored jobs, three remote GETs maximum, fail closed when preference or friend state changes midflight. Never follow redirects or accept credentials.
+- **Private reaction:** optional zero/one local Ollama proposal from the first accepted public post using existing strict FM3.2c validator; separate owner approve/reject stays local only, never FM1 notes, PM2 memories, Scout bias or outbound publication.
+- **Acceptance:** CI and one `bobctl update`, then one short authenticated LAN UI test. See [V075-FM32D-MANUAL-FOCUS.md](V075-FM32D-MANUAL-FOCUS.md). FM3 is completed **only after operator acceptance**.
+- **Intervening priority:** operator has reported other issues and wants a separate feature addressed before *any* FM4 or FM5 work. Details not yet specified; **do not implement FM4/FM5 automatically**. The earlier Bob agent chat TODO is separately tracked and should not be silently treated as the requested feature.
 
 ## 3. FM4 — Social Memory and Evolving Relationships (NEW AGREED PHASE)
 
