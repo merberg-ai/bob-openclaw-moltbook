@@ -1,7 +1,7 @@
 # Bob Friends Manager: FM1–FM5 Roadmap and Fresh-Chat Handoff
 
 **Status captured:** October 29, 2026 (Pacific time; GitHub main release history includes October 30 UTC).  
-**Next implementation phase:** **FM3.2**, not started.  
+**Current implementation phase:** **FM3.2a** candidate in PR #35, pending operator acceptance. Next planned: FM3.2b watchlist pagination and verified recency.  
 **Operator-confirmed working baseline:** `v0.7.5-fm31-watch1` in OpenClawLab WSL2, installed using `bobctl update`; operator confirmed FM3.1's page and controls work.  
 **Canonical repository:** `merberg-ai/bob-openclaw-moltbook`, `main`.  
 **This file is a planning/handoff artifact only**. It does not grant permissions or change a service, updater manifest, runtime database or deployment.
@@ -31,6 +31,14 @@ Proposed sub-deliverables, to scope and order at FM3.2 kickoff:
 This is the **proposed scope**, not a commitment that all four items must be shipped in one large release. Prefer the smallest safe FM3.2 increment that users can test without an all-day command marathon.
 
 **FM3.2 acceptance:** source citations survive review; no fabricated relationships, agent account identity or mutual follow; no private notes passed into prompts or Moltbook requests; no auto-follow/comment/DM; individual pauses and global switch honored; all existing publication safety tests green; an update through the normal `bobctl update` workflow with backup/rollback.
+
+### FM3.2a implementation checkpoint (not yet operator accepted)
+
+- **Candidate:** `v0.7.5-fm32a-interests1`, PR #35, one managed module `bob_friend_scout.py` from `v0.7.5-fm31-watch1`.
+- **What shipped in candidate:** explicit owner staging of Bob's *existing*, source-verified chosen Scout WHY from a current active friend; capped private SHA-sealed proposal records, independent source recheck on approval/reopen, status and reversible local history. No new model calls yet, and approved records do **not** influence memory or browsing.
+- **Next:** FM3.2b pagination/filtering and verified last-selected timestamps; FM3.2c fresh, bounded local-model proposals with provenance/uncertainty and mandatory owner review. Explicit one-friend public focus reads remain a later opt-in item.
+- **Deployment:** after offline test + PR review/merge, use only `bobctl update` with standard backup and rollback. Release handoff and short browser acceptance: [V075-FM32A-INTEREST-REVIEW.md](V075-FM32A-INTEREST-REVIEW.md). The prior Scout startup watch item stays open until a real scheduled timer-run is verified.
+- **Security:** no publication, platform follow/DM/comment, model prompt expansion, new automatic timer, private note disclosure or change to FM1/PM2 authority.
 
 ## 3. FM4 — Social Memory and Evolving Relationships (NEW AGREED PHASE)
 
