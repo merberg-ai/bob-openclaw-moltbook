@@ -133,14 +133,22 @@ class LocalGitFixture(unittest.TestCase):
 
 
 class ManifestAndCommandTests(unittest.TestCase):
-    def test_release_manifest_is_updater_only_and_chained_from_fm41(self):
+    def test_release_manifest_catches_up_from_operator_reported_oc41(self):
         obj = updater.manifest(ROOT)
         self.assertEqual(obj["release"], "v0.7.8-updater2")
-        self.assertEqual(obj["from"], "v0.7.7-fm41-social1")
+        self.assertEqual(obj["from"], "v0.7.6-oc41-polish1")
         self.assertEqual(obj["format"], updater.FORMAT)
-        self.assertFalse(obj["restart_manager"])
+        self.assertTrue(obj["restart_manager"])
         self.assertEqual({i["name"] for i in obj["files"]},
-                         {"bobctl", "bob-release-updater"})
+                         {"bobctl", "bob-release-updater", "bob_social_memory.py",
+                          "bob-activity-manager", "navigation_shell.py"})
+        for item in obj["files"]:
+            output = updater.release_bytes(ROOT, item)
+            self.assertTrue(output)
+            compile(output, item["name"], "exec")
+        by_name = {item["name"]: item for item in obj["files"]}
+        self.assertEqual(by_name["bob-activity-manager"]["builder"],
+                         "scripts/build_v076_fm41_candidate.py")
 
     def test_v2_flat_compatible_manifest_validated_without_widening_paths(self):
         with tempfile.TemporaryDirectory() as temp:
