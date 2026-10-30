@@ -104,7 +104,7 @@ Delivered across four separately tested, incremental `bobctl update` releases. A
 
 ### HOLD: intervening issues and feature have priority
 
-The operator explicitly requested that **other observed issues and a separate new feature be handled before resuming Friends development**. Their details are not yet in this handoff. Do not invent the issues, assume the feature is CH1, automatically implement FM4 or FM5, or modify the live host as part of roadmap upkeep. First let the operator describe those items, triage them, and plan small guarded releases. The separately tracked **Direct Bob Chat (CH1)** plan is in root [TODO.md](../TODO.md), and is **not automatically** the feature just requested.
+The operator has now identified the next major dashboard work: a **Bob Operations Center** that explains apparent inactivity (e.g., six manual comments queued, zero auto-original attempts), adds a compact real-observation **“Bob right now”** Overview card, a unified **Automation** control/status view and a sanitized **Console**, with deterministic “Why no activity?” reasons. See [OPERATIONS-CENTER-ROADMAP.md](OPERATIONS-CENTER-ROADMAP.md) and root [TODO.md](../TODO.md). This is a planning checkpoint; none of the Operations Center features has been built or deployed yet. Work through small separate releases, keeping both **FM4 and FM5 paused** until the operator explicitly clears the intervening work. Other issues may still be reported separately. **Direct Bob Chat (CH1)** remains a separate planned workstream, not assumed to be part of Operations Center.
 
 ### Where to pick up when the hold is lifted: FM4.1
 
