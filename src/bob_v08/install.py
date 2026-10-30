@@ -221,7 +221,7 @@ def activate():
     try:
         source, sha = reviewed_bundle()
         prior = read_phase()
-        if prior is not None:
+        if prior is not None and prior["phase"] != "inactive":
             raise ValueError("activation_already_recorded")
         # Never overwrite another unit, version pointer or staged version.
         if (POINTER.exists() or POINTER.is_symlink() or RELEASE_DIR.exists()
@@ -273,7 +273,8 @@ def deactivate():
             raise ValueError("no_active_shadow_install")
         sha = phase["bundle_sha"]
         # Fail closed when the external files drift; never delete them blindly.
-        verified_unit_paths(sha)
+        if phase["phase"] == "active":
+            verified_unit_paths(sha)
         save_phase("deactivating", sha)
         _cleanup(sha)
         save_phase("inactive", sha)
@@ -305,21 +306,28 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--activate", action="store_true")
     group.add_argument("--deactivate", action="store_true")
+    group.add_argument("--recover", action="store_true")
     group.add_argument("--status", action="store_true")
     args = parser.parse_args(argv)
     if os.geteuid() == 0:
         parser.error("run as openclaw, never root")
     if args.status:
-        print(json.dumps(status(), sort_keys=True))
-        return 0
-    action = "ACTIVATE-SHADOW" if args.activate else "DEACTIVATE-SHADOW"
+        try:
+            print(json.dumps(status(), sort_keys=True))
+            return 0
+        except (OSError, ValueError, json.JSONDecodeError):
+            print("BOB SHADOW: status unavailable; inspect private activation journal")
+            return 1
+    action = ("ACTIVATE-SHADOW" if args.activate else
+              "RECOVER-SHADOW" if args.recover else "DEACTIVATE-SHADOW")
     if not __import__("sys").stdin.isatty() or input(
             "Type " + action + " to confirm the local shadow timer transition: ") != action:
         print("BOB SHADOW: no installation change")
         return 1
     try:
-        print("BOB SHADOW:", activate() if args.activate else deactivate())
-        return 0
+        result = activate() if args.activate else deactivate()
+        print("BOB SHADOW:", result)
+        return 0 if result in ("active", "inactive") else 1
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
             json.JSONDecodeError, BlockingIOError) as exc:
         print("BOB SHADOW: REFUSED (" + type(exc).__name__ + ")")
