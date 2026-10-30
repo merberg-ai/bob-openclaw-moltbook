@@ -371,10 +371,11 @@ def collect(opts,*,db_path=None,checkpoint_root=None,journal_runner=None,at=None
 
 
 def _select(name,choices,chosen):
-    return '<label>'+e(name.title())+'<select name="'+name+'">'+''.join(
+    choices_html=''.join(
         '<option value="'+e(option)+'"'+(" selected" if chosen==option else "")+
-        '>'+e(option.replace("_"," ").title())+'</option>' for option in choices)+
-        '</select></label>'
+        '>'+e(option.replace("_"," ").title())+'</option>'
+        for option in choices)
+    return '<label>'+e(name.title())+'<select name="'+name+'">'+choices_html+'</select></label>'
 
 
 def page(wrap,params,*,db_path=None,checkpoint_root=None,journal_runner=None,at=None):
