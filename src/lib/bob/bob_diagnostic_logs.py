@@ -44,9 +44,9 @@ SAFE_STATE=re.compile(r"^[a-z][a-z0-9_]{0,50}$")
 SAFE_ID=re.compile(r"^(?:[0-9]{8}T[0-9]{6}Z|[0-9a-f]{24})$")
 KNOWN_REASONS={
  "Integrity validation failed":"Scout draft integrity validation failed",
- "Friend-targeted draft requires manual review":"Friend-targeted reply blocked: manual approval required",
+ "Friend-targeted draft requires manual review":"Auto-comment blocked: saved friend requires manual review. The automatic comment was not sent",
  "Human approval missing or changed":"Human approval missing or changed",
- "Human decision already exists":"An owner review decision already exists",
+ "Human decision already exists":"Auto-comment blocked: an owner review decision already exists for this draft. The automatic comment was not sent",
  "Draft expired":"Draft expired before publication",
  "Already attempted comment on this post":"Possible duplicate reply blocked",
  "Challenge expired":"Verification challenge expired",
@@ -55,6 +55,15 @@ KNOWN_REASONS={
  "Moltbook credentials malformed":"Moltbook credentials were rejected (contents hidden)",
  "Credentials file permissions must be 0600":"Credentials file permissions need attention",
 }
+# These errors describe deliberate pre-send policy refusals. Legacy worker
+# code stores state='failed', but they are not Moltbook HTTP failures.
+SAFETY_BLOCKS=frozenset((
+    "Human decision already exists",
+    "Friend-targeted draft requires manual review",
+    "Human approval missing or changed",
+    "Already attempted comment on this post",
+    "Draft expired",
+))
 EVENTS={
  "publish_blocked":"Publication blocked by safety check",
  "publish_queued":"Manual publication queued",
@@ -229,18 +238,24 @@ def _job_rows(db,out):
             continue
         for ident,state,error,when in rows:
             status=str(state).lower() if isinstance(state,str) else "unknown"
-            if status in ("failed","verification_failed","verification_expired","rejected"):
-                level="error"
-            elif status in ("uncertain","waiting","awaiting_verification","verified_unconfirmed"):
+            policy_block=(service=="publisher" and status=="failed"
+                          and isinstance(error,str) and error in SAFETY_BLOCKS)
+            if policy_block:
                 level="warning"
+                msg="Comment job: intentionally blocked (database state: failed). "+reason(error)
             else:
-                level="info"
-            msg=(("Comment" if service=="publisher" else "Original publication"
-                  if service=="original_publish" else "Original generation")+
-                 " job: "+status[:45])
-            detail=reason(error)
-            if detail:
-                msg+=". "+detail
+                if status in ("failed","verification_failed","verification_expired","rejected"):
+                    level="error"
+                elif status in ("uncertain","waiting","awaiting_verification","verified_unconfirmed"):
+                    level="warning"
+                else:
+                    level="info"
+                msg=(("Comment" if service=="publisher" else "Original publication"
+                      if service=="original_publish" else "Original generation")+
+                     " job: "+status[:45])
+                detail=reason(error)
+                if detail:
+                    msg+=". "+detail
             _add(out,service,level,"jobs",when,msg,ident)
 
 
@@ -294,8 +309,9 @@ def _checkpoint_entries(root=None):
         service={"scout":"scout","publisher":"publisher","original":"original",
                  "original_publish":"original_publish"}.get(r["worker"])
         if service:
-            _add(out,service,level,"checkpoints",r["updated_at"],
-                 r["message"],r["job_id"])
+            message=("Worker reported a failed step; correlating with stored "
+                     "jobs and sanitized journal observations" if state=="failed" else r["message"])
+            _add(out,service,level,"checkpoints",r["updated_at"],message,r["job_id"])
     return out
 
 
@@ -338,22 +354,75 @@ def _journal_entries(service,since,*,run=subprocess.run):
     return out,ok
 
 
+def correlate_checkpoints(checkpoints,job_rows,journal_rows,*,journal_ok=False):
+    """Attach a supported cause to a worker checkpoint instead of 'inspect logs'.
+
+    Exact service+run ID job match wins. A journal event with no run ID may
+    only be a time-associated clue, NEVER presented as proven causation.
+    Redaction is preserved by using only messages already classified safe.
+    """
+    job_by_key={(row["service"],row["id"]):row for row in job_rows
+                if row["source"]=="jobs" and row["id"]}
+    for row in checkpoints:
+        if row["source"]!="checkpoints" or row["level"]!="error":
+            continue
+        found=job_by_key.get((row["service"],row["id"]))
+        if found:
+            row["level"]=found["level"]
+            row["message"]="Worker checkpoint linked to recorded job: "+found["message"]
+            continue
+        nearby=[entry for entry in journal_rows
+                if entry["service"]==row["service"]
+                and entry["level"] in ("error","warning")
+                and abs((entry["when"]-row["when"]).total_seconds())<=300]
+        if nearby:
+            # An application error is more diagnostic than a generic systemd
+            # exit; always make the temporal relationship explicit.
+            nearby.sort(key=lambda x:(
+                x["message"].startswith("Systemd service failure"),
+                abs((x["when"]-row["when"]).total_seconds())))
+            row["message"]=(
+                "Worker failed; nearby sanitized journal observation (not a proven "
+                "cause): "+nearby[0]["message"])
+        elif not journal_ok:
+            row["message"]=(
+                "Worker failed. No matching stored job reason; user-systemd "
+                "journal is unavailable to the dashboard, so cause is unknown")
+        else:
+            row["message"]=(
+                "Worker failed. No matching error was captured in the available "
+                "stored jobs or sanitized journal. Cause remains unknown")
+
+
 def collect(opts,*,db_path=None,checkpoint_root=None,journal_runner=None,at=None):
     at=at or datetime.now(timezone.utc)
     since=at-timedelta(days=WINDOWS[opts["window"]])
     all_rows=[]
     sources={}
-    if opts["source"] in ("all","jobs","events"):
+    db_rows=[]
+    journal_rows=[]
+    checkpoints=[]
+    journal_ok=False
+    if opts["source"] in ("all","jobs","events","checkpoints"):
         db_rows,ok=_db_entries(DB if db_path is None else db_path)
         sources["database"]=ok
-        all_rows.extend(row for row in db_rows if opts["source"]=="all" or
-                        row["source"]==opts["source"])
+        if opts["source"] in ("all","jobs","events"):
+            all_rows.extend(row for row in db_rows if opts["source"]=="all" or
+                            row["source"]==opts["source"])
     if opts["source"] in ("all","checkpoints"):
-        all_rows+=_checkpoint_entries(checkpoint_root)
-    if opts["source"] in ("all","journal"):
-        rows,ok=_journal_entries(opts["service"],since,run=journal_runner or subprocess.run)
-        sources["journal"]=ok
-        all_rows+=rows
+        checkpoints=_checkpoint_entries(checkpoint_root)
+    if opts["source"] in ("all","journal") or (
+        opts["source"]=="checkpoints" and any(
+            row["level"]=="error" for row in checkpoints)):
+        journal_rows,journal_ok=_journal_entries(
+            opts["service"],since,run=journal_runner or subprocess.run)
+        sources["journal"]=journal_ok
+        if opts["source"] in ("all","journal"):
+            all_rows.extend(journal_rows)
+    if checkpoints:
+        correlate_checkpoints(checkpoints,db_rows,journal_rows,
+                              journal_ok=journal_ok)
+        all_rows.extend(checkpoints)
     filtered=[]
     q=opts["q"].casefold()
     for row in all_rows:
@@ -423,10 +492,12 @@ def page(wrap,params,*,db_path=None,checkpoint_root=None,journal_runner=None,at=
             parts.append('<p class="blg-code">Job/run: '+e(row["id"])+'</p>')
         parts.append('</article>')
     parts += ['</section><section class="blg-panel"><h2>Understanding failures</h2>',
-              '<p class="blg-muted">A failed background checkpoint is not always '
-              'a failed Moltbook publication. Look for a matching job ID and '
-              'database failure reason. For an uncertain send, do NOT retry '
-              'blindly: the platform may have accepted it. Entries without '
-              'a stored safe diagnostic deliberately omit raw personal or '
-              'third-party text.</p></section></div>']
+              '<p class="blg-muted">Failed checkpoints automatically check for '
+              'an exact matching job and nearby classified journal records. '
+              'A nearby journal message is only a clue, not proven cause. '
+              'Existing owner review decisions can intentionally block auto-post '
+              'jobs: these remain stored as failed but are shown as warnings. '
+              'For uncertain network sends, do NOT retry blindly. '
+              'Unknown causes are clearly labeled, never guessed from '
+              'private raw text.</p></section></div>']
     return wrap("Logs & diagnostics","".join(parts),"/logs")
