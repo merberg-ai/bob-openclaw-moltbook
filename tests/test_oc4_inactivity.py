@@ -40,7 +40,8 @@ def fixture(path):
         CREATE TABLE publish_jobs(
           run_id TEXT PRIMARY KEY,approval_sha256 TEXT,mode TEXT,state TEXT,
           last_error TEXT,created_at TEXT,updated_at TEXT,attempted_at TEXT,
-          comment_id TEXT);
+          comment_id TEXT,challenge_code TEXT,challenge_text TEXT,
+          challenge_expires_at TEXT,verify_answer TEXT);
         CREATE TABLE decisions(run_id TEXT,draft_sha256 TEXT,status TEXT);
         CREATE TABLE publish_events(
           id INTEGER PRIMARY KEY AUTOINCREMENT,at TEXT,kind TEXT,details TEXT);
@@ -52,9 +53,10 @@ def fixture(path):
           (RID4,"manual","queued",None,None,None),
         ]
         for rid,mode,state,error,attempted,comment_id in items:
-            db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?,?,?,?,?,?)",
+            db.execute("INSERT INTO publish_jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (rid,DIGEST,mode,state,error,"2026-10-30T15:20:00+00:00",
-                 "2026-10-30T16:15:00+00:00",attempted,comment_id))
+                 "2026-10-30T16:15:00+00:00",attempted,comment_id,
+                 None,None,None,None))
         for rid,status,digest in ((RID1,"approved",DIGEST),
                                   (RID2,"rejected",DIGEST),
                                   (RID3,"approved","0"*64)):
@@ -131,12 +133,12 @@ class InvestigatorTests(unittest.TestCase):
 
     def test_bad_digest_unknown_and_attempted_never_claimed_recoverable(self):
         with sqlite3.connect(self.path) as db:
-            db.execute("UPDATE publish_jobs SET attempted_at=? WHERE run_id=?",
-                       ("2026-10-30T16:00:00+00:00",RID1))
+            db.execute("UPDATE publish_jobs SET challenge_code=? WHERE run_id=?",
+                       ("moltbook_test",RID1))
         r=inactivity.read_private(self.path,at=NOW)
         self.assertEqual(r["approved_blocked"],0)
         self.assertEqual(r["undecided_blocked"],1)
-        self.assertEqual(r["last_attempt"],"2026-10-30T16:00:00+00:00")
+        self.assertEqual(r["last_attempt"],"")
 
     def test_missing_or_corrupted_database_fails_closed(self):
         self.assertFalse(inactivity.read_private(self.path.parent/"none")["available"])
