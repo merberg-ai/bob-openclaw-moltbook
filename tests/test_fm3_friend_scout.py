@@ -352,7 +352,12 @@ class FM3Tests(unittest.TestCase):
         targets=[x["name"] for x in raw["files"]]
         # This is a regression test for the managed FM3 worker, not an
         # assertion that FM3 must forever be the latest release manifest.
-        self.assertNotIn("bob_publish_common.py",targets)
+        # FM3 must not sneak a modified unmanaged helper into a publisher
+        # release. Later releases may explicitly register the previously
+        # omitted identical common helper as a standalone dependency repair.
+        for item in raw["files"]:
+            if item["name"]=="bob_publish_common.py":
+                self.assertEqual(item.get("source"),"src/lib/bob/bob_publish_common.py")
         self.assertIn("bob-moltbook-publisher",
                       (ROOT/"scripts/bootstrap_bob_updater.py").read_text())
 

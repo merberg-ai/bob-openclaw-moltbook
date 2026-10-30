@@ -1,12 +1,12 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.5-logs2",
-  "from": "v0.7.5-logs1",
-  "notes": "Log diagnostics improvement: failed worker checkpoints now correlate automatically with exact job reason or time-near safe journal classification. Legacy automatic comment failures caused by existing owner decisions are shown as expected safety blocks/warnings, not erroneous remote failures. Read only, no logging or publishing worker changes.",
+  "release": "v0.7.5-scout-importfix1",
+  "from": "v0.7.5-logs2",
+  "notes": "Repair proven Scout startup failure: install existing trusted bob_publish_common.py from repository source to the same user-local bin directory as Scout and its memory/friends modules. Does not change Scout/publisher code, API permissions, database schema, timers or auto-publishing. Includes isolated installed-layout import checks.",
   "files": [
     {
-      "name": "bob_diagnostic_logs.py",
-      "source": "src/lib/bob/bob_diagnostic_logs.py"
+      "name": "bob_publish_common.py",
+      "source": "src/lib/bob/bob_publish_common.py"
     }
   ],
   "restart_manager": true
