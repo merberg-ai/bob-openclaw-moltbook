@@ -212,7 +212,7 @@ class InterestAITests(unittest.TestCase):
             html=fs.page(db,"token",lambda title,body,path:body,[common.load_record(RUN)])
         self.assertIn("&lt;img src=x onerror=alert(1)&gt;",html)
         self.assertNotIn("<img src=x onerror",html)
-        self.assertIn("Ask local Bob",html)
+        self.assertIn("Local interest generation already attempted",html)
         self.assertIn("Uncertainty:",html)
         self.assertNotIn("SECRET_PRIVATE_NOTES",html)
         self.assertNotIn("SECRET_PRIVATE_INTERESTS",html)
