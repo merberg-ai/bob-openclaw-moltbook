@@ -182,7 +182,7 @@ class PublicationHandoffTests(unittest.TestCase):
             self.existing(db)
             common.set_setting(db,"auto_enabled","1")
         with common.connect() as db:
-            self.assertIsNotNone(worker.load_record(RID))
+            self.assertIsNotNone(common.load_record(RID))
             self.assertEqual(db.execute("SELECT approval_sha256,post_id,draft_comment "
               "FROM publish_jobs WHERE run_id=?",(RID,)).fetchone(),
                 (self.record["approval_sha256"],PID,self.record["draft_comment"]))
@@ -197,6 +197,7 @@ class PublicationHandoffTests(unittest.TestCase):
             return {"post":{"id":PID}}
         with common.connect() as db, \
             patch.object(worker,"auto_candidates",return_value=0), \
+            patch.object(worker,"load_record",side_effect=common.load_record), \
             patch.object(worker,"allow_auto_candidate",return_value=True), \
             patch.object(worker,"checkpoint"), \
             patch.object(worker,"can_send",return_value=(True,"")), \
@@ -215,7 +216,7 @@ class PublicationHandoffTests(unittest.TestCase):
             self.approve(db)
             common.queue_manual(db,RID)
         with common.connect() as db:
-            self.assertIsNotNone(worker.load_record(RID))
+            self.assertIsNotNone(common.load_record(RID))
             self.assertEqual(db.execute("SELECT approval_sha256,post_id,draft_comment "
               "FROM publish_jobs WHERE run_id=?",(RID,)).fetchone(),
                 (self.record["approval_sha256"],PID,self.record["draft_comment"]))
@@ -227,6 +228,7 @@ class PublicationHandoffTests(unittest.TestCase):
             return {"success":True,"comment":{"id":"11111111-2222-3333-4444-555555555555"}}
         with common.connect() as db, \
             patch.object(worker,"auto_candidates",return_value=0), \
+            patch.object(worker,"load_record",side_effect=common.load_record), \
             patch.object(worker,"checkpoint"), \
             patch.object(worker,"can_send",return_value=(True,"")), \
             patch.object(worker,"api",side_effect=stub), \
