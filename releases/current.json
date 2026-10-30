@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-shadow3",
-  "from": "v0.8.0-shadow2",
-  "notes": "R2 shadow reason contract: prompt requests <=200-character reason; validator preserves 220-character cap with safe granular error categories. Two-file shadow-only maintenance release; no publisher changes.",
+  "release": "v0.8.0-shadow4",
+  "from": "v0.8.0-shadow3",
+  "notes": "R2 shadow abstention contract: valid skip may omit reason, while comment still requires explanation; event records accurate verified action hint or unknown. Shadow-only two-file patch, no publishing or manager restart.",
   "files": [
     {
       "name": "bob_v08_package.pyz",
