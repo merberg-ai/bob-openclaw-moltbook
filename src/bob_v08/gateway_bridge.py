@@ -173,8 +173,13 @@ def enable():
     fd = _guard()
     try:
         _workspace()
-        if _config() is not None or BACKUP.exists() or BACKUP.is_symlink():
+        existing_config = _config()
+        if existing_config is not None and existing_config["enabled"]:
             raise ValueError("context_previously_managed")
+        if (existing_config is None and (BACKUP.exists() or BACKUP.is_symlink())
+                or existing_config is not None and
+                (BACKUP.is_symlink() or not BACKUP.is_file())):
+            raise ValueError("context_incomplete_previous_transition")
         before = _file(MEMORY, missing=True)
         content = before.decode("utf-8") if before is not None else ""
         if BEGIN in content or END in content:
@@ -183,7 +188,8 @@ def enable():
         updated = (content.rstrip("\n") + "\n\n" + block + "\n").lstrip("\n")
         if len(updated.encode()) > MAX_MEM:
             raise ValueError("context_file_oversized")
-        _atomic(BACKUP, before if before is not None else b"")
+        if existing_config is None:
+            _atomic(BACKUP, before if before is not None else b"")
         try:
             _atomic(MEMORY, updated.encode())
             _save_config(enabled=True, block_sha=_sha(block.encode()),
