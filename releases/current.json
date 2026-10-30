@@ -1,29 +1,21 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.4-fm3-friend-scout2",
-  "from": "v0.7.4-fm2-discovery1",
-  "notes": "FM3 owner opt-in friend scouting with bounded anonymous reads, prioritized real posts, and publisher-enforced manual-only friend replies (including global-feed friend authors). Uses only updater-managed publisher worker rather than modifying unmanaged shared helper; 5 files, no new timers, follows or messaging.",
+  "release": "v0.7.5-logs1",
+  "from": "v0.7.4-fm3-friend-scout2",
+  "notes": "Authenticated read-only Logs page: filter bounded safe diagnostic observations by service, severity, source, 24h/7d/30d and search. Joins existing SQLite job/error codes and audit events, worker checkpoints, fixed user-systemd journal units. Sanitizes arbitrary journal/errors, no secrets/raw posts, no retries or publishing changes.",
   "files": [
     {
-      "name": "bob_friend_scout.py",
-      "source": "src/lib/bob/bob_friend_scout.py"
-    },
-    {
-      "name": "bob-moltbook-scout",
-      "source": "src/bin/bob-moltbook-scout"
-    },
-    {
-      "name": "bob-moltbook-publisher",
-      "source": "src/bin/bob-moltbook-publisher"
+      "name": "bob_diagnostic_logs.py",
+      "source": "src/lib/bob/bob_diagnostic_logs.py"
     },
     {
       "name": "bob-activity-manager",
-      "builder": "scripts/build_v074_fm3_friend_scout_candidate.py",
+      "builder": "scripts/build_v075_logs_candidate.py",
       "index": 0
     },
     {
       "name": "navigation_shell.py",
-      "builder": "scripts/build_v074_fm3_friend_scout_candidate.py",
+      "builder": "scripts/build_v075_logs_candidate.py",
       "index": 1
     }
   ],

@@ -350,9 +350,11 @@ class FM3Tests(unittest.TestCase):
         self.assertNotIn("common.auto_candidates(db)",text)
         raw=json.loads((ROOT/"releases/current.json").read_text())
         targets=[x["name"] for x in raw["files"]]
-        self.assertIn("bob-moltbook-publisher",targets)
+        # This is a regression test for the managed FM3 worker, not an
+        # assertion that FM3 must forever be the latest release manifest.
         self.assertNotIn("bob_publish_common.py",targets)
-        self.assertEqual(raw["release"],"v0.7.4-fm3-friend-scout2")
+        self.assertIn("bob-moltbook-publisher",
+                      (ROOT/"scripts/bootstrap_bob_updater.py").read_text())
 
     def test_scout_prompt_unchanged_review_and_no_tools_rules(self):
         scout=script("src/bin/bob-moltbook-scout","scout_fm3_synthetic")
