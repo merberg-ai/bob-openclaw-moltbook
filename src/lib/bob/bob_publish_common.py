@@ -104,48 +104,11 @@ def auto_candidates(db, max_count=10):
     since=setting(db,'auto_since','')
     if not since: return 0
     count=0
-    # If FM1 has ever been initialized, even a friend appearing through the
-    # NORMAL global feed requires manual review. A batch flag alone cannot
-    # enforce separate social permissions. A corrupt directory fails closed.
-    try:
-        has_friends=db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='bob_friends'"
-        ).fetchone() is not None
-    except sqlite3.Error:
-        return 0
     # Restrict to genuinely new records created after opt-in; never post old backlog.
     for p in sorted(DATA.glob('scout-result-*.json')):
         rid=p.name.removeprefix('scout-result-').removesuffix('.json')
         obj=load_record(rid)
         if obj is None: continue
-        # Friend-focused discovery is deliberately manual-publication-only.
-        # Independently inspect the already-integrity-verified Scout feed,
-        # not just the mutable friend_focus result metadata. This guard
-        # remains effective even if the result's new flag is removed.
-        if obj.get('friend_focus') is True:
-            continue
-        try:
-            source=json.loads((DATA/f'scout-feed-{rid}.json').read_text(encoding='utf-8'))
-            if source.get('friend_focus') is True or any(
-                isinstance(p,dict) and p.get('from_friend') is True
-                for p in source.get('posts',[])):
-                continue
-            selected=next((p for p in source.get('posts',[]) if
-                           isinstance(p,dict) and p.get('id')==obj.get('chosen_post_id')),None)
-            if not isinstance(selected,dict):
-                continue
-            author=selected.get('author')
-            if has_friends:
-                if not isinstance(author,str):
-                    continue
-                try:
-                    if db.execute("SELECT 1 FROM bob_friends WHERE handle_key=?",
-                                  (author.casefold(),)).fetchone():
-                        continue
-                except sqlite3.Error:
-                    continue
-        except (OSError,TypeError,ValueError,AttributeError):
-            continue
         try:
             created=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
             if created.isoformat() <= since: continue
