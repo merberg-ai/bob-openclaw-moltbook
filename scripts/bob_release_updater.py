@@ -33,7 +33,9 @@ LOCK = STATE_DIR / "lock"
 DB = HOME / ".config/moltbook/activity-queue.sqlite3"
 BACKUP_DIR = HOME / ".local/state/bob-baseline/backups"
 FORMAT = "bob-updater-v1"
+FORMAT_V2 = "bob-updater-v2"  # R1: only the established, flat-file manifest shape.
 BRANCH = "main"
+CHANNELS = frozenset(("main", "next"))
 REPO = "merberg-ai/bob-openclaw-moltbook"
 RELEASE_ID = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9._-]{2,79}\Z")
 TARGET = re.compile(r"(?:bobctl|bob[-_][a-zA-Z0-9._-]+|navigation_shell\.py)\Z")
@@ -106,10 +108,21 @@ def shell(argv, *, timeout=45):
     return result.stdout.strip()
 
 
-def checkout_from_config():
+def read_checkout_config():
+    """The old two-key configuration remains the default main channel."""
     conf = read_json(CONFIG)
-    if set(conf) != {"format", "checkout"} or conf["format"] != FORMAT:
+    if (set(conf) not in ({"format", "checkout"}, {"format", "checkout", "channel"})
+            or conf.get("format") != FORMAT
+            or not isinstance(conf.get("checkout"), str)):
         raise ValueError("unexpected updater config")
+    channel = conf.get("channel", BRANCH)
+    if not isinstance(channel, str) or channel not in CHANNELS:
+        raise ValueError("untrusted release channel")
+    return conf, channel
+
+
+def checkout_from_config():
+    conf, channel = read_checkout_config()
     folder = Path(conf["checkout"])
     if not folder.is_absolute() or folder.is_symlink() or not folder.is_dir():
         raise ValueError("untrusted checkout")
@@ -117,7 +130,7 @@ def checkout_from_config():
         raise ValueError("checkout path is not canonical")
     if shell(["git", "-C", str(folder), "rev-parse", "--show-toplevel"]) != str(folder):
         raise ValueError("wrong Git checkout root")
-    if shell(["git", "-C", str(folder), "branch", "--show-current"]) != BRANCH:
+    if shell(["git", "-C", str(folder), "branch", "--show-current"]) != channel:
         raise ValueError("unexpected release branch")
     if shell(["git", "-C", str(folder), "remote", "get-url", "origin"]) not in ORIGINS:
         raise ValueError("unexpected Git remote")
@@ -128,11 +141,82 @@ def checkout_from_config():
 
 def sync_checkout(folder):
     # Updating the development checkout NEVER installs anything by itself.
-    shell(["git", "-C", str(folder), "pull", "--ff-only", "origin", BRANCH],
+    _, channel = read_checkout_config()
+    shell(["git", "-C", str(folder), "pull", "--ff-only", "origin", channel],
           timeout=75)
+    if shell(["git", "-C", str(folder), "branch", "--show-current"]) != channel:
+        raise ValueError("release branch changed during pull")
     if shell(["git", "-C", str(folder), "status", "--porcelain"]):
         raise ValueError("checkout modified after pull")
 
+
+def switch_channel(folder, target):
+    """Switch a trusted clean checkout; never install code or touch services.
+
+    The config is committed last, after checkout and fast-forward verification.
+    On an ordinary failure, restore the previous branch and exact config bytes.
+    """
+    if not isinstance(target, str) or target not in CHANNELS:
+        raise ValueError("unsupported release channel")
+    fd = locked()
+    old_data = None
+    original = None
+    changed_config = False
+    try:
+        if checkout_from_config() != folder:
+            raise ValueError("checkout changed before channel selection")
+        conf, original = read_checkout_config()
+        journal = read_journal()
+        if journal and journal["phase"] not in ("complete", "rolled_back"):
+            raise ValueError("incomplete update blocks channel selection")
+        current = registry()
+        if not live_ok(current):
+            raise ValueError("installed file hash drift blocks channel selection")
+        if target == original:
+            return "unchanged"
+        old_data = CONFIG.read_bytes()
+        # Only allowlisted branch names and a previously verified origin.
+        shell(["git", "-C", str(folder), "fetch", "--no-tags", "origin",
+               "refs/heads/" + target + ":refs/remotes/origin/" + target], timeout=75)
+        probe = subprocess.run(
+            ["git", "-C", str(folder), "show-ref", "--verify", "--quiet",
+             "refs/heads/" + target],
+            capture_output=True, text=True, timeout=15, check=False)
+        if probe.returncode not in (0, 1):
+            raise ValueError("cannot inspect target branch")
+        if probe.returncode == 0:
+            shell(["git", "-C", str(folder), "switch", target])
+            shell(["git", "-C", str(folder), "merge", "--ff-only",
+                   "refs/remotes/origin/" + target], timeout=45)
+        else:
+            shell(["git", "-C", str(folder), "switch", "--track", "-c", target,
+                   "refs/remotes/origin/" + target])
+        if (shell(["git", "-C", str(folder), "branch", "--show-current"]) != target
+                or shell(["git", "-C", str(folder), "status", "--porcelain"])):
+            raise ValueError("target checkout verification failed")
+        updated = dict(conf)
+        updated["channel"] = target
+        save_private(CONFIG, (json.dumps(updated, sort_keys=True) + "\n").encode())
+        changed_config = True
+        if checkout_from_config() != folder:
+            raise ValueError("saved release channel verification failed")
+        return "switched"
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+        # Failure before commit must not strand the trusted checkout on another
+        # branch with the old channel. Never silently rewrite a divergent tree.
+        try:
+            if changed_config and old_data is not None:
+                save_private(CONFIG, old_data)
+            if original in CHANNELS and shell(
+                    ["git", "-C", str(folder), "branch", "--show-current"]) != original:
+                shell(["git", "-C", str(folder), "switch", original])
+                if shell(["git", "-C", str(folder), "status", "--porcelain"]):
+                    raise RuntimeError("channel rollback left a dirty checkout")
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+            raise RuntimeError("channel switch needs manual recovery; no install attempted") from None
+        raise
+    finally:
+        os.close(fd)
 
 def locked():
     private_dir(STATE_DIR)
@@ -168,7 +252,7 @@ def manifest(folder):
     data = json.loads(path.read_text(encoding="utf-8"))
     if (not isinstance(data, dict)
             or set(data) != {"format", "release", "from", "notes", "files", "restart_manager"}
-            or data["format"] != FORMAT or not RELEASE_ID.fullmatch(data["release"])
+            or data["format"] not in (FORMAT, FORMAT_V2) or not RELEASE_ID.fullmatch(data["release"])
             or not RELEASE_ID.fullmatch(data["from"])
             or not isinstance(data["notes"], str) or len(data["notes"]) > 800
             or type(data["restart_manager"]) is not bool
@@ -450,12 +534,21 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true")
     group.add_argument("--recover", action="store_true")
+    group.add_argument("--channel", choices=sorted(CHANNELS))
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error("run as openclaw (not root)")
     try:
         folder = checkout_from_config()
         sys.path.insert(0, str(folder / "scripts"))
+        if args.channel is not None:
+            if not sys.stdin.isatty() or input(
+                    "Type SWITCH-" + args.channel.upper() + " to change the source channel (NO INSTALL): "
+            ) != "SWITCH-" + args.channel.upper():
+                raise ValueError("channel change approval not granted")
+            result = switch_channel(folder, args.channel)
+            print("BOB UPDATE: channel " + args.channel + " (" + result + "); no production changes")
+            return 0
         if args.recover:
             journal = read_journal()
             if not journal or journal["phase"] not in ("prepared", "installed", "restarted"):
