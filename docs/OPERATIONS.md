@@ -1,3 +1,17 @@
+## v0.8 R1 updater preparation (candidate, not installed)
+
+The pending `v0.7.8-updater2` release upgrades only `bob-release-updater` and `bobctl` from the operator-accepted `v0.7.7-fm41-social1`. It does **not** restart the Activity Manager, change services or timers, install new workers, grant new publishing permissions or modify Moltbook content. Its existing updater transaction still performs a verified private SQLite backup and authenticated dashboard health check before writing code.
+
+Once this release has passed CI, merged to `main`, and the operator elects to install it, use the existing **single** `bobctl update` confirmation. The updater's current two-field `updater.json` remains valid and defaults to `main`. The first `next` branch is created only after the R1 release is operator-accepted.
+
+**Later, when instructed for the R2 shadow release:** `bobctl update --channel next` requires the exact `SWITCH-NEXT` confirmation. This command changes only the trusted clean source checkout and private updater channel configuration; it does **not** deploy a release. `bobctl update --channel main` reverses the selection. A normal `bobctl update` remains a separate, explicitly approved installation.
+
+R1 recognizes `bob-updater-v2` manifests only in the currently supported flat-file compatibility shape. Versioned package deployment, migrations and managed service transitions belong to R2 and require their own tested updater implementation. Do **not** interpret R1 format recognition as permission to execute arbitrary v2 fields.
+
+See [v0.8 roadmap](ROADMAP-v0.8.md). No user command is required solely because this documentation landed.
+
+---
+
 # Bob operator guide (v0.7.2)
 
 **Current state, October 29, 2026:** The owner's OpenClawLab (WSL2) host is running the verified v0.7.2 Activity Manager, working original-thought drafting, observed worker stages and manually prioritized comment publication. The reusable `bobctl update` command was installed and confirmed up to date. **The operator reports its one-time migration to canonical `main` completed successfully.** See [main migration](MAIN-UPDATER-MIGRATION.md).
