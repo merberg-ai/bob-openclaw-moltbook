@@ -198,15 +198,11 @@ def _cleanup(bundle_sha):
     if ARCHIVE.exists() or ARCHIVE.is_symlink():
         if digest(regular_file(ARCHIVE)) != bundle_sha:
             raise ValueError("versioned_shadow_archive_modified")
-    try:
-        systemctl("disable", "--now", TIMER)
-    except RuntimeError:
-        # A missing/not-installed timer is acceptable on early failed setup.
-        pass
-    try:
-        systemctl("stop", SERVICE)
-    except RuntimeError:
-        pass
+    # Never remove units if systemd's stop/disable result is uncertain.
+    # This may leave an incident for guarded operator recovery, but it cannot
+    # silently strand an active timer without its matching unit definition.
+    systemctl("disable", "--now", TIMER)
+    systemctl("stop", SERVICE)
     for name in units():
         (UNITS / name).unlink(missing_ok=True)
     systemctl("daemon-reload")
