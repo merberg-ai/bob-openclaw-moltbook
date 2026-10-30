@@ -330,18 +330,20 @@ JS = r"""'use strict';
       if(overall){overall.textContent=String(ops.state||'unknown');overall.dataset.tone=String(ops.state||'unknown');}
       const current=id('now-lanes');
       if(current){
+        const expanded=new Set(Array.from(current.querySelectorAll('.bo-now-lane[data-key] details[open]'))
+          .map(el=>el.closest('.bo-now-lane').dataset.key));
         current.replaceChildren();
         const labels={scout:'Scout',publisher:'Comment publisher',original:'Original posts',dependencies:'Gateway + Ollama'};
         const links={scout:'/logs?service=scout',publisher:'/logs?service=publisher',original:'/originals',dependencies:'/system/status'};
         ops.lanes.slice(0,4).forEach(item=>{
           if(!item || !Object.prototype.hasOwnProperty.call(labels,String(item.key)))return;
           const key=String(item.key);
-          const card=document.createElement('div');card.className='bo-now-lane';
+          const card=document.createElement('div');card.className='bo-now-lane';card.dataset.key=key;
           const head=document.createElement('b');
           const dot=document.createElement('span');dot.className='bo-now-dot';dot.dataset.tone=String(item.state||'unknown');
           head.append(dot,document.createTextNode(labels[key]));
           const activity=document.createElement('p');activity.textContent=String(item.activity||'Status unconfirmed');
-          const detail=document.createElement('details');
+          const detail=document.createElement('details');detail.open=expanded.has(key);
           const summary=document.createElement('summary');summary.textContent='Why / evidence';
           const reason=document.createElement('small');
           reason.textContent=String(item.reason||'')+(item.next_scheduled?' · Systemd next: '+String(item.next_scheduled):'');
