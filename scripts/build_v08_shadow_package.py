@@ -14,7 +14,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ("__init__.py", "core.py", "evidence.py", "digest.py",
-           "shadow.py", "inspect.py")
+           "shadow.py", "inspect.py", "install.py", "experience.py")
 MAX_MODULE = 64 * 1024
 BUNDLE = "bob_v08_package.pyz"
 ENTRYPOINT = "bob-v08-shadow"
@@ -22,10 +22,27 @@ ENTRYPOINT = "bob-v08-shadow"
 WRAPPER = '''#!/usr/bin/env python3
 """Bob v0.8 guarded shadow-only local launcher. No publisher is imported."""
 from pathlib import Path
+import hashlib
 import json
 import sys
 
+HOME = Path.home()
 PACKAGE = Path(__file__).resolve().parent / "bob_v08_package.pyz"
+POINTER = HOME / ".local/share/bob/current.json"
+if POINTER.exists() or POINTER.is_symlink():
+    if POINTER.is_symlink() or not POINTER.is_file():
+        raise SystemExit("Invalid Bob v0.8 activation pointer")
+    try:
+        record = json.loads(POINTER.read_text())
+        if (record.get("release") != "v0.8.0-shadow1" or
+                len(record.get("sha256", "")) != 64):
+            raise ValueError("bad active release")
+        PACKAGE = HOME / ".local/share/bob/releases/v0.8.0-shadow1/bob_v08_package.pyz"
+        if (PACKAGE.is_symlink() or not PACKAGE.is_file() or
+                hashlib.sha256(PACKAGE.read_bytes()).hexdigest() != record["sha256"]):
+            raise ValueError("active archive mismatch")
+    except (OSError, ValueError, TypeError, AttributeError):
+        raise SystemExit("Bob v0.8 versioned package verification failed")
 if PACKAGE.is_symlink() or not PACKAGE.is_file():
     raise SystemExit("Bob v0.8 shadow package unavailable")
 sys.path.insert(0, str(PACKAGE))

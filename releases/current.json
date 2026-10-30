@@ -1,30 +1,48 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.7.8-updater2",
-  "from": "v0.7.6-oc41-polish1",
-  "notes": "R1 recovery catch-up from verified OC4.1 registry: install FM4.1 Social Memory and guarded main/next updater together. Existing publishing permissions, timers and Moltbook actions unchanged.",
+  "release": "v0.8.0-shadow1",
+  "from": "v0.7.8-updater2",
+  "notes": "R2 real OpenClaw shadow decisions, private event log, authenticated read-only Now/Inbox, reversible versioned shadow timer and owner-requested session-scoped experience digest. No Moltbook writes or global memory modifications.",
   "files": [
     {
-      "name": "bob_social_memory.py",
-      "source": "src/lib/bob/bob_social_memory.py"
-    },
-    {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_v076_fm41_candidate.py",
+      "name": "bob_v08_package.pyz",
+      "builder": "scripts/build_v08_shadow_package.py",
       "index": 0
     },
     {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_v076_fm41_candidate.py",
+      "name": "bob-v08-shadow",
+      "builder": "scripts/build_v08_shadow_package.py",
       "index": 1
+    },
+    {
+      "name": "bob-v08-activate",
+      "source": "src/bin/bob-v08-activate"
+    },
+    {
+      "name": "bob-v08-experience",
+      "source": "src/bin/bob-v08-experience"
+    },
+    {
+      "name": "bob_v08_bridge.py",
+      "source": "src/lib/bob/bob_v08_bridge.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
     },
     {
       "name": "bob-release-updater",
       "source": "scripts/bob_release_updater.py"
     },
     {
-      "name": "bobctl",
-      "source": "src/bin/bobctl"
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_v08_shadow_dashboard.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_v08_shadow_dashboard.py",
+      "index": 1
     }
   ],
   "restart_manager": true

@@ -529,12 +529,56 @@ def update(folder, current, plan, contents, *, auth):
         os.close(fd)
 
 
+
+def rollback_shadow_to(target, *, auth):
+    """Only roll back the exact just-installed R2 release to verified R1 bytes.
+
+    No SQLite restore: existing v0.7 queues may have changed since backup.
+    The separately activated timer and Gateway context must first be disabled.
+    """
+    if target != "v0.7.8-updater2":
+        raise ValueError("unsupported_rollback_target")
+    fd = locked()
+    try:
+        journal = read_journal()
+        if (not journal or journal["phase"] != "complete"
+                or journal["release"] != "v0.8.0-shadow1"):
+            raise ValueError("no_completed_shadow_release_to_rollback")
+        current = registry()
+        if current["release"] != "v0.8.0-shadow1" or not live_ok(current):
+            raise ValueError("shadow_installed_hash_drift")
+        tx = STATE_DIR / "tx-v0.8.0-shadow1"
+        safe_private(tx, directory=True)
+        previous = read_json(tx / "registry-before.json")
+        if previous.get("release") != target:
+            raise ValueError("shadow_rollback_chain_mismatch")
+        activation = HOME / ".local/state/bob-v08-activation/journal.json"
+        if activation.exists() or activation.is_symlink():
+            mode = read_json(activation).get("phase")
+            if mode != "inactive":
+                raise ValueError("deactivate_shadow_before_rollback")
+        context = HOME / ".local/state/bob-v08-context/enabled.json"
+        if context.exists() or context.is_symlink():
+            if read_json(context).get("enabled") is not False:
+                raise ValueError("disable_gateway_experience_context_before_rollback")
+        if ((HOME / ".local/share/bob/current.json").exists()
+                or (HOME / ".config/systemd/user/bob-v08-shadow.timer").exists()
+                or (HOME / ".config/systemd/user/bob-v08-shadow.service").exists()):
+            raise ValueError("active_shadow_files_block_rollback")
+        if not healthy(auth):
+            raise ValueError("existing_authenticated_UI_unhealthy")
+        return rollback(journal, auth=auth)
+    finally:
+        os.close(fd)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true")
     group.add_argument("--recover", action="store_true")
     group.add_argument("--channel", choices=sorted(CHANNELS))
+    group.add_argument("--rollback-to", metavar="RELEASE")
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error("run as openclaw (not root)")
@@ -548,6 +592,16 @@ def main():
                 raise ValueError("channel change approval not granted")
             result = switch_channel(folder, args.channel)
             print("BOB UPDATE: channel " + args.channel + " (" + result + "); no production changes")
+            return 0
+        if args.rollback_to is not None:
+            if args.rollback_to != "v0.7.8-updater2":
+                raise ValueError("unsupported_rollback_target")
+            if not sys.stdin.isatty() or input(
+                    "Type ROLLBACK-v0.7.8-updater2 to restore R1 code (NO DB restore): "
+            ) != "ROLLBACK-v0.7.8-updater2":
+                raise ValueError("rollback approval not granted")
+            print("BOB UPDATE:", rollback_shadow_to(args.rollback_to,
+                                                     auth=authorization()))
             return 0
         if args.recover:
             journal = read_journal()
@@ -598,7 +652,10 @@ def main():
         public = {"unexpected release branch", "development checkout has uncommitted changes",
                   "installed file hash drift", "installed files drifted; no overwrite",
                   "incomplete prior release; use --recover", "untrusted release channel",
-                  "release branch changed during pull", "release chain mismatch; no automatic skipping"}
+                  "release branch changed during pull", "release chain mismatch; no automatic skipping",
+                  "deactivate_shadow_before_rollback", "disable_gateway_experience_context_before_rollback",
+                  "active_shadow_files_block_rollback", "shadow_installed_hash_drift",
+                  "no_completed_shadow_release_to_rollback", "unsupported_rollback_target"}
         if (reason in public or re.fullmatch(
                 r"release chain mismatch: installed [a-zA-Z0-9][a-zA-Z0-9._-]{2,79}, "
                 r"expected [a-zA-Z0-9][a-zA-Z0-9._-]{2,79}", reason)):

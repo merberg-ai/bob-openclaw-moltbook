@@ -469,7 +469,13 @@ Usage: bobctl COMMAND
   update          Check GitHub release and optionally apply verified update
   update --check  Read-only release check (may fast-forward the development checkout)
   update --recover Restore interrupted code update from sealed journal
-  update --channel next  Switch trusted source to next, NO installation
+  update --rollback-to v0.7.8-updater2  Revert R2 code after shadow deactivation
+  shadow-status  Read-only v0.8 versioned activation status
+  shadow-activate  Separately approve v0.8 shadow timer (no publishing)
+  shadow-deactivate  Stop and undo reviewed v0.8 shadow activation
+  shadow-recover  Guarded cleanup of interrupted shadow activation
+  shadow-once  One hypothetical decision on a verified saved Scout source
+  shadow-experience  Private one-shot OpenClaw Moltbook experience review\n  update --channel next  Switch trusted source to next, NO installation
   update --channel main  Switch trusted source back to main, NO installation
   gateway-logs    Latest Gateway logs
   manager-logs    Latest Activity Manager logs
@@ -489,7 +495,8 @@ def main(argv=None):
     if name == "update":
         valid = (len(args) == 1 or
                  len(args) == 2 and args[1] in ("--check", "--recover") or
-                 len(args) == 3 and args[1] == "--channel" and args[2] in ("main", "next"))
+                 len(args) == 3 and (args[1] == "--channel" and args[2] in ("main", "next")
+                     or args[1] == "--rollback-to" and args[2] == "v0.7.8-updater2"))
         if not valid:
             help_text()
             return 2
@@ -503,6 +510,22 @@ def main(argv=None):
         return 2
     if name in ("help", "-h", "--help"):
         help_text(); return 0
+    if name in ("shadow-status", "shadow-activate", "shadow-deactivate",
+                "shadow-recover", "shadow-once", "shadow-experience"):
+        if name == "shadow-experience":
+            entry = BIN / "bob-v08-experience"
+            flag = "--once"
+        else:
+            entry = BIN / ("bob-v08-shadow" if name == "shadow-once"
+                           else "bob-v08-activate")
+            flag = {"shadow-status": "--status", "shadow-activate": "--activate",
+                    "shadow-deactivate": "--deactivate",
+                    "shadow-recover": "--recover",
+                    "shadow-once": "--once"}[name]
+        if entry.is_symlink() or not entry.is_file():
+            print("Bob v0.8 shadow entrypoint not installed", file=sys.stderr)
+            return 1
+        return subprocess.run([sys.executable, str(entry), flag], check=False).returncode
     if name == "publisher-status": return publisher_status()
     if name == "publisher-run": return 0 if ctl('start','bob-moltbook-publisher.service') else 1
     if name == "publisher-logs":

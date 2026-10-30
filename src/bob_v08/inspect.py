@@ -9,6 +9,8 @@ from html import escape
 from pathlib import Path
 import json
 import sqlite3
+import subprocess
+import re
 
 from .shadow import EVENT_DB, LEGACY
 from .digest import build_digest
@@ -30,14 +32,42 @@ padding:8px 5px}.v8 code{font-size:.76rem;overflow-wrap:anywhere}
 </style>"""
 
 
-def read_status(path: Path = EVENT_DB, *, limit: int = 18):
+def timer_observation():
+    """Report only actual systemd metadata; never infer a scheduled tick."""
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "show", "bob-v08-shadow.timer",
+             "-p", "ActiveState", "-p", "NextElapseUSecRealtime", "--no-pager"],
+            capture_output=True, text=True, timeout=2, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return {"state": "unknown", "next": ""}
+    if result.returncode != 0 or len(result.stdout) > 1024:
+        return {"state": "unknown", "next": ""}
+    props = {}
+    for line in result.stdout.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            props[key] = value
+    state = props.get("ActiveState", "unknown")
+    if state not in ("active", "inactive", "failed", "activating", "deactivating"):
+        state = "unknown"
+    upcoming = props.get("NextElapseUSecRealtime", "")
+    if (not isinstance(upcoming, str) or len(upcoming) > 100
+            or not re.fullmatch(r"[A-Za-z0-9 :+.,/_-]*", upcoming)
+            or upcoming in ("n/a", "n/a (no next)", "0")):
+        upcoming = ""
+    return {"state": state, "next": upcoming}
+
+
+def read_status(path: Path = EVENT_DB, *, limit: int = 18, timer=None):
     """Read-only projection; opening this view must not create a database."""
+    timer = timer if timer is not None else timer_observation()
     if type(limit) is not int or not 1 <= limit <= 40:
         raise ValueError("invalid_status_limit")
     path = Path(path)
     if path.is_symlink() or not path.is_file():
         return {"state": "not_started", "events": [], "count": 0,
-                "scheduled": False}
+                "scheduled": timer["state"] == "active", "timer": timer}
     try:
         db = sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True,
                              timeout=2)
@@ -51,11 +81,11 @@ def read_status(path: Path = EVENT_DB, *, limit: int = 18):
             db.close()
     except (sqlite3.Error, OSError):
         return {"state": "unavailable", "events": [], "count": 0,
-                "scheduled": False}
+                "scheduled": timer["state"] == "active", "timer": timer}
     events = [dict(zip(COLUMNS, row)) for row in rows]
     return {"state": "shadow_read_only" if events else "no_shadow_events",
             "events": events, "count": count,
-            "scheduled": False}  # no timer may be claimed before install
+            "scheduled": timer["state"] == "active", "timer": timer}
 
 
 def now_content(status):
@@ -83,7 +113,12 @@ def now_content(status):
             'during R2 regardless of the displayed hypothetical policy result.</p>'
             '<div class="two"><p><b>State:</b> ' + escape(str(status.get("state", "unknown"))) +
             '</p><p><b>Recorded events:</b> ' +
-            escape(str(status.get("count", 0))) + '</p></div></section>'
+            escape(str(status.get("count", 0))) + '</p></div>'
+            '<p class="quiet"><b>Shadow timer:</b> ' +
+            escape(str((status.get("timer") or {}).get("state", "unknown"))) +
+            ' · <b>Next reported run:</b> ' +
+            escape(str((status.get("timer") or {}).get("next") or "not reported")) +
+            '</p></section>'
             '<section><h2>Recent evidence-linked decisions</h2>' + table +
             '</section></div>')
 
