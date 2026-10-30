@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **ROADMAP ONLY.** No live host, service, code, configuration, database, timer, permissions, current release manifest or dashboard page changed by this planning document.  
+**Implementation status:** **OC0 + OC1 code release candidate `v0.7.6-oc01-activity1` on feature branch, pending merge and operator acceptance.** OC2 Automation, OC3 Console and OC4 investigator remain unimplemented. The roadmap itself does not grant automation or publishing permissions.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -84,6 +84,14 @@ Suggested distinct UI states:
 - Existing budget gauges remain, but “Earliest possible next” text must explicitly say “policy eligibility, not scheduled execution.”
 
 **Gate:** user can tell active/waiting/blocked/idle/unknown at a glance and see what evidence supports it.
+
+### OC1 implementation checkpoint (operator acceptance pending)
+
+- **Candidate:** `v0.7.6-oc01-activity1`, upgrading from last operator-accepted `v0.7.5-fm32d-focus1`. Two module files only: `bob_operations_diagnostics.py` and `bob_overview.py`. No generated manager replacement or route changes; existing manager restarted to load the new modules. Release through `bobctl update` after green CI/merge.
+- **Core:** pure read-only classifier of recent worker checkpoints (stale after 6 minutes), recorded queue/policy states and strictly allowlisted systemd next-trigger observations. Four lanes on Overview below gauges, clickable links to existing evidence, responsive Android CSS and safe 15-second JS refresh. Existing original-post authoring stays manual. Unknown source facts stay unknown.
+- **Distinct timestamps:** next policy eligibility stays explicitly **not scheduled**; any systemd next trigger is shown only as a sanitized value directly reported by systemd. Not a prediction of execution or publication.
+- **Tests:** new `tests/test_oc01_operations.py` covers exact screenshot fixture, manual backlog, original 0/4, inactive timer, stale worker, missing telemetry, HTML escaping, fixed no-shell timer queries, and no extra POST routes. Existing Overview and publishing tests remain in the full suite. See [V076-OC01-BOB-RIGHT-NOW.md](V076-OC01-BOB-RIGHT-NOW.md).
+- **Not yet included:** OC2 Automation UI/toggles, OC3 Console, and OC4 durable skip-reason instrumentation. Do not mark them shipped.
 
 ### OC2: New “Automation” unified control center
 
