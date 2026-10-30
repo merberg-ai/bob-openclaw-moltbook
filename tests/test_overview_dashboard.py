@@ -114,7 +114,12 @@ class OverviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             dbfile=Path(folder)/"bob.sqlite3"
             sample_db(dbfile)
+            # Lock the synthetic Overview to its fixture date; this test
+            # must not change behavior when CI crosses midnight UTC.
+            original_recorded=overview.recorded
             with patch.object(overview,"live_status",side_effect=fake_status), \
+                 patch.object(overview,"recorded",
+                              side_effect=lambda path: original_recorded(path,at=AT)), \
                  patch.object(overview,"PAUSED",Path(folder)/"not-paused"):
                 data=overview.snapshot(path=dbfile)
             html=overview.page(data)
