@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **OC0+OC1 operator-accepted** as `v0.7.6-oc01-activity1`, **OC2 operator-accepted** as `v0.7.6-oc2-automation1` on October 30, 2026. **OC3 Console candidate** `v0.7.6-oc3-console1` awaits CI/merge/live acceptance. **OC4 investigator** remains planned. No new posting or agent permissions.  
+**Implementation status:** **OC0+OC1, OC2, and OC3 operator-accepted** through `v0.7.6-oc3-console1` (Oct 30, 2026). **Pre-OC4 publication safety fix candidate:** `v0.7.6-pubfix-manual1`, not yet operator-tested. **OC4 investigator** remains next. No new posting or agent permissions.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -130,6 +130,14 @@ Suggested distinct UI states:
 - **Security:** no command interpreter, shell, arbitrary unit names, credentials, private prompts/messages, direct model transcripts, raw exceptions, DB writes, new port, auth/CSRF/Origin changes, or publication permissions. Compare generated Handler protected methods AST-identical to OC2. Full synthetic regression includes deliberate private strings to prove redaction.
 - **Acceptance:** see [V076-OC3-DIAGNOSTIC-CONSOLE.md](V076-OC3-DIAGNOSTIC-CONSOLE.md). One update and a short LAN Console smoke test; no need to publish anything.
 - **Next:** OC4 deterministic why-inactivity screen with durable sanitized skip reasons. **FM4/FM5 remain paused**.
+
+### Pre-OC4 publication approval handoff repair (candidate pending live acceptance)
+
+- **Why:** Console revealed previously reviewed automatic drafts stored as `failed` with `Human decision already exists`. A prior automatic queue row masked the manual Publish button and blocked the normal manual requeue, even when **approved** and **never sent**. The warning did not establish whether the owner had approved or rejected each run.
+- **Fix:** `v0.7.6-pubfix-manual1` from accepted OC3. An approved source-verified draft may be explicitly converted from `auto` to `manual,queued` **only** if a matching previous automatic job was never attempted and is either still queued or failed solely for a known pre-send review block. The original dashboard publish handler remains unchanged; UI exposes the **Queue approved draft manually** action only for provably recoverable records.
+- **Safety:** failed attempts from integrity/expiry/uncertain/sent/verification remain non-retryable; approval hash/source exact match, no send fields and full atomic compare-and-swap required. Publisher rechecks mode and decision atomically before the sending intent; stale auto workers cannot send following the owner's handoff. No automatic publication, no changed rate limits, no loosened friend-directed rules.
+- **Acceptance:** synthetic strict no-send and real/manual-send tests plus full CI; `bobctl update` only after green PR. Short operator UI check, without clicking Publish just for testing. [V076-PUBFIX-MANUAL-HANDOFF.md](V076-PUBFIX-MANUAL-HANDOFF.md).
+- **OC4 next:** Explain separately **previously rejected**, **approved awaiting explicit manual Publish**, **already reviewed auto intentionally blocked**, and **actually sent/uncertain** rather than treating every warning as an outstanding approval. Preserve source-based read-only explanations.
 
 ### OC4: “Why no activity?” single-view investigator
 

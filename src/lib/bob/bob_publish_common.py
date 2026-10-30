@@ -87,14 +87,76 @@ def load_record(rid):
         return obj if obj.get('run_id')==rid and valid_record(obj) else None
     except (OSError,ValueError,TypeError,AttributeError): return None
 
+# A previous auto job can be handed to an explicit manual publish ONLY if
+# it demonstrably never reached the network. All ambiguous results stay locked.
+AUTO_REVIEW_ONLY_FAILURES=frozenset((
+    'Human decision already exists',
+    'Friend-targeted draft requires manual review',
+))
+
+
+def _recoverable_auto_job(db, rid, obj):
+    row=db.execute(
+        'SELECT approval_sha256,post_id,draft_comment,mode,state,'
+        'attempted_at,comment_id,challenge_code,challenge_text,'
+        'challenge_expires_at,verify_answer,last_error '
+        'FROM publish_jobs WHERE run_id=?',(rid,)).fetchone()
+    if not row:
+        return None
+    digest,pid,text,mode,state,attempted,comment,code,challenge,expiry,answer,error=row
+    if (mode!='auto' or digest!=obj['approval_sha256']
+            or pid!=obj['chosen_post_id'] or text!=obj['draft_comment']
+            or any(x is not None for x in
+                   (attempted,comment,code,challenge,expiry,answer))):
+        return None
+    if (state=='queued' and error in (None,'')
+            or state=='failed' and error in AUTO_REVIEW_ONLY_FAILURES):
+        return (state,error)
+    return None
+
+
+def manual_recovery_allowed(db,rid):
+    """Read-only UI check. The actual handoff revalidates with an atomic CAS."""
+    obj=load_record(rid)
+    if not obj:
+        return False
+    decision=db.execute(
+        'SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
+    return (decision==(obj['approval_sha256'],'approved')
+            and _recoverable_auto_job(db,rid,obj) is not None)
+
+
 def queue_manual(db, rid):
     obj=load_record(rid)
     if not obj: raise ValueError('Invalid or changed scouting record')
     decision=db.execute('SELECT draft_sha256,status FROM decisions WHERE run_id=?',(rid,)).fetchone()
     if not decision or decision != (obj['approval_sha256'],'approved'):
         raise ValueError('Draft must be explicitly approved and unchanged')
-    if db.execute('SELECT 1 FROM publish_jobs WHERE run_id=?',(rid,)).fetchone():
-        raise ValueError('Draft already has a publication attempt; no automatic retry')
+    existing=db.execute('SELECT 1 FROM publish_jobs WHERE run_id=?',(rid,)).fetchone()
+    if existing:
+        recovery=_recoverable_auto_job(db,rid,obj)
+        if recovery is None:
+            raise ValueError('Draft already has a publication attempt; no automatic retry')
+        old_state,old_error=recovery
+        # The writer and publisher may overlap. Compare the exact original
+        # job/decision/state and *never* overwrite a sending/uncertain job.
+        cur=db.execute(
+            "UPDATE publish_jobs SET mode='manual',state='queued',last_error=NULL,"
+            "updated_at=? WHERE run_id=? AND mode='auto' AND state=? "
+            "AND approval_sha256=? AND post_id=? AND draft_comment=? "
+            "AND attempted_at IS NULL AND comment_id IS NULL "
+            "AND challenge_code IS NULL AND challenge_text IS NULL "
+            "AND challenge_expires_at IS NULL AND verify_answer IS NULL "
+            "AND (state='queued' AND (last_error IS NULL OR last_error='') "
+            "OR state='failed' AND last_error=?) "
+            "AND EXISTS(SELECT 1 FROM decisions WHERE run_id=? "
+            "AND draft_sha256=? AND status='approved')",
+            (now(),rid,old_state,obj['approval_sha256'],obj['chosen_post_id'],
+             obj['draft_comment'],old_error,rid,obj['approval_sha256']))
+        if cur.rowcount!=1:
+            raise ValueError('Auto job changed; manual handoff not performed')
+        event(db,'publish_manual_handoff',f'{rid} approved auto draft queued manually; no previous send')
+        return
     db.execute('INSERT INTO publish_jobs(run_id,approval_sha256,post_id,draft_comment,mode,state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
                (rid,obj['approval_sha256'],obj['chosen_post_id'],obj['draft_comment'],'manual','queued',now(),now()))
     event(db,'publish_queued',f'{rid} manual publication requested')
