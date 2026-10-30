@@ -3,7 +3,7 @@
 **Planning checkpoint:** October 30, 2026 (America/Los_Angeles).  
 **Priority:** Owner-requested visibility, unified automation control, and safe diagnostic console **before** resuming Friends Manager FM4.1 / FM5.  
 **Last operator-tested release:** `v0.7.5-fm32d-focus1`, final FM3 acceptance PASS.  
-**Implementation status:** **OC0 + OC1 operator-accepted** as `v0.7.6-oc01-activity1` on October 30, 2026. **OC2 release candidate** `v0.7.6-oc2-automation1` has passed offline tests, awaiting operator acceptance after merge and `bobctl update`. **OC3 Console** and **OC4 investigator** remain planned. This roadmap does not grant new posting or agent permissions.  
+**Implementation status:** **OC0+OC1 operator-accepted** as `v0.7.6-oc01-activity1`, **OC2 operator-accepted** as `v0.7.6-oc2-automation1` on October 30, 2026. **OC3 Console candidate** `v0.7.6-oc3-console1` awaits CI/merge/live acceptance. **OC4 investigator** remains planned. No new posting or agent permissions.  
 **Principle:** First explain existing inactivity accurately; do not increase autonomous posting merely to move a gauge.
 
 ## 1. User problem and what is known
@@ -122,6 +122,15 @@ Suggested distinct UI states:
 
 **Gate:** operator can trace a queue entry or last Scout attempt through trusted event IDs and see enough safe context to troubleshoot, including outage conditions, without opening SSH.
 
+### OC3 implementation checkpoint (operator acceptance pending)
+
+- **Candidate:** `v0.7.6-oc3-console1`, from operator-confirmed `v0.7.6-oc2-automation1`, via one `bobctl update`; three managed files: new `bob_diagnostic_console.py`, generated manager and navigation. Only the existing Activity Manager restarts.
+- **Authenticated Console:** `/console`, `/api/dashboard/console` (bounded JSON and optional sanitized text export), same-origin `/assets/bob-console.js`. Compact terminal view, severity/service/source/window/search filters, manual refresh, pause/resume, auto-scroll, copy with HTTP-LAN fallback and server-generated sanitized text export. All data displayed from fixed classified allowlisted sources and escaped / textContent-only.
+- **Data:** default local + health uses bounded DB job/event history, enumerated worker checkpoints, and local Gateway/Ollama/systemd readiness; **does not read the journal** or imply an active agent job. Opt-in Journal filter uses the existing Logs module's capped, known-unit-only classifier; journal mode disables automatic polling. Normal stream polls at most every 45 seconds while visible.
+- **Security:** no command interpreter, shell, arbitrary unit names, credentials, private prompts/messages, direct model transcripts, raw exceptions, DB writes, new port, auth/CSRF/Origin changes, or publication permissions. Compare generated Handler protected methods AST-identical to OC2. Full synthetic regression includes deliberate private strings to prove redaction.
+- **Acceptance:** see [V076-OC3-DIAGNOSTIC-CONSOLE.md](V076-OC3-DIAGNOSTIC-CONSOLE.md). One update and a short LAN Console smoke test; no need to publish anything.
+- **Next:** OC4 deterministic why-inactivity screen with durable sanitized skip reasons. **FM4/FM5 remain paused**.
+
 ### OC4: “Why no activity?” single-view investigator
 
 - Add per-lane **Explain inactivity** action in Overview and Automation, backed by deterministic OC0 reason engine (not a new LLM reasoning prompt).
@@ -146,6 +155,6 @@ Suggested distinct UI states:
 - Avoid 14-hour manual test sequences. Synthetic comprehensive CI plus a **single short owner smoke test** for each release, with exact pass/fail and rollback.
 - Real operator screenshot is the problem statement, **not proof** that current services have failed. To confirm a live cause, use existing `/system/status`, `/logs` (publisher/scout) and `/originals` without mutation.
 
-## 6. Resume note / next chat entrypoint
+## 6. Fresh-chat handoff: OC4 after Console acceptance
 
-> Start the **Bob Operations Center** improvements, **OC0 then OC1**. Read `docs/OPERATIONS-CENTER-ROADMAP.md`, root `TODO.md`, and `docs/FRIENDS-ROADMAP-AND-HANDOFF.md` in current `main`. Last known operator-accepted application release is `v0.7.5-fm32d-focus1`, though check any intervening release. User wants a “Bob right now” card below gauges, unified Automation section, sanitized read-only Console, and a source-grounded “Why no activity?” investigator, first addressing 2/10 comments, 0/6 automatic, 0/4 original and six manual jobs queued. Implement a small evidence-only phase with real status/skip reasons, distinguish next scheduled worker from earliest policy eligibility, preserve all publication/auth/security controls and `bobctl update`; **FM4/FM5 remain paused**.
+> Read `docs/OPERATIONS-CENTER-ROADMAP.md`, `docs/V076-OC3-DIAGNOSTIC-CONSOLE.md`, root `TODO.md` and the current `releases/current.json` from `merberg-ai/bob-openclaw-moltbook`. OC0/OC1 and OC2 were operator-accepted. OC3 candidate `v0.7.6-oc3-console1` is built and CI-tested but needs operator update/acceptance; **do not assume installed until confirmed**. After OC3 is accepted, start **OC4: “Why no activity?”** using OC0 deterministic evidence and existing sanitized queue/logs/Console stream. Add bounded worker skip-reason telemetry, last attempted/last succeeded, manual backlog blockers, real systemd trigger vs policy earliest eligibility, reasons for 0 automatic/originals, and evidence links. Never invent actions or publish/DM/retry from diagnostics. New app releases must upgrade from the **latest operator-confirmed installed version** using `bobctl update`. FM4/FM5 remain paused.
