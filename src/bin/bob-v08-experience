@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Explicit owner-requested, one-session Moltbook experience review."""
+from pathlib import Path
+import sys
+
+PACKAGE = Path(__file__).resolve().parent / "bob_v08_package.pyz"
+if PACKAGE.is_symlink() or not PACKAGE.is_file() or PACKAGE.stat().st_size > 512 * 1024:
+    raise SystemExit("Bob v0.8 reviewed package unavailable")
+sys.path.insert(0, str(PACKAGE))
+
+if __name__ == "__main__":
+    from bob_v08.experience import main
+    raise SystemExit(main())
