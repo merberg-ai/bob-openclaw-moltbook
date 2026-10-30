@@ -268,7 +268,7 @@ class FM3Tests(unittest.TestCase):
         rec=create_record(self.root,rid,friend_marker=True,flag=False)
         self.assertIsNotNone(common.load_record(rid))
         with common.connect() as db:
-            self.assertEqual(common.auto_candidates(db),0)
+            self.assertEqual(fs.guarded_auto_candidates(db),0)
             self.assertEqual(db.execute("SELECT count(*) FROM publish_jobs").fetchone()[0],0)
         # The identical public draft still remains eligible for deliberate
         # manual review and queue through legacy approval + queue_manual.
@@ -291,7 +291,7 @@ class FM3Tests(unittest.TestCase):
         create_record(self.root,rid,friend_marker=False,flag=False,
                       author_override="AgentAlpha")
         with common.connect() as db:
-            self.assertEqual(common.auto_candidates(db),0)
+            self.assertEqual(fs.guarded_auto_candidates(db),0)
             self.assertEqual(db.execute("SELECT count(*) FROM publish_jobs").fetchone()[0],0)
 
     def test_scan_attempts_have_explicit_safe_status_codes(self):
@@ -322,7 +322,7 @@ class FM3Tests(unittest.TestCase):
             db.execute("INSERT INTO publish_settings VALUES('auto_since',?)",(earlier,))
         create_record(self.root,rid,friend_marker=False,flag=False)
         with common.connect() as db:
-            self.assertEqual(common.auto_candidates(db),1)
+            self.assertEqual(fs.guarded_auto_candidates(db),1)
             self.assertEqual(db.execute("SELECT mode FROM publish_jobs").fetchone()[0],"auto")
 
     def test_ui_honest_status_and_no_automatic_action(self):
@@ -339,6 +339,20 @@ class FM3Tests(unittest.TestCase):
             self.assertIn("Status: Enabled",enabled)
             self.assertIn("Disable friend scouting",enabled)
             self.assertNotIn("Private, not for publication",enabled)
+
+    def test_publisher_uses_managed_guard_and_pre_send_recheck(self):
+        text=(ROOT/"src/bin/bob-moltbook-publisher").read_text(encoding="utf-8")
+        self.assertIn("guarded_auto_candidates as auto_candidates",text)
+        self.assertIn("mode=='auto' and not allow_auto_candidate(db,record)",text)
+        self.assertIn("'Friend-targeted draft requires manual review'",text)
+        self.assertLess(text.index("mode=='auto' and not allow_auto_candidate(db,record)"),
+                        text.index("api('POST',f'/posts/{pid}/comments'"))
+        self.assertNotIn("common.auto_candidates(db)",text)
+        raw=json.loads((ROOT/"releases/current.json").read_text())
+        targets=[x["name"] for x in raw["files"]]
+        self.assertIn("bob-moltbook-publisher",targets)
+        self.assertNotIn("bob_publish_common.py",targets)
+        self.assertEqual(raw["release"],"v0.7.4-fm3-friend-scout2")
 
     def test_scout_prompt_unchanged_review_and_no_tools_rules(self):
         scout=script("src/bin/bob-moltbook-scout","scout_fm3_synthetic")
