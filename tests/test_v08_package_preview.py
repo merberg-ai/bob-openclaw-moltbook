@@ -101,8 +101,8 @@ class ReadOnlyViewTests(unittest.TestCase):
     def test_actual_timer_metadata_not_invented_from_budget_clock(self):
         class Result:
             returncode = 0
-            stdout = ("ActiveState=active\\n"
-                      "NextElapseUSecRealtime=Fri 2026-10-30 21:40:00 UTC\\n")
+            stdout = ("ActiveState=active\n"
+                      "NextElapseUSecRealtime=Fri 2026-10-30 21:40:00 UTC\n")
         with unittest.mock.patch("bob_v08.inspect.subprocess.run", return_value=Result()) as cmd:
             timer = timer_observation()
         self.assertEqual(timer["state"], "active")
