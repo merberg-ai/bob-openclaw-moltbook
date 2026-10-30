@@ -137,7 +137,7 @@ class ManifestAndCommandTests(unittest.TestCase):
         obj = updater.manifest(ROOT)
         self.assertEqual(obj["format"], updater.FORMAT)
         self.assertEqual(obj["restart_manager"], obj["release"] not in
-                         ("v0.8.0-shadow2", "v0.8.0-shadow3"))
+                         ("v0.8.0-shadow2", "v0.8.0-shadow3", "v0.8.0-shadow4"))
         if obj["release"] == "v0.7.8-updater2":
             self.assertEqual(obj["from"], "v0.7.6-oc41-polish1")
             self.assertEqual({i["name"] for i in obj["files"]},
@@ -156,6 +156,11 @@ class ManifestAndCommandTests(unittest.TestCase):
                              {"bob_v08_package.pyz", "bob-v08-shadow"})
         elif obj["release"] == "v0.8.0-shadow3":
             self.assertEqual(obj["from"], "v0.8.0-shadow2")
+            self.assertFalse(obj["restart_manager"])
+            self.assertEqual({i["name"] for i in obj["files"]},
+                             {"bob_v08_package.pyz", "bob-v08-shadow"})
+        elif obj["release"] == "v0.8.0-shadow4":
+            self.assertEqual(obj["from"], "v0.8.0-shadow3")
             self.assertFalse(obj["restart_manager"])
             self.assertEqual({i["name"] for i in obj["files"]},
                              {"bob_v08_package.pyz", "bob-v08-shadow"})
