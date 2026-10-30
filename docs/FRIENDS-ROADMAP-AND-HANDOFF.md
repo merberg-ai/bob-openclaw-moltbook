@@ -1,9 +1,9 @@
 # Bob Friends Manager: FM1–FM5 Roadmap and Fresh-Chat Handoff
 
 **Status captured:** October 30, 2026 (America/Los_Angeles).  
-**Current phase:** **FM1–FM3 complete, FM3.2d OPERATOR-ACCEPTED**. **FM4 and FM5 paused** pending operator-reported issues and a separate feature, whose details are not yet specified.  
-**Last operator-confirmed working release:** `v0.7.5-fm32d-focus1` in OpenClawLab WSL2 after the normal `bobctl update` and a successful operator dashboard smoke test.  
-**Resume point for Friends work:** **FM4.1: evidence-linked private Social Memory Timeline**, but only when the operator explicitly lifts the hold after the intervening work.  
+**Current phase:** **FM1–FM3 complete; FM4 explicitly resumed by owner on October 30, 2026.** FM4.1 private read-only Social Memory Timeline release candidate is in progress; **FM4.2/FM4.3 not yet built**. FM5 and all public follow/unfollow actions remain unimplemented and separately gated.  
+**Last operator-confirmed working release:** `v0.7.6-oc41-polish1` in OpenClawLab WSL2 (Operations Center complete). FM4.1 candidate is `v0.7.7-fm41-social1`, not yet installed or accepted.  
+**Resume point:** FM4 hold explicitly lifted. **FM4.1 Social Memory Timeline is the current candidate**, followed by FM4.2 evolving impressions and FM4.3 scoped opt-in recall once each release is accepted.  
 **Canonical repository:** `merberg-ai/bob-openclaw-moltbook`, `main`.  
 **This file is a planning/handoff artifact only**. It does not grant permissions or change a service, updater manifest, runtime database or deployment.
 
@@ -72,7 +72,7 @@ Delivered across four separately tested, incremental `bobctl update` releases. A
 
 ## 3. FM4 — Social Memory and Evolving Relationships (NEW AGREED PHASE)
 
-**Status: PAUSED, not started.** Next Friends engineering phase when explicitly resumed: **FM4.1 evidence-linked private Social Memory Timeline**. Goal: give Bob a grounded, revisable personal history with other agents rather than a flat address book.
+**Status: RESUMED by owner October 30, 2026.** First engineering release: **FM4.1 evidence-linked private Social Memory Timeline** (candidate, not yet operator-tested). Goal: give Bob a grounded, revisable personal history with other agents rather than a flat address book.
 
 - **Evidence-linked social memories:** bounded private timeline of public encounters, chosen threads, confirmed exchanges, recurring topics, and Bob's interpretation, with source run/post/comment references, trust labels and timestamps. Never invent conversations; separate *observed* actions from model guesses and operator-authored facts.
 - **Individual viewpoints and personality:** Bob can form tentative likes, dislikes, questions, disagreements and shared-interest hypotheses; allow these to change when new evidence arrives. Preserve a transparent history of changed opinions, explanations, and unresolved uncertainty rather than overwriting them as if they had always been true.
@@ -84,7 +84,7 @@ Delivered across four separately tested, incremental `bobctl update` releases. A
 
 ## 4. FM5 — Independent Social Exploration (NEW AGREED PHASE)
 
-**Status: PAUSED, not started.** Begins only after FM4 has been explicitly resumed, built, tested and separately approved. Goal: let Bob seek out interesting agents/discussions based on his own evolving interests, while keeping social behavior under comprehensible controls.
+**Status: PLANNED, not started.** Begins only after FM4 is built, tested and separately approved. Goal: let Bob seek out interesting agents/discussions based on his own evolving interests, while keeping social behavior under comprehensible controls.
 
 - **FM5.1, opt-in autonomous exploration:** bounded scheduling or reuse of existing Scout cadence; diversify beyond current friends without ignoring them; discover profiles/public discussions through documented, verified APIs; produce source-linked proposals for interesting contacts, follow-up questions, revisits and topical exploration. Honor muted/blocked contacts, budgets and cooldowns.
 - **FM5.2, graduated interaction permissions:** a *separate explicit design and user authorization* would be required for any actual follows/unfollows, direct outreach, friend-targeted automatic replies, votes or other public actions. First ship reviewed drafts and suggestions; any later autonomy needs action-specific opt-in, per-agent restrictions, daily limits, explicit audit, stop/pause and rollback, anti-spam rules and no repeated unsolicited contact. Verify live Moltbook API and platform rules before promising each capability.
@@ -100,11 +100,19 @@ Delivered across four separately tested, incremental `bobctl update` releases. A
 - **PASSED:** FM1, FM2, FM3, FM3.1, FM3.2a, FM3.2b, FM3.2c and **FM3.2d** are all operator-accepted. FM3 is closed at the scope defined above.
 - **Final tested release:** `v0.7.5-fm32d-focus1`, PR [#38](https://github.com/merberg-ai/bob-openclaw-moltbook/pull/38), merged to `main` (merge commit `8c710239178097e08e801d1ab064097bbb6154f0`). The operator reported the update works as expected and specifically requested marking it **passed**. Pre-merge CI completed **537 passing offline tests**; the release uses two managed files and an Activity Manager restart.
 - **Git vs host:** the preceding operator statement is the **live acceptance record**. We have not remotely logged into the OMEN or independently inspected the installed binary, service status, or post-release timer history. Do not conflate a repository commit or green CI with live operation beyond what the operator tested.
-- **Release manifest:** the `releases/current.json` file intentionally remains `release: v0.7.5-fm32d-focus1`, `from: v0.7.5-fm32c-localideas1`. **This handoff-only documentation update must not create a new software release or alter the manifest.** For the next *actual* application release, the updater's `from` must be `v0.7.5-fm32d-focus1` unless another intervening operator-accepted release has superseded it.
+- **Release chain (updated):** Operations Center OC0–OC4.1 has superseded the old FM3 release. Last explicitly accepted baseline: `v0.7.6-oc41-polish1`. FM4.1 candidate `v0.7.7-fm41-social1` has `from: v0.7.6-oc41-polish1`; do not mark installed until operator confirms the usual `bobctl update`. GitHub merge alone cannot update the OMEN.
 
-### HOLD: intervening issues and feature have priority
+### Intervening operations work complete; FM4 expressly resumed
 
-The operator has now identified the next major dashboard work: a **Bob Operations Center** that explains apparent inactivity (e.g., six manual comments queued, zero auto-original attempts), adds a compact real-observation **“Bob right now”** Overview card, a unified **Automation** control/status view and a sanitized **Console**, with deterministic “Why no activity?” reasons. See [OPERATIONS-CENTER-ROADMAP.md](OPERATIONS-CENTER-ROADMAP.md) and root [TODO.md](../TODO.md). This is a planning checkpoint; none of the Operations Center features has been built or deployed yet. Work through small separate releases, keeping both **FM4 and FM5 paused** until the operator explicitly clears the intervening work. Other issues may still be reported separately. **Direct Bob Chat (CH1)** remains a separate planned workstream, not assumed to be part of Operations Center.
+**Operations Center OC0–OC4.1 was completed and operator-accepted** (last working release `v0.7.6-oc41-polish1`). The operator has now expressly authorized beginning FM4. FM4.1 is implemented as a guarded read-only Social Memory Timeline candidate (see [V077-FM41-SOCIAL-MEMORY.md](V077-FM41-SOCIAL-MEMORY.md)). It uses existing sealed FM1/FM3 and publisher outcomes without modifying sources, memories, settings or Moltbook. **FM4.2/4.3 and FM5 follow/unfollow remain future separate phases**. MD1 (Moltbook Experience Digest) and Direct Bob Chat (CH1) remain separate plans, not silently included.
+
+### FM4.1 implementation checkpoint (candidate awaiting acceptance)
+
+- **Candidate release:** `v0.7.7-fm41-social1` from operator-accepted `v0.7.6-oc41-polish1`. New `bob_social_memory.py` read-only module, generated authenticated manager route and navigation. Activity Manager restart only; no new systemd timer, API, DB table, model call, or publication rights.
+- **Owner-facing page:** `/moltbook/social-memory`; search/paginate saved friends and view at most 25 events per selected agent. Labels distinguish owner-written relationship metadata, verified Scout chosen posts + Bob's WHY, FM3.2a owner-reviewed interests, FM3.2c tentative local model proposals, FM3.2d sealed manually inspected snapshots/reactions, and genuinely API-acknowledged publisher comments. No inferred reciprocal relationship or follow.
+- **Validity/privacy:** existing FM1 and FM3 record checksums, validated current source archive, matching authors/post IDs, and immutable sealed review rows. If the source disappears or changes, withhold proposal text rather than repeat guesses as history. Never display FM1 private interests/notes, credentials, untrusted post bodies, or private review reasons. All public-derived titles/WHY escaped. Do not create a new authoritative memory store in FM4.1.
+- **Testing/release:** synthetic source tampering and private-note leakage tests plus full CI and no-change comparisons for auth/Host/Origin/CSRF/publication POST handlers. Use the normal one-command `bobctl update` and a short mobile/LAN acceptance. See [V077-FM41-SOCIAL-MEMORY.md](V077-FM41-SOCIAL-MEMORY.md).
+- **Next after user PASS:** FM4.2 owner-correctable, revisable individual impressions and FM4.3 separately opted-in bounded recall. **Actual platform follow/unfollow is FM5.2**, not part of this release; a nearer-term user-controlled following UI could be explicitly scoped before any autonomous following.
 
 ### Where to pick up when the hold is lifted: FM4.1
 
@@ -123,7 +131,6 @@ The operator has now identified the next major dashboard work: a **Bob Operation
 - Preserve Basic/Host/Origin/CSRF controls, local-only Ollama/Gateway boundaries, fixed-host network reads, public text escaping, source integrity checks, per-friend pause and muted/archive behavior, updater SHA checks, backups and rollback.
 - **Unresolved operational watch item:** a *later real timer-driven Scout run* has not been independently confirmed in these project notes after the October 29 `bob_publish_common` packaging repair. The operator accepted dashboard features; that is not a completed timer-run attestation. When convenient, inspect Overview / Scout checkpoint or sanitized Logs, without repeating the entire old recovery exercise or restarting a healthy service.
 
-### Copyable kickoff when Friends work is resumed
+### Fresh-chat handoff after FM4.1 candidate
 
-> Resume Bob's Friends Manager at **FM4.1: evidence-linked Social Memory Timeline**. The last Friends release **`v0.7.5-fm32d-focus1`** was operator-accepted as **PASSED** on October 30, 2026; FM3 is complete. Read `docs/FRIENDS-ROADMAP-AND-HANDOFF.md`, `docs/V075-FM32D-MANUAL-FOCUS.md`, and root `TODO.md` from `merberg-ai/bob-openclaw-moltbook` on current `main`. The intervening issues/new feature took priority: first check whether they are resolved and whether the hold has been explicitly lifted. Start FM4.1 with a small, evidence-backed, private read-only per-agent timeline that separates source facts, Bob's speculative opinions and owner-reviewed notes. Preserve all existing security/publication gates and ship only through `bobctl update` from the latest operator-accepted installed release; do not start FM5.
-
+> Operator explicitly resumed FM4 on October 30, 2026. Last accepted host version: `v0.7.6-oc41-polish1`. FM4.1 candidate `v0.7.7-fm41-social1` is implemented but **not installed until accepted**; see `docs/V077-FM41-SOCIAL-MEMORY.md`, `TODO.md` and `releases/current.json`. FM4.1 is a read-only source-backed per-agent timeline. After CI/merge, use one `bobctl update` and a short LAN view test. After owner PASS, design FM4.2 revisable agent impressions, then FM4.3 explicitly enabled social recall; MD1 remains a parallel future bridge to real OpenClaw Gateway/CH1 chat. Actual Moltbook follows/unfollows require FM5.2's separate documented policy and explicit owner approval. Never conflate local Friends Manager with platform following.
