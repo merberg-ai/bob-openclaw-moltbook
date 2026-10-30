@@ -7,6 +7,7 @@ network, credentials, Moltbook calls, private body text, shell, or DB writes.
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
+import json
 import re
 import subprocess
 
@@ -59,11 +60,48 @@ def _entry(key,state,activity,reason,evidence,when="",href="/logs",
                 code=code,evidence=evidence,updated_at=_time(when),
                 href=href,next_scheduled=next_run)
 
-def _timer_schedules(*,run=subprocess.run):
-    """Read only the two known user timers. Return raw systemd wall-clock text.
+def _timer_list_next(unit, *, run):
+    """Fixed-unit, read-only fallback: systemctl list-timers JSON if realtime
+    timer property is unavailable (for example a monotonic timer).
+    Never derive a wall-clock estimate from monotonic microseconds.
+    """
+    try:
+        res=run(["systemctl","--user","list-timers","--all","--no-pager",
+                 "--output=json",unit],capture_output=True,text=True,
+                timeout=1.5,check=False)
+        if res.returncode!=0 or len(res.stdout)>8192:
+            return ""
+        rows=json.loads(res.stdout)
+        if not isinstance(rows,list) or len(rows)>12:
+            return ""
+        for item in rows:
+            if not isinstance(item,dict) or item.get("unit")!=unit:
+                continue
+            value=item.get("next")
+            if isinstance(value,str):
+                value=value.strip()
+                if value not in ("","n/a","-","0") and TIMESTAMP.fullmatch(value):
+                    return value
+            elif type(value)==int and 10**14<value<10**17:
+                # systemd JSON MAY use Unix microseconds; these bounds are
+                # intentionally conservative, otherwise we show unknown.
+                try:
+                    return datetime.fromtimestamp(
+                        value/1000000,timezone.utc).isoformat(timespec="seconds")
+                except (OverflowError,ValueError,OSError):
+                    pass
+    except (OSError,subprocess.TimeoutExpired,TypeError,ValueError,
+            AttributeError,json.JSONDecodeError):
+        pass
+    return ""
 
-    These are provider-reported scheduled triggers, NOT rate eligibility;
-    invalid/unavailable response becomes unknown rather than an invented time.
+
+def _timer_schedules(*,run=subprocess.run):
+    """Observe exactly two allowlisted user timers, never control units.
+
+    Prefer systemd's realtime next trigger; fall back to systemd's own
+    list-timers reported next wall time if no realtime property is provided.
+    Missing schedule is distinct from an inactive timer or publisher fault.
     """
     times={}
     for key,unit in TIMERS.items():
@@ -74,9 +112,12 @@ def _timer_schedules(*,run=subprocess.run):
             value=res.stdout.strip() if res.returncode==0 else ""
             times[key]=value if (value not in ("","n/a","0") and
                                   TIMESTAMP.fullmatch(value)) else ""
-        except (OSError, subprocess.TimeoutExpired, TypeError, AttributeError):
+        except (OSError,subprocess.TimeoutExpired,TypeError,AttributeError):
             times[key]=""
+        if not times[key]:
+            times[key]=_timer_list_next(unit,run=run)
     return times
+
 
 def _eligible_time(metrics,key,now):
     values=metrics.get("next_possible_utc") if isinstance(metrics,dict) else None

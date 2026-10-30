@@ -13,7 +13,7 @@ import re
 import sqlite3
 
 from bob_overview import snapshot as overview_snapshot
-from bob_publish_common import DB
+from bob_publish_common import DB, manual_recovery_allowed
 
 SOURCE_LANES=("publisher","scout","original","dependencies")
 RUN=re.compile(r"\d{8}T\d{6}Z\Z")
@@ -37,6 +37,8 @@ REVIEW_BLOCK=frozenset(("Human decision already exists",
 MAX_JOBS=150
 MAX_EVENTS=80
 MAX_BLOCKS=3
+MAX_HANDOFF_CHECKS=25
+MAX_LINKS=3
 CSS="""<style>
 .bi{max-width:1090px;margin:auto;display:grid;gap:12px}
 .bi-panel{background:linear-gradient(145deg,#162b43,#0e1b2e);border:1px solid #365575;
@@ -78,7 +80,7 @@ def _date(s):
 
 def _source(when):
     stamp=_date(when)
-    return stamp.isoformat(timespec="seconds") if stamp else "Time unavailable"
+    return stamp.isoformat(timespec="seconds") if stamp else "Policy / historical summary"
 
 def _reason(code,title,detail,source="",href="/logs"):
     return dict(code=code,title=title,detail=detail,source=_source(source),href=href)
@@ -89,7 +91,10 @@ def _blank():
             "reviewed":{"approved":0,"rejected":0,"unknown":0},
             "queue":{"manual":0,"auto":0},
             "approved_blocked":0,"rejected_blocked":0,"undecided_blocked":0,
-            "sent_or_uncertain":0,"oldest_manual":"","oldest_auto":""}
+            "sent_or_uncertain":0,"oldest_manual":"","oldest_auto":"",
+            "job_window":{"oldest":"","newest":"","inspected":0},
+            "latest_review_block":{"approved":"","rejected":"","unknown":""},
+            "manual_handoff":{"checked":0,"verified":0,"run_ids":[]}}
 
 def read_private(path=DB,*,at=None):
     """Read-only bounded evidence. Never select arbitrary error or draft text."""
@@ -111,11 +116,20 @@ def read_private(path=DB,*,at=None):
                 "FROM publish_jobs j LEFT JOIN decisions d ON d.run_id=j.run_id "
                 "ORDER BY j.updated_at DESC LIMIT ?",(MAX_JOBS,)).fetchall()
             out["available"]=True
+            out["job_window"]["inspected"]=len(rows)
             for (rid,mode,state,error,created,updated,attempted,comment,digest,
                  challenge_code,challenge_text,challenge_expiry,verify_answer,
                  decision,decision_hash) in rows:
                 if mode not in ("auto","manual") or not isinstance(state,str):
                     continue
+                updated_time=_date(updated)
+                if updated_time:
+                    period=out["job_window"]
+                    for field,earliest in (("oldest",True),("newest",False)):
+                        previous=_date(period[field])
+                        if previous is None or (updated_time<previous if earliest
+                                                   else updated_time>previous):
+                            period[field]=updated_time.isoformat(timespec="seconds")
                 if state=="queued":
                     out["queue"][mode]+=1
                     key="oldest_"+mode
@@ -141,12 +155,31 @@ def read_private(path=DB,*,at=None):
                     attempted,comment,challenge_code,challenge_text,
                     challenge_expiry,verify_answer))
                 if mode=="auto" and state=="failed" and error in REVIEW_BLOCK and untouched:
-                    if decision=="approved" and decision_hash==digest:
+                    classification=("approved" if decision=="approved" and decision_hash==digest
+                                    else "rejected" if decision=="rejected" and decision_hash==digest
+                                    else "unknown")
+                    if classification=="approved":
                         out["approved_blocked"]+=1
-                    elif decision=="rejected" and decision_hash==digest:
+                        # No unchecked assumption that a historic DB row is
+                        # still source-verified or actionable. The same vetted
+                        # helper backs the existing owner Publish button.
+                        handoff=out["manual_handoff"]
+                        if handoff["checked"]<MAX_HANDOFF_CHECKS and RUN.fullmatch(str(rid)):
+                            handoff["checked"]+=1
+                            try:
+                                if manual_recovery_allowed(db,rid):
+                                    handoff["verified"]+=1
+                                    if len(handoff["run_ids"])<MAX_LINKS:
+                                        handoff["run_ids"].append(rid)
+                            except (sqlite3.Error,OSError,TypeError,ValueError):
+                                pass
+                    elif classification=="rejected":
                         out["rejected_blocked"]+=1
                     else:
                         out["undecided_blocked"]+=1
+                    prior=_date(out["latest_review_block"][classification])
+                    if updated_time and (prior is None or updated_time>prior):
+                        out["latest_review_block"][classification]=updated_time.isoformat(timespec="seconds")
                 if mode=="auto" and state=="queued" and decision in ("approved","rejected") and decision_hash==digest:
                     out["reviewed"][decision]+=1
             events=db.execute(
@@ -238,17 +271,25 @@ def explain(observed,history,*,at=None):
         no=history.get("rejected_blocked",0)
         unknown=history.get("undecided_blocked",0)
         if yes:
-            reasons.append(_reason("AUTO_APPROVED_HANDOFF",f"{yes} approved auto draft(s) blocked",
-                "Automatic sending stopped before a recorded attempt. If the verified draft is still eligible, explicitly queue it manually; approval alone does not send.",
-                "", "/scout"))
+            handoff=history.get("manual_handoff") or {}
+            checked=handoff.get("checked",0)
+            verified=handoff.get("verified",0)
+            reasons.append(_reason("AUTO_APPROVED_HANDOFF",
+                f"{yes} historical approved auto job(s) blocked",
+                f"{verified} of {checked} inspected against current saved sources "
+                "have a verified owner-controlled handoff; historical approval "
+                "alone is not a new publication authorization. Check Scout "
+                "for the explicit manual queue action; age, rate and duplicate "
+                "checks still apply.",
+                history.get("latest_review_block",{}).get("approved",""),"/scout"))
         if no:
             reasons.append(_reason("AUTO_REJECTED",f"{no} rejected auto draft(s) blocked",
                 "Your rejection was respected. These are not awaiting approval and must not publish.",
-                "", "/scout"))
+                history.get("latest_review_block",{}).get("rejected",""), "/scout"))
         if unknown:
             reasons.append(_reason("REVIEW_UNCONFIRMED",f"{unknown} reviewed job(s) need checking",
                 "The saved job reports a review block, but the stored decision is missing or does not match the draft.",
-                "", "/scout"))
+                history.get("latest_review_block",{}).get("unknown",""), "/scout"))
         if history["reviewed"].get("approved"):
             reasons.append(_reason("QUEUED_AUTO_APPROVED","Approved auto queue needs manual review",
                 "An automatic queued job has an approval; automatic posting must not bypass it.",
@@ -260,7 +301,13 @@ def explain(observed,history,*,at=None):
     if not reasons:
         reasons.append(_reason("AUTO_UNKNOWN","Automatic activity not established",
             "Check Scout selections, review decisions and publisher events.","","/scout"))
-    auto_summary=("Auto queue: "+str(auto) if auto is not None else "Auto queue not reported")
+    window=history.get("job_window") or {}
+    span=(" · history "+str(window.get("oldest"))[:10]+" to "+
+          str(window.get("newest"))[:10]+" UTC" if window.get("oldest")
+          and window.get("newest") else " · history range unavailable")
+    auto_summary=(("Auto queue: "+str(auto) if auto is not None
+                   else "Auto queue not reported")+
+                  span+" · up to "+str(MAX_JOBS)+" recent jobs inspected")
     lines.append(section("auto","Automatic comments",
                   publisher,auto_summary,reasons,"/automation"))
     # Original posting is explicitly owner requested.
@@ -307,6 +354,11 @@ def explain(observed,history,*,at=None):
             "last_skip":history.get("last_skip"),
             "policy_next":(metrics.get("next_possible_utc") or {}).get("comments") or "",
             "scheduled_next":publisher.get("next_scheduled") or "",
+            "scout_checkpoint":scout.get("updated_at") or "",
+            "scout_activity":scout.get("activity") or "Not confirmed",
+            "handoff_links":(history.get("manual_handoff") or {}).get("run_ids",[])[:MAX_LINKS],
+            "handoff_verified":(history.get("manual_handoff") or {}).get("verified",0),
+            "publisher_last_skip":history.get("last_skip"),
             "notice":"Reason codes are deterministic local observations, not a model's guess. "
                      "A saved approval does not mean a comment was sent."}
 
@@ -324,13 +376,22 @@ def page(wrap,*,data=None):
            '<a href="/investigate">Refresh evidence</a></div>',
            '<p class="bi-muted">Checked '+e(item["checked_at"])+
            ' · no actions or retries are performed here.</p></section>',
-           '<section class="bi-panel"><h2>Publication timing</h2>',
+           '<section class="bi-panel"><h2>Last activity &amp; timing</h2>',
+           '<p class="bi-line">Most recent Scout checkpoint: <b>'+
+           e(item.get("scout_checkpoint") or "Not recorded")+'</b> · '+
+           e(item.get("scout_activity") or "Status unconfirmed")+'</p>',
+           '<p class="bi-line">Last publisher evaluation: <b>'+
+           e((item.get("publisher_last_skip") or {}).get("at") or
+             "No recent safe skip record")+'</b> · '+
+           e((item.get("publisher_last_skip") or {}).get("code") or
+             "No recorded skip")+'</p>',
            '<p class="bi-line">Last recorded attempt: <b>'+
            e(item["last_attempt"] or "Not recorded")+'</b></p>',
            '<p class="bi-line">Last API-acknowledged publication: <b>'+
            e(item["last_success"] or "Not recorded in recent inspected jobs")+'</b></p>',
            '<p class="bi-line">Next systemd publisher trigger: <b>'+
-           e(item["scheduled_next"] or "Not reported")+'</b></p>',
+           e(item["scheduled_next"] or
+             "Not reported by systemd; check Automation / timer state")+'</b></p>',
            '<p class="bi-line">Earliest policy-permitted comment: <b>'+
            e(item["policy_next"] or "Not reported")+'</b> (not scheduled)</p>',
            '<p class="bi-muted">API acknowledgement is not independent proof that '
@@ -350,5 +411,16 @@ def page(wrap,*,data=None):
                       ' · '+e(reason["source"])+'</span></div>']
         parts += ['</div><p class="bi-line"><a href="'+e(section["href"])+
                   '">Inspect supporting records</a></p></section>']
+    if item.get("handoff_links"):
+        parts += ['<section class="bi-panel"><h2>Source-verified manual handoffs</h2>',
+                  '<p class="bi-muted">These historical jobs still pass the '
+                  'read-only saved-source check. Links open owner review; '
+                  'nothing is sent or queued from this page. '
+                  'The publisher will still enforce age, rate and duplicate safety checks.</p>',
+                  '<div class="bi-links">']
+        for rid in item["handoff_links"][:MAX_LINKS]:
+            if RUN.fullmatch(str(rid)):
+                parts.append('<a href="/scout#run-'+e(rid)+'">Review '+e(rid)+'</a>')
+        parts.append('</div></section>')
     parts += ['</div></div>']
     return wrap("Why no activity?","".join(parts),"/investigate")
