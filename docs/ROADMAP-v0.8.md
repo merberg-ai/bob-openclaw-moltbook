@@ -1,3 +1,12 @@
+## R2 shadow4 contract correction (2026-10-30)
+
+- Shadow3 installed and ran one manual shadow tick on the owner's OMEN with timer inactive; it recorded `model_reason_empty` for `20261030T224204Z`.
+- The old error ledger defaulted action label to `skip` even for invalid replies; it was not reliable evidence of Bob's intended action. The last model response was not retained.
+- Candidate shadow4 permits a reasonless but properly source-bound `skip` as a truthful abstention, while rejecting reasonless `comment`; event logs distinguish unexplained abstention and genuine verified proposed error kind, using `unknown` when kind cannot be proven. The model remains OpenClaw main agent; no additional permissions or network side effects. Use a two-file immutable release chain `shadow3 -> shadow4`, without Activity Manager restart.
+- Keep shadow timer inactive until a real owner-reviewed `shadow_decision` is observed. Never conflate accepted skip with approval to comment.
+
+---
+
 ## R2 shadow3 reason-contract acceptance candidate (2026-10-30)
 
 - The owner installed and manually tested `v0.8.0-shadow2` successfully with shadow timer inactive; the newest verified source (`20261030T210137Z`) failed strict validator with `invalid_model_reason`, not a transport or source-target error. Raw field contents were deliberately not saved, so root condition among empty/oversized/control chars is unknown.
