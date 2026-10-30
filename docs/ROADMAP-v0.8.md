@@ -1,3 +1,17 @@
+## Current host checkpoint: R2 Shadow4 working manually, scheduled acceptance still open (2026-10-30)
+
+**Owner-verified:** `v0.8.0-shadow4` installed and activated on OpenClawLab with independent versioned archive and user timer; the real OpenClaw main agent produced a validated `comment` decision on source run `20261030T200610Z` and target `a9ccf436-c5d5-4849-af92-843670ab8271`. Policy returned `deny / action_off`, with `acted:false`, so the shadow system **did not write to Moltbook**. The Activity Manager read-only Now/Inbox screens surfaced matching source-linked events. Old failed model outputs are retained as historical events. This is *manual decision acceptance*, not a grant of publication authority.
+
+**Confirmed schedule, not execution:** `systemctl --user list-timers --all bob-v08-shadow.timer` reported `NEXT Fri 2026-10-30 16:08:11 PDT`, `LEFT 33s`, and `LAST -`. The current UI's `Next reported run: not reported` derives from reading only `NextElapseUSecRealtime`, not the monotonic next-run schedule. The reporting fix is tracked in root `TODO.md` as **R2-UI-SCHEDULE** and should be batched with later UI work, not deployed as another R2 emergency release.
+
+**R2/G1 still requires:** a confirmed naturally scheduled shadow tick with evidence-linked event/service execution; representative additional successful observed ticks or honest no-source outcomes; and the real agent's isolated `bobctl shadow-experience` read-only MD1 session showing source-grounded, properly limited claims. Do not infer scheduled completion from timer activation or a next-run estimate. Never replay failed sources or touch v0.7 publication records to force acceptance.
+
+**Next engineering preparation while G1 closes:** begin R3.0 read-only cutover inventory and safety-contract design: map existing v0.7 Scout/publisher/job-service control and permissions, define managed timer ownership before cutover, transactional reservation and final send recheck, unknown-outcome suppression, source-linked public verification and exact rollback/recovery. Do not enable two active external dispatchers, silently disable the working v0.7 workers, or increase automatic authority. No R3 install is authorized by this roadmap update.
+
+**Preserve source topology:** `next` from clean `~/bob-next` is the development/update source; `~/bob-main` had a prior dirty-checkout incident (issue #57) and must not be used for branch switching. `main` stays the separate reviewed v0.7 baseline. The original planning text below is retained for design history and is superseded on host status by this checkpoint.
+
+---
+
 ## R2 shadow4 contract correction (2026-10-30)
 
 - Shadow3 installed and ran one manual shadow tick on the owner's OMEN with timer inactive; it recorded `model_reason_empty` for `20261030T224204Z`.

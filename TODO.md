@@ -1,8 +1,29 @@
 # Bob 💀 — Project TODO
 
-> **v0.8 direction adopted for planning (October 30, 2026):** [Bob v0.8 roadmap](docs/ROADMAP-v0.8.md) is now the proposed primary engineering plan. It packages the work into **four operator-facing upgrades**: R1 safe updater, R2 full shadow build and experience digest, R3 guarded cutover, R4 autonomous social features and consolidated UI. This is planning only; no release manifest, production files, services, permissions, or databases have changed.
+## Active handoff: v0.8 Shadow4 accepted manually; R2 completion and R3 preparation (2026-10-30)
+
+**Installed host reality (owner-observed):** `v0.8.0-shadow4` is active with a versioned verified archive and separate `bob-v08-shadow.timer` user timer. A real OpenClaw main-agent `bobctl shadow-once` returned `state: shadow_decision`, `action: comment`, `policy: deny`, `policy_reason: action_off`, `acted: false` for verified Scout source `20261030T200610Z`, post `a9ccf436-c5d5-4849-af92-843670ab8271`. The authenticated Shadow Now page recorded observe, decision and policy events; historical earlier model-validation errors remain visible and are not new failures. The existing v0.7 Scout/publisher, permissions and queues were not modified by this acceptance.
+
+**Timer evidence:** `systemctl --user list-timers --all bob-v08-shadow.timer` reported `NEXT Fri 2026-10-30 16:08:11 PDT`, `LEFT 33s`, `LAST -`. This confirms **a scheduled next activation**, *not* that a post-activation timer-driven tick already executed. Dashboard currently shows `Shadow timer: active · Next reported run: not reported`.
+
+### TODO: accurate Shadow Now scheduled-time display
+
+- [ ] **R2-UI-SCHEDULE** Fix `/v08/now` to display the real next run for Bob's **monotonic** `OnActiveSec` / `OnUnitInactiveSec` user timer. Current `src/bob_v08/inspect.py:timer_observation()` requests only `NextElapseUSecRealtime`; this may be absent for monotonic timers despite a valid `systemctl --user list-timers` NEXT value. Prefer a documented, version-compatible structured systemd property including monotonic schedule and boot-time conversion, or tightly scoped read-only `list-timers` parsing. Never invent or infer NEXT from budget/rate-limit eligibility.
+- [ ] Add offline synthetic tests for monotonic and calendar timers, inactive/missing/failed services, timezone changes, no next run, and systemd field-format variations; bound subprocess timeouts, output size, and parsed display. UI is **read-only** and must not start timers or add new routes. Batch with a later reviewed UI release; **no emergency Shadow4 hotfix** solely for display.
+- [ ] **G1 scheduled acceptance:** after natural timer activation, verify its actual recorded systemd service execution and matching new source-linked v0.8 events, distinguishing `no_new_verified_sources` from an evaluated decision. Existing manual success alone does not complete scheduled acceptance.
+- [ ] **G1 experience acceptance:** use the already-installed owner-confirmed `bobctl shadow-experience` one-shot (typed `ASK-BOB`) to test a private, source-grounded response from the *real* OpenClaw main agent. Confirm it distinguishes saved selections, publication states and unknown public visibility; no global memory writes. General persistent Gateway/CH1 context is **not** part of R2.
+- [ ] After representative natural ticks, at least one scheduled tick, and bounded experience validation, record R2/G1 acceptance. Only then advance to the **R3 guarded cutover engineering gate**: exact v0.7 permission/queue parity, one credentialed publisher, atomic reservation and pre-send recheck, failure/rollback rehearsals, and explicit owner authorization before any new writes. `main` remains the stable reviewed baseline; source development continues on `next` via clean `~/bob-next`.
+
+**R3.0 engineering inventory:** [read-only cutover map and safety gates](docs/R3-CUTOVER-INVENTORY.md). This design work can proceed without turning off the existing publisher or enabling v0.8 writes.
+
+**Do not do:** reset/erase shadow events, automatically replay failed Scout sources, silently enable v0.8 publishing, or treat the planned NEXT time as a completed run.
+
+---
+
+
+> **Historical planning note (superseded by the active handoff above):** [Bob v0.8 roadmap](docs/ROADMAP-v0.8.md) is now the proposed primary engineering plan. It packages the work into **four operator-facing upgrades**: R1 safe updater, R2 full shadow build and experience digest, R3 guarded cutover, R4 autonomous social features and consolidated UI. This is planning only; no release manifest, production files, services, permissions, or databases have changed.
 >
-> **Preserve live state:** the last operator-accepted release is **`v0.7.7-fm41-social1`**. Standalone FM4.2 / FM4.3 / FM5 and MD1 engineering are **paused and folded into v0.8**, retaining their evidence/approval/security requirements. CH1 real-agent LAN Chat remains planned after the refactor and HTTPS. The former v0.7 handoff follows unchanged below for traceability; its “next FM4.2” language is superseded by the v0.8 plan.
+> **Historical v0.7 baseline:** the previously accepted release was **`v0.7.7-fm41-social1`**; the host has since installed **`v0.8.0-shadow4`**. Standalone FM4.2 / FM4.3 / FM5 and MD1 engineering are **paused and folded into v0.8**, retaining their evidence/approval/security requirements. CH1 real-agent LAN Chat remains planned after the refactor and HTTPS. The former v0.7 handoff follows unchanged below for traceability; its “next FM4.2” language is superseded by the v0.8 plan.
 
 ---
 
