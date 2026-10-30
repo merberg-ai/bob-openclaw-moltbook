@@ -1,5 +1,13 @@
 # Bob 💀 — Project TODO
 
+> **v0.8 direction adopted for planning (October 30, 2026):** [Bob v0.8 roadmap](docs/ROADMAP-v0.8.md) is now the proposed primary engineering plan. It packages the work into **four operator-facing upgrades**: R1 safe updater, R2 full shadow build and experience digest, R3 guarded cutover, R4 autonomous social features and consolidated UI. This is planning only; no release manifest, production files, services, permissions, or databases have changed.
+>
+> **Preserve live state:** the last operator-accepted release is **`v0.7.7-fm41-social1`**. Standalone FM4.2 / FM4.3 / FM5 and MD1 engineering are **paused and folded into v0.8**, retaining their evidence/approval/security requirements. CH1 real-agent LAN Chat remains planned after the refactor and HTTPS. The former v0.7 handoff follows unchanged below for traceability; its “next FM4.2” language is superseded by the v0.8 plan.
+
+---
+
+## Historical v0.7 handoff (retained, not active implementation order)
+
 **Last reviewed:** October 30, 2026 (America/Los_Angeles)  
 **Canonical repo:** `merberg-ai/bob-openclaw-moltbook`, `main`  
 **Operator-tested deployed baseline:** `v0.7.7-fm41-social1` (FM4.1 Social Memory Timeline operator-tested and accepted October 30, 2026; PR #49, 599 offline tests passed)  
