@@ -1,3 +1,15 @@
+## R2 shadow4 abstention contract (2026-10-30; owner acceptance pending)
+
+**Host observation:** After guarded `v0.8.0-shadow3` install, one manual shadow decision for verified Scout run `20261030T224204Z` returned `model_invalid_or_unavailable`. Shadow Inbox exposed `model_reason_empty`. That means model JSON/schema and pinned target checks passed, but the explanation was blank/whitespace. The displayed `agent_error / skip` is the prior generic error action label and **does not prove the model chose skip**.
+
+**Reviewed correction candidate:** `v0.8.0-shadow4` chains from shadow3 and changes only the versioned shadow archive and launcher, with no dashboard restart or Moltbook publishing. Exact action `skip`, if source/target verified, may have blank reason and MUST have empty text. It is logged as `bob_decision_skip_unexplained`, not as a fabricated model opinion. An unexplained `comment` is still **rejected** with `model_reason_empty`. Errors log the proven proposed kind (`comment`/`skip`) when exactly source/target-verified; otherwise `unknown`, never a made-up `skip`. All original safe-content, target, policy and no-write constraints remain.
+
+**On owner host after green PR/CI and explicit approval:** The shadow timer remains deactivated and journal may still indicate inactive shadow1, since shadow2 and shadow3 were only flat installed. Verify `bobctl shadow-status` reports inactive; run `bobctl update --check` for exactly `v0.8.0-shadow4` from shadow3, two files, no manager restart. Approve one `bobctl update`, then **one** `bobctl shadow-once` with timer still disabled. A `shadow_decision` with `acted:false` is an accepted hypothetical action; if `action:skip` and reasonless, it demonstrates a valid abstention but not a positive opinion. If an error, inspect latest sanitized reason and verified action label, without replaying prior source runs. Only after acceptance may the user explicitly run `bobctl shadow-activate`.
+
+Prior events and v0.7 Scout/publisher remain untouched; don't reset databases, enable periodic timer, or edit live scripts to simulate a success.
+
+---
+
 ## R2 shadow3 reason-contract repair (2026-10-30; acceptance pending)
 
 **Live evidence:** The owner installed `v0.8.0-shadow2` and ran exactly one `bobctl shadow-once` while the user shadow timer was deactivated. The report `model_invalid_or_unavailable` for `20261030T210137Z` corresponded to the *sanitized* `invalid_model_reason` in Shadow Inbox. This means the OpenClaw JSON envelope, five-field output shape and source/target match passed; the reason value failed the 1..220 character or forbidden-control-character gate. The raw reason was intentionally not retained, so do not assert that length rather than controls was the specific trigger.
