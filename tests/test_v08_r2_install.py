@@ -113,7 +113,7 @@ class ShadowActivationTests(unittest.TestCase):
         self.assertEqual(inst.read_phase()["release"], inst.RELEASE)
         self.assertEqual(inst.deactivate(), "inactive")
 
-    def test_prior_shadow2_inactive_journal_allows_shadow3_activation(self):
+    def test_prior_shadow2_inactive_journal_allows_current_activation(self):
         inst.STATE.mkdir(mode=0o700, parents=True)
         prior = {
             "format": "bob-v08-activation-v1",
@@ -125,7 +125,7 @@ class ShadowActivationTests(unittest.TestCase):
         inst.JOURNAL.chmod(0o600)
         self.assertEqual(inst.read_phase(), prior)
         self.assertEqual(inst.activate(), "active")
-        self.assertEqual(inst.read_phase()["release"], "v0.8.0-shadow3")
+        self.assertEqual(inst.read_phase()["release"], inst.RELEASE)
         self.assertEqual(inst.deactivate(), "inactive")
 
     def test_prior_shadow3_inactive_journal_allows_shadow4_activation(self):
