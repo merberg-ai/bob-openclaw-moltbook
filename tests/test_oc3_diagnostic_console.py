@@ -133,7 +133,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(health["entries"]),1)
         self.assertEqual(health["entries"][0]["message"],"Ollama: ready")
         self.assertEqual(self.collect(service="gateway",source="jobs")["entries"],[])
-        self.assertEqual(self.collect(q="publish blocked",source="events")["entries"][0]["service"],
+        self.assertEqual(self.collect(q="publication blocked",source="events")["entries"][0]["service"],
                          "publisher")
         self.assertEqual(self.collect(window="24h",q="nonexistent-xyz")["entries"],[])
 
