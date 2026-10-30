@@ -185,6 +185,8 @@ class AutomationTests(unittest.TestCase):
         self.assertNotIn("<details open",html)
         js=overview.javascript()
         self.assertIn("summary.textContent='Why / evidence'",js)
+        self.assertIn("detail.open=expanded.has(key)",js)
+        self.assertIn("querySelectorAll('.bo-now-lane[data-key] details[open]')",js)
         self.assertNotIn("innerHTML",js)
         self.assertIn("setInterval(refresh,15000)",js)
 
