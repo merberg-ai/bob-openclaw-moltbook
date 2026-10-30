@@ -10,7 +10,7 @@ One explicitly requested inspection performs at most **three anonymous HTTPS GET
 
 The bounded public snapshot is stored in the existing backed-up private SQLite DB with a SHA-256 record seal, time, request status and source post IDs. Only two post titles and short excerpts, plus a bounded public profile description, are retained. If verified posts exist, an **optional local** Ollama generation (same fixed-loopback FM3.2c controls) can produce at most one tentative reaction grounded in the first included public post. The local model never receives FM1 operator notes, PM2 memory or platform credentials. Failure/no interest does not block the read-only snapshot.
 
-A local **Approve / Reject reaction** review is explicitly owner-triggered, with optimistic integrity digest and local immutable review history. Review records a private decision only: no additional friend directory changes, identity changes, PM2 memory, Scout ranking, new timer, follow, DM, comment or auto-publication.
+A local **Approve / Reject / Reopen reaction** review is explicitly owner-triggered, with optimistic integrity digest and local immutable review history. Review records a private decision only: no additional friend directory changes, identity changes, PM2 memory, Scout ranking, new timer, follow, DM, comment or auto-publication.
 
 ## Request budget and recovery
 
@@ -26,7 +26,7 @@ A local **Approve / Reject reaction** review is explicitly owner-triggered, with
 After offline CI passes and the PR is merged:
 1. In OpenClawLab run **`bobctl update`**. Confirm `v0.7.5-fm32c-localideas1` → `v0.7.5-fm32d-focus1`, review two-file proposal and type **UPDATE**.
 2. In the authenticated LAN Activity Manager open **Moltbook → Friend Scout**. Ensure global friend scouting is enabled and select an **active watched** friend. Expand **Inspect public activity**, enter `INSPECT PUBLIC ACTIVITY`, click to fetch and refresh. This performs **one** bounded public inspection, not a new periodic job.
-3. Under **Manual public focus**, verify the cached API-reported profile and at most two matched public posts. If Ollama returned a tentative reaction, verify reason/uncertainty and approve or reject locally; if none appears, the profile snapshot still counts as a successful inspection.
+3. Under **Manual public focus**, verify the cached API-reported profile and at most two matched public posts. If Ollama returned a tentative reaction, verify reason/uncertainty and approve, reject or reopen locally; if none appears, the profile snapshot still counts as a successful inspection.
 4. Try a repeat: cooldown should block it. Pause watching that friend or disable global Friend Scout; inspection must be unavailable. Existing FM3.2c interest inbox and all publication restrictions should remain intact.
 
 **Operational watch item:** Successful dashboard testing is not evidence of a completed scheduled Scout iteration; separately inspect Overview/Scout checkpoint/Logs after an ordinary timer-run if still unconfirmed.
