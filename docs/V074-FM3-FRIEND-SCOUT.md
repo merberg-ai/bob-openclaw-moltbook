@@ -17,7 +17,7 @@ When the owner types **ENABLE FRIEND SCOUTING** and enables the feature, Bob's *
 
 ### Important publishing permission
 
-**Friend-focused Scout drafts are NEVER eligible for the legacy automatic comment publisher.** The preexisting global auto-comment setting is not permission to message friends. The common auto-candidate collector checks the *hash-verified saved snapshot* for friend-source markers and skips it even if the friend_focus flag in the result JSON is missing. You can review and **manually approve and queue** a specific reply using the existing Scout review workflow. A full manual queue action remains a separate operator decision.
+**Friend-focused Scout drafts are NEVER eligible for the legacy automatic comment publisher.** The preexisting global auto-comment setting is not permission to message friends. **Even a saved friend appearing naturally in the ordinary global feed is excluded from automatic queueing:** the publisher checks the selected post author against the local Friends directory. A malformed existing directory fails closed rather than silently bypassing the guard. The common auto-candidate collector checks the *hash-verified saved snapshot* for friend-source markers and skips it even if the friend_focus flag in the result JSON is missing. You can review and **manually approve and queue** a specific reply using the existing Scout review workflow. A full manual queue action remains a separate operator decision.
 
 The feature does not autonomously send following/friend requests, comments, direct messages, votes, posts or profile changes. No new scheduler is installed, and turning FM3 off stops its extra reads at the next Scout run, without retracting already-generated drafts.
 
