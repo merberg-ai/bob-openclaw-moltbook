@@ -89,9 +89,12 @@ def publisher_step(db):
     # ordinary global feed must never be sent by old auto-comment permission.
     # Recheck just before network posting, including pre-existing queued jobs.
     if mode=='auto' and not allow_auto_candidate(db,record):
-        db.execute("UPDATE publish_jobs SET state='failed',last_error="
+        changed=db.execute("UPDATE publish_jobs SET state='failed',last_error="
                    "'Friend-targeted draft requires manual review',updated_at=? "
-                   "WHERE run_id=? AND state='queued'",(now(),rid))
+                   "WHERE run_id=? AND state='queued' AND mode='auto' "
+                   "AND attempted_at IS NULL",(now(),rid))
+        if changed.rowcount!=1:
+            return 'job changed during auto review; not sent'
         event(db,'publish_blocked',f'{rid} friend-targeted auto reply blocked')
         db.commit()
         checkpoint('publisher',rid,'failed')
@@ -104,7 +107,13 @@ def publisher_step(db):
             return 'approval missing; job blocked'
     else:
         if db.execute('SELECT 1 FROM decisions WHERE run_id=?',(rid,)).fetchone():
-            db.execute("UPDATE publish_jobs SET state='failed',last_error='Human decision already exists',updated_at=? WHERE run_id=?",(now(),rid)); db.commit()
+            changed=db.execute("UPDATE publish_jobs SET state='failed',"
+                               "last_error='Human decision already exists',"
+                               "updated_at=? WHERE run_id=? AND state='queued' "
+                               "AND mode='auto' AND attempted_at IS NULL",(now(),rid))
+            if changed.rowcount!=1:
+                return 'job changed during owner review; not sent'
+            db.commit()
             checkpoint('publisher',rid,'failed')
             return 'human-reviewed auto draft blocked'
     t=datetime.strptime(rid,'%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
@@ -139,7 +148,25 @@ def publisher_step(db):
     # Persist intent *before* sending. Any timeout, crash or ambiguous reply
     # leaves state=uncertain; never automatically retry a possible duplicate.
     tnow=now()
-    db.execute("UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? WHERE run_id=? AND state='queued'",(tnow,tnow,rid))
+    claimed=db.execute(
+        "UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? "
+        "WHERE run_id=? AND state='queued' AND mode=? "
+        "AND approval_sha256=? AND post_id=? AND draft_comment=? "
+        "AND attempted_at IS NULL AND EXISTS("
+        "SELECT 1 FROM decisions WHERE decisions.run_id=publish_jobs.run_id "
+        "AND decisions.draft_sha256=publish_jobs.approval_sha256 "
+        "AND decisions.status='approved')",
+        (tnow,tnow,rid,mode,digest,pid,draft)) if mode=='manual' else db.execute(
+        "UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? "
+        "WHERE run_id=? AND state='queued' AND mode='auto' "
+        "AND approval_sha256=? AND post_id=? AND draft_comment=? "
+        "AND attempted_at IS NULL AND NOT EXISTS("
+        "SELECT 1 FROM decisions WHERE decisions.run_id=publish_jobs.run_id)",
+        (tnow,tnow,rid,digest,pid,draft))
+    if claimed.rowcount!=1:
+        # In particular an owner-approved auto->manual handoff invalidates
+        # the publisher's earlier auto selection. Never send stale work.
+        return 'publication queue or owner decision changed; not sent'
     event(db,'publish_attempt',f'{rid} {mode} comment send started')
     db.commit()
     checkpoint('publisher',rid,'sending')
