@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-shadow2",
-  "from": "v0.8.0-shadow1",
-  "notes": "R2 shadow OpenClaw --json envelope parser and sanitized model error categories. Requires explicit shadow-deactivate before updating, then shadow-activate; no Moltbook writes or existing publisher changes.",
+  "release": "v0.8.0-shadow3",
+  "from": "v0.8.0-shadow2",
+  "notes": "R2 shadow reason contract: prompt requests <=200-character reason; validator preserves 220-character cap with safe granular error categories. Two-file shadow-only maintenance release; no publisher changes.",
   "files": [
     {
       "name": "bob_v08_package.pyz",

@@ -1,3 +1,19 @@
+## R2 shadow3 reason-contract repair (2026-10-30; acceptance pending)
+
+**Live evidence:** The owner installed `v0.8.0-shadow2` and ran exactly one `bobctl shadow-once` while the user shadow timer was deactivated. The report `model_invalid_or_unavailable` for `20261030T210137Z` corresponded to the *sanitized* `invalid_model_reason` in Shadow Inbox. This means the OpenClaw JSON envelope, five-field output shape and source/target match passed; the reason value failed the 1..220 character or forbidden-control-character gate. The raw reason was intentionally not retained, so do not assert that length rather than controls was the specific trigger.
+
+**Narrow correction:** `v0.8.0-shadow3` chains from installed `v0.8.0-shadow2`, updates only `bob_v08_package.pyz` and `bob-v08-shadow`, without restarting the Activity Manager or changing the v0.7 Scout/publisher. The shadow decision prompt explicitly asks for a plain, single-line, nonempty reason of at most **200 characters**, below the **unchanged 220-character** validator cap. The validator now records `model_reason_empty`, `model_reason_too_long`, or `model_reason_control_chars` instead of the opaque `invalid_model_reason`. Raw model content and stderr remain private and unlogged.
+
+**Host acceptance, only after green reviewed CI and explicit approval:**
+1. Verify the shadow timer is still deactivated: `bobctl shadow-status` should show `installed: inactive`, no user timer, no versioned archive. The operator did not activate shadow2, so their existing journal may legitimately still say **shadow1 inactive**. Shadow3 activation accepts an inactive shadow1 or shadow2 journal, but refuses an active prior journal. If the timer is active, *stop* and perform the explicitly reviewed `shadow-deactivate` first; never silently rewrite the journal.
+2. `bobctl update --check` on the trusted separate `~/bob-next` checkout must offer exactly `v0.8.0-shadow3` from `v0.8.0-shadow2` with two files and `restart_manager: False`. Then `bobctl update` with typed `UPDATE`.
+3. With **no shadow timer activated**, perform exactly one `bobctl shadow-once` test and inspect the result. `shadow_decision` with `acted: false` is acceptance, `no_new_verified_sources` is not proof of agent success, and any `model_invalid_or_unavailable` requires inspection of the latest **sanitized** Shadow Inbox issue before any further attempts.
+4. Activate `bobctl shadow-activate` (typed `ACTIVATE-SHADOW`) only after satisfactory manual acceptance; its new package pointer is versioned to shadow3.
+
+**No replay of previous failed Scout decisions:** Existing v0.8 event history is preserved. Do not delete or edit that SQLite database to manufacture a valid decision. If verified source supply is exhausted, the next normal legacy Scout run must create a fresh source before acceptance.
+
+---
+
 ## R2 shadow2 transport repair (2026-10-30; operator acceptance pending)
 
 **Why:** The owner's live `openclaw agent --json --message-file` diagnostic returned exit 0, `status: ok`, and one valid JSON reply at `result.payloads[0].text`. The installed shadow1 subprocess did **not** request `--json` and treated raw stdout as the five-field decision object, producing `model_invalid_or_unavailable`. This supports a transport mismatch; the exact original raw response was deliberately not saved. Shadow1 correctly made zero Moltbook writes. See issue #58.
