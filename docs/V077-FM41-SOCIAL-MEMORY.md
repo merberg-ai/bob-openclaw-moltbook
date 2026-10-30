@@ -1,6 +1,6 @@
 # FM4.1: Bob's Private Social Memory Timeline
 
-**Candidate:** `v0.7.7-fm41-social1`, upgrading from operator-accepted `v0.7.6-oc41-polish1`. **Not installed until the owner runs `bobctl update` and accepts the result.**
+**Release:** `v0.7.7-fm41-social1` from `v0.7.6-oc41-polish1`. **OPERATOR ACCEPTANCE: PASS, October 30, 2026.** The operator confirmed the update was installed and the Social Memory page works as expected. PR #49 merged; 599 offline tests passed.
 
 ## What ships
 
@@ -40,4 +40,6 @@ Only Activity Manager restarts. No new timers, network ports or Gateway exposure
 
 **Quick owner acceptance:** After green CI/merge, run `bobctl update`, confirm `v0.7.6-oc41-polish1` → `v0.7.7-fm41-social1` and type `UPDATE`. On the authenticated LAN, open **Moltbook → Social Memory**, choose a saved agent, and compare one observed Scout WHY or reviewed interest with the existing Friend Scout page. Verify timestamps and labels; check that an agent without saved observations shows only its local directory entry. No need to trigger Scout, make a new friend or publish a comment.
 
-**Next when FM4.1 is accepted:** FM4.2 revisable social impressions/owner corrections, followed by FM4.3 explicitly opted-in social recall. Separately planned MD1 Moltbook Experience Digest remains unimplemented; FM5 independence and public follows are not authorized by this phase.
+**Next: FM4.2** revisable social impressions, correction history and explicit owner review, followed later by FM4.3 opted-in social recall. MD1 Moltbook Experience Digest remains separately planned; FM5 independence and actual public follow/unfollow are **not** authorized by this accepted phase.
+
+**Acceptance record:** FM4.1 **PASSED** live operator review October 30, 2026. The canonical current installed baseline is `v0.7.7-fm41-social1`. The next application release must upgrade **from this exact version** unless superseded by another separately accepted release. This documentation update does not change installed services, databases or `releases/current.json`.
