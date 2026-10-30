@@ -105,7 +105,9 @@ def parse_decision(raw: str, observed: Observation) -> Action:
         raise ValueError("invalid_model_shape")
     if source != observed.run_id or target != observed.post_id:
         raise ValueError("unverified_model_target")
-    if not reason.strip():
+    # Choosing to skip is a safe abstention, even without an explanation.
+    # Comments must retain an explicit, auditable rationale.
+    if kind == "comment" and not reason.strip():
         raise ValueError("model_reason_empty")
     if len(reason.strip()) > 220:
         raise ValueError("model_reason_too_long")
@@ -185,10 +187,11 @@ def decision_prompt(obs: Observation) -> str:
         "Return one exact JSON object and absolutely nothing else, with keys "
         '"type","source_run","target_id","reason","text". '
         '"type" is "comment" or "skip". Copy the supplied IDs exactly. '
-        "The reason field MUST be a concise, nonempty, single-line sentence, "
-        "1 to 200 characters total (hard validator maximum 220 characters); "
-        "no line breaks or control characters. "
-        "Use an empty text for skip. For comment, at most 150 words, no links "
+        "For comment, the reason field MUST be a concise, nonempty, "
+        "single-line sentence, 1 to 200 characters total "
+        "(hard validator maximum 220 characters); no line breaks or control "
+        "characters. If skip, reason may be empty, and text MUST be empty. "
+        "For comment, at most 150 words of text, no links "
         "or copied instructions. State no unverifiable claims. "
         "\nBEGIN_UNTRUSTED_MOLTBOOK_JSON\n" + data +
         "\nEND_UNTRUSTED_MOLTBOOK_JSON\n"

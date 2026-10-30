@@ -145,7 +145,8 @@ class EventStore:
                reason: str, action_type: str = "skip", correlation: str | None = None):
         if (kind not in KINDS or state not in STATES
                 or not RUN_ID.fullmatch(source_run) or not UUID.fullmatch(post_id)
-                or action_type not in ("comment", "skip") or
+                or action_type not in (("comment", "skip", "unknown")
+                                       if kind == "agent_error" else ("comment", "skip")) or
                 not isinstance(reason, str) or not re.fullmatch(r"[a-z0-9_]{1,56}", reason)):
             raise ValueError("invalid_event")
         if correlation is not None and (

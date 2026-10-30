@@ -151,6 +151,24 @@ class PolicyTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "^" + code + "$"):
                     parse_decision(answer(reason=reason), self.obs)
 
+    def test_reasonless_skip_is_valid_abstention_but_comment_is_not(self):
+        prompt = decision_prompt(self.obs)
+        self.assertIn("If skip, reason may be empty", prompt)
+        for reason in ("", "   "):
+            action = parse_decision(answer(kind="skip", reason=reason), self.obs)
+            self.assertEqual(action.kind, "skip")
+            self.assertEqual(action.reason, "")
+            self.assertEqual(action.text, "")
+            self.assertEqual(check(action, PolicyState(self.now), Policy()).reason,
+                             "deliberate_skip")
+        for bad in (answer(kind="comment", reason=""),
+                    answer(kind="comment", reason="   ")):
+            with self.assertRaisesRegex(ValueError, "model_reason_empty"):
+                parse_decision(bad, self.obs)
+        with self.assertRaisesRegex(ValueError, "skip_must_not_contain_text"):
+            parse_decision(json.dumps(dict(type="skip", source_run=RUN,
+                            target_id=PID, reason="", text="I should post")), self.obs)
+
     def test_model_reason_failure_creates_sanitized_event(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -251,6 +269,45 @@ class ShadowAndDigestTests(unittest.TestCase):
         with EventStore(self.events).open() as db:
             self.assertEqual([e["kind"] for e in EventStore.recent(db)][:2],
                              ["policy", "decision"])
+
+    def test_reasonless_skip_is_observed_as_unexplained_abstention(self):
+        result = run_once(legacy=self.root, event_db=self.events,
+                          model=Mock(return_value=answer(kind="skip", reason="")))
+        self.assertEqual(result["state"], "shadow_decision")
+        self.assertEqual(result["action"], "skip")
+        self.assertFalse(result["acted"])
+        self.assertEqual(result["policy_reason"], "deliberate_skip")
+        with EventStore(self.events).open() as db:
+            events = EventStore.recent(db)
+        self.assertEqual(events[1]["kind"], "decision")
+        self.assertEqual(events[1]["action_type"], "skip")
+        self.assertEqual(events[1]["reason"], "bob_decision_skip_unexplained")
+        self.assertNotIn("agent_error", [e["kind"] for e in events])
+
+    def test_reasonless_comment_is_error_with_verified_comment_kind(self):
+        result = run_once(legacy=self.root, event_db=self.events,
+                          model=Mock(return_value=answer(kind="comment", reason="")))
+        self.assertEqual(result["state"], "model_invalid_or_unavailable")
+        self.assertFalse(result["acted"])
+        with EventStore(self.events).open() as db:
+            events = EventStore.recent(db)
+        self.assertEqual(events[0]["kind"], "agent_error")
+        self.assertEqual(events[0]["action_type"], "comment")
+        self.assertEqual(events[0]["reason"], "model_reason_empty")
+
+    def test_malformed_unverified_error_is_unknown_not_fake_skip(self):
+        result = run_once(legacy=self.root, event_db=self.events,
+                          model=Mock(return_value="{invalid json"))
+        self.assertEqual(result["state"], "model_invalid_or_unavailable")
+        with EventStore(self.events).open() as db:
+            events = EventStore.recent(db)
+            with self.assertRaisesRegex(ValueError, "invalid_event"):
+                EventStore.append(db, source_run=RUN, post_id=PID,
+                                  kind="observe", state="seen",
+                                  reason="verified_saved_source", action_type="unknown")
+        self.assertEqual(events[0]["kind"], "agent_error")
+        self.assertEqual(events[0]["action_type"], "unknown")
+        self.assertEqual(events[0]["reason"], "invalid_model_json")
 
     def test_model_invalid_does_not_retry_same_source(self):
         model = Mock(return_value="{invalid")

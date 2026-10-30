@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 
 HOME = Path.home()
-RELEASE = "v0.8.0-shadow3"
+RELEASE = "v0.8.0-shadow4"
 BUNDLE_NAME = "bob_v08_package.pyz"
 BIN = HOME / ".local/bin"
 UPDATER_LOCK = HOME / ".local/state/bob-updater/lock"
@@ -120,7 +120,8 @@ def read_phase():
             or set(obj) != {"format", "release", "phase", "bundle_sha"}
             or obj["format"] != "bob-v08-activation-v1"
             or (obj["release"] != RELEASE and not
-                (obj["release"] in ("v0.8.0-shadow1", "v0.8.0-shadow2")
+                (obj["release"] in ("v0.8.0-shadow1", "v0.8.0-shadow2",
+                                   "v0.8.0-shadow3")
                  and obj["phase"] == "inactive"))
             or obj["phase"] not in PHASES
             or not isinstance(obj["bundle_sha"], str)
