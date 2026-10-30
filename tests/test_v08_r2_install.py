@@ -19,6 +19,8 @@ import bob_v08.evidence as evidence
 import build_v08_shadow_package as archive_builder
 import build_v08_shadow_dashboard as page_builder
 import build_v076_fm41_candidate as prior
+import bob_release_updater as updater
+from unittest.mock import Mock
 
 
 def post_functions(code: bytes):
@@ -174,6 +176,69 @@ class AuthenticatedBridgeContracts(unittest.TestCase):
             self.assertNotIn("api_key(", source)
             self.assertNotIn("bob-moltbook-publisher", source)
             self.assertNotIn("MOLTBOOK_API", source)
+
+
+class RollbackBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.home = Path(tmp.name)
+        self.state = self.home / "state"
+        self.tx = self.state / "tx-v0.8.0-shadow1"
+        self.tx.mkdir(mode=0o700, parents=True)
+        previous = self.tx / "registry-before.json"
+        previous.write_text(json.dumps({"release": "v0.7.8-updater2"}))
+        previous.chmod(0o600)
+        patches = [
+            patch.object(updater, "HOME", self.home),
+            patch.object(updater, "STATE_DIR", self.state),
+            patch.object(updater, "read_journal",
+                         return_value={"format": updater.FORMAT,
+                                       "release": "v0.8.0-shadow1",
+                                       "phase": "complete", "restart_manager": True}),
+            patch.object(updater, "registry",
+                         return_value={"format": updater.FORMAT,
+                                       "release": "v0.8.0-shadow1", "files": {}}),
+            patch.object(updater, "live_ok", return_value=True),
+            patch.object(updater, "healthy", return_value=True),
+            patch.object(updater, "rollback", return_value="baseline_restored"),
+            patch.object(updater, "locked",
+                         side_effect=lambda: os.open(self.home / "lock", os.O_CREAT | os.O_RDWR, 0o600))
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_exact_r1_rollback_uses_verified_archive_without_db_restore(self):
+        self.assertEqual(updater.rollback_shadow_to("v0.7.8-updater2", auth="fake"),
+                         "baseline_restored")
+        updater.rollback.assert_called_once()
+        self.assertEqual(updater.rollback.call_args.kwargs["auth"], "fake")
+        with self.assertRaisesRegex(ValueError, "unsupported_rollback_target"):
+            updater.rollback_shadow_to("some-old-release", auth="fake")
+
+    def test_active_shadow_or_context_refuses_code_rollback(self):
+        state = self.home / ".local/state/bob-v08-activation"
+        state.mkdir(parents=True)
+        (state / "journal.json").write_text(json.dumps({"phase": "active"}))
+        (state / "journal.json").chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "deactivate_shadow_before"):
+            updater.rollback_shadow_to("v0.7.8-updater2", auth="fake")
+        (state / "journal.json").write_text(json.dumps({"phase": "inactive"}))
+        context = self.home / ".local/state/bob-v08-context"
+        context.mkdir(parents=True)
+        (context / "enabled.json").write_text(json.dumps({"enabled": True}))
+        (context / "enabled.json").chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "disable_gateway_experience_context_before"):
+            updater.rollback_shadow_to("v0.7.8-updater2", auth="fake")
+        self.assertEqual(updater.rollback.call_count, 0)
+
+    def test_installed_drift_blocks_rollback(self):
+        with patch.object(updater, "live_ok", return_value=False):
+            with self.assertRaisesRegex(ValueError, "shadow_installed_hash_drift"):
+                updater.rollback_shadow_to("v0.7.8-updater2", auth="fake")
+        self.assertEqual(updater.rollback.call_count, 0)
+
 
 
 if __name__ == "__main__":
