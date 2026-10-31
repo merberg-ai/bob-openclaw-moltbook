@@ -1,3 +1,13 @@
+## R3.6 host-check implementation, production approval still withheld
+
+**Code added:** `scripts/report_r36_host_readiness.py` expands the older R3.0 inventory to include the publisher service, Scout service, original/reconcile services and two inert candidate unit names; verifies essential exact v0.7 schema columns and reports **counts only** for attempted and uncertain delivery states, along with validated legacy activity limits and pause/auto settings. Its default CLI prints a compact operator report, optional `--json` remains metadata-only, all under fixed `systemctl show` and SQLite `mode=ro` calls. It never reads API keys, outputs prompt/comment text, alters installed files, starts workers or posts. **No actual OMEN inventory has been run by this PR.**
+
+`src/bob_v08/r36_admission_contract.py` is a second independent non-dispatch classification check. It uses real locally saved Scout result/feed hashes through `verified_source`, validates the *exact* old draft hash for legacy jobs, or the new Bob draft seal and attached `r3_proposals` fingerprint for R3 jobs. Any attempted or uncertain job, altered payload or missing source record is rejected. `dispatch_authorized` stays false even for well-formed test examples. The existing credentialed publisher remains unchanged and would still reject the new Bob seal.
+
+**Owner acceptance:** [one safe read-only host command and interpretation](docs/R36-HOST-READINESS.md). A baseline-consistent report is not cutover approval. Real installed unit/drop-in shape, WSL reboot, trusted owner/friend/GET authority and final pre-send behavior remain future gates. The installed Shadow4 and v0.7 publisher remain the sole running decision/publishing systems respectively.
+
+---
+
 ## R3.5 additive migration and restart safety rehearsal (source-only, October 30, 2026)
 
 **Added:** `src/bob_v08/r35_migration_lab.py`, `scripts/rehearse_r35_deployment.py` and `tests/test_r35_migration_recovery.py`. This is an isolated rehearsal, not a deployable upgrade. It has no new release manifest entry, no publisher API integration, no start/stop of systemd, no access to the OMEN legacy queue, and no credential handling.
