@@ -7,10 +7,14 @@ Moltbook API keys and approved drafts are never opened by this program.
 from __future__ import annotations
 
 import json
+import hashlib
+from http.client import HTTPConnection,HTTPSConnection
 import os
 from pathlib import Path
 import shutil
 import socket
+import ssl
+import stat
 import subprocess
 import sys
 import time
@@ -27,6 +31,15 @@ RECOVERY_TIMER = "bob-startup-reconcile.timer"
 PAUSE_MARKER = HOME / ".config/bob-system/paused"
 GATEWAY_PORT = 18789
 MANAGER_PORT = 18790
+MANAGER_HOST = "127.0.0.1"
+MANAGER_TRANSPORTS = {
+    "v0.8.0-r3stage1": "http",
+    "v0.8.0-chhttps1": "http",
+    "v0.8.0-chhttps3": "https",
+}
+TLS_DIR=HOME/".config/bob-system/manager-tls"
+TLS_CA=TLS_DIR/"ca.crt"
+MANAGER_REGISTRY=HOME/".local/state/bob-updater/installed.json"
 MODEL = "qwen3.5:9b"
 IMAGE = "openclaw-sandbox:trixie-slim"
 OPENCLAW = str(HOME / ".openclaw/bin/openclaw")
@@ -133,16 +146,95 @@ def check_gateway(full=True):
     return True, "OpenClaw health passed"
 
 
-def check_manager():
-    if service_state(MANAGER) != "active":
-        return False, "Activity Manager service not active"
+def _manager_transport():
+    """Verify the exact installed manager hash before choosing its protocol.
+
+    Invalid/unknown registry releases never trigger a silent HTTP fallback.
+    The reviewed CH-HTTPS3 manager is HTTPS-only on the original LAN port.
+    """
+    cfg=MANAGER_REGISTRY.lstat()
+    if (not stat.S_ISREG(cfg.st_mode) or cfg.st_uid!=os.geteuid()
+            or cfg.st_nlink!=1 or cfg.st_mode & 0o077
+            or cfg.st_size>32768):
+        raise ValueError("manager_registry_untrusted")
+    data=json.loads(MANAGER_REGISTRY.read_text(encoding="utf-8"))
+    release=data.get("release")
+    if (data.get("format")!="bob-updater-v1"
+            or release not in MANAGER_TRANSPORTS
+            or not isinstance(data.get("files"),dict)):
+        raise ValueError("unreviewed_manager_release")
+    path=BIN/"bob-activity-manager"
+    info=path.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.geteuid()
+            or info.st_mode & 0o022 or info.st_nlink!=1):
+        raise ValueError("manager_binary_untrusted")
+    expected=data["files"].get("bob-activity-manager")
+    if (not isinstance(expected,str) or len(expected)!=64
+            or hashlib.sha256(path.read_bytes()).hexdigest()!=expected):
+        raise ValueError("manager_binary_registry_drift")
+    return MANAGER_TRANSPORTS[release]
+
+
+def _manager_connection(mode):
+    if mode=="https":
+        directory=TLS_DIR.lstat()
+        ca=TLS_CA.lstat()
+        if (not stat.S_ISDIR(directory.st_mode)
+                or directory.st_uid!=os.geteuid()
+                or directory.st_mode & 0o077
+                or not stat.S_ISREG(ca.st_mode)
+                or ca.st_uid!=os.geteuid()
+                or ca.st_mode & 0o077 or ca.st_nlink!=1
+                or not 1<=ca.st_size<=32768):
+            raise ValueError("untrusted_manager_tls_ca")
+        context=ssl.create_default_context(cafile=str(TLS_CA))
+        context.minimum_version=ssl.TLSVersion.TLSv1_2
+        if not context.check_hostname or context.verify_mode!=ssl.CERT_REQUIRED:
+            raise ValueError("manager_tls_certificate_verification_disabled")
+        return HTTPSConnection(MANAGER_HOST,MANAGER_PORT,
+                               timeout=3,context=context)
+    if mode=="http":
+        return HTTPConnection(MANAGER_HOST,MANAGER_PORT,timeout=3)
+    raise ValueError("unreviewed_manager_transport")
+
+
+def _manager_health():
+    """Small fixed localhost healthz, no redirects or insecure TLS."""
+    mode=_manager_transport()
+    conn=_manager_connection(mode)
     try:
-        data = fetch_json("http://127.0.0.1:18790/healthz", timeout=2, max_bytes=4096)
+        conn.request("GET","/healthz",headers={
+            "Host":"127.0.0.1:18790"})
+        res=conn.getresponse()
+        blob=res.read(4097)
+        if res.status!=200 or len(blob)>4096:
+            raise ValueError("manager_health_refused")
+        data=json.loads(blob)
+        if not isinstance(data,dict):
+            raise ValueError("manager_health_not_json_object")
+        return data
+    finally:
+        conn.close()
+
+
+def _manager_dashboard_url():
+    try:
+        return _manager_transport()+"://127.0.0.1:18790/"
+    except (OSError,ValueError,TypeError,KeyError):
+        return "unavailable (manager release not verified)"
+
+
+def check_manager():
+    if service_state(MANAGER)!="active":
+        return False,"Activity Manager service not active"
+    try:
+        data=_manager_health()
         if data.get("ok") is True and data.get("publishes") is False:
-            return True, f"Activity Manager v{data.get('version', '?')} ready (local-only approval)"
-        return False, "Activity Manager returned unexpected health data"
-    except (OSError, ValueError, urllib.error.URLError, TimeoutError):
-        return False, "Activity Manager service active but HTTP health failed"
+            return True,f"Activity Manager v{data.get('version','?')} ready (local-only approval)"
+        return False,"Activity Manager returned unexpected health data"
+    except (OSError,ValueError,TypeError,ssl.SSLError,
+            json.JSONDecodeError,TimeoutError):
+        return False,"Activity Manager transport/health not verified"
 
 
 def dependency_checks(*, full_gateway=True):
@@ -250,7 +342,7 @@ def status():
         print("WARNING: BOTH system and user scouting timers enabled; disable the legacy timer.")
     elif legacy_active():
         print("Scout uses old system timer. One-time migration: bobctl migrate-timer")
-    print("Dashboard: http://127.0.0.1:18790/")
+    print("Dashboard:",_manager_dashboard_url())
     publisher_status()
     return 0
 
@@ -330,7 +422,7 @@ def start():
     else:
         if not ctl("enable", "--now", TIMER):
             return 1
-    print("Bob is ready. Dashboard: http://127.0.0.1:18790/")
+    print("Bob is ready. Dashboard:",_manager_dashboard_url())
     return 0
 
 

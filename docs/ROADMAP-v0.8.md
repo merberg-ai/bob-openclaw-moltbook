@@ -1,3 +1,11 @@
+## CH-HTTPS1 transport-aware updater staged without changing dashboard transport (2026-10-31)
+
+CH-HTTPS0 OMEN owner inventory passed: installed `v0.8.0-r3stage1`, schema `ready`, journal `complete`, authenticated manager /r3 over **still-unencrypted HTTP**, both schedule timers and manager active, certificate material not prepared. The next versioned candidate `v0.8.0-chhttps1` is exactly two code files, `bob-release-updater` and `bobctl`, with no manager restart or publisher change. The guardrails reject unknown release transport, certificate/CA permission errors, missing IP SAN and TLS handshake failure without HTTP fallback. The updater uses pre-upgrade HTTP, post-upgrade release-specific transport, and a release-specific code-only rollback health protocol; `bobctl` independently verifies the installed manager's registry hash before selecting a protocol.
+
+This *prepares* the safe upgrade/rollback machinery. **It does not make current LAN HTTP encrypted**. Owner code-only CH-HTTPS1 install and independent verification remain required, followed by private CA/SAN provisioning/trust and a **separate** CH-HTTPS3 TLS-only manager release. See [CH-HTTPS rollout](CH-HTTPS-ROLLOUT.md). R3 real sending remains compiled Off.
+
+---
+
 ## CH-HTTPS0: private LAN dashboard HTTPS rollout design (2026-10-31)
 
 Following successful R3.13d Off-schema migration/restoration, the next security milestone is **HTTPS-only access to Activity Manager at the existing OMEN `192.168.1.24:18790`**. The owner-approved direction is direct TLS on the existing Python HTTP server, not another WAN listener or a remote reverse proxy that forwards Basic credentials in plaintext. Existing dashboard uses HTTP Basic authentication over unencrypted LAN traffic. Existing updater and `bobctl` health checks hardcode HTTP, and strict manager Origin/Referer checks require `http://`; a naive one-release socket wrap would fail update/POST acceptance.

@@ -137,7 +137,8 @@ class ManifestAndCommandTests(unittest.TestCase):
         obj = updater.manifest(ROOT)
         self.assertEqual(obj["format"], updater.FORMAT)
         self.assertEqual(obj["restart_manager"], obj["release"] not in
-                         ("v0.8.0-shadow2", "v0.8.0-shadow3", "v0.8.0-shadow4"))
+                         ("v0.8.0-shadow2", "v0.8.0-shadow3", "v0.8.0-shadow4",
+                          "v0.8.0-chhttps1"))
         if obj["release"] == "v0.7.8-updater2":
             self.assertEqual(obj["from"], "v0.7.6-oc41-polish1")
             self.assertEqual({i["name"] for i in obj["files"]},
@@ -175,6 +176,15 @@ class ManifestAndCommandTests(unittest.TestCase):
                               "bob_r313d_package.py", "bob_r313d_owner.py",
                               "bob_r313d_web.py", "bob-activity-manager",
                               "navigation_shell.py"})
+            self.assertNotIn("bob-moltbook-publisher",
+                             {i["name"] for i in obj["files"]})
+        elif obj["release"] == "v0.8.0-chhttps1":
+            self.assertEqual(obj["from"],"v0.8.0-r3stage1")
+            self.assertFalse(obj["restart_manager"])
+            self.assertEqual({i["name"] for i in obj["files"]},
+                             {"bob-release-updater","bobctl"})
+            self.assertNotIn("bob-activity-manager",
+                             {i["name"] for i in obj["files"]})
             self.assertNotIn("bob-moltbook-publisher",
                              {i["name"] for i in obj["files"]})
         else:

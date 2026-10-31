@@ -1,3 +1,46 @@
+## CH-HTTPS0 OMEN owner acceptance (2026-10-31)
+
+The owner ran the read-only CH-HTTPS0 report on the actual OMEN. It returned `installed release: v0.8.0-r3stage1`, `r3 schema: ready`, `migration journal: complete`, manager/publisher/Scout timers `active`, `current manager transport: authenticated_http_r3`, `listener: lan_or_wildcard`, `certificate state: not_prepared`, and `source preflight: pass`. No live services, database, certificate or publication settings were modified.
+
+## CH-HTTPS1 transport-aware code-only release candidate
+
+**Exact chain:** `v0.8.0-r3stage1` → `v0.8.0-chhttps1`.
+
+**Exact files:** `bob-release-updater` and `bobctl`. `restart_manager: false`. The Activity Manager executable and its existing HTTP-only listener on the same LAN port stay **unchanged**, as do Gateway, Scout, publisher, timers, R3 SQLite tables and Off settings.
+
+The updater now uses explicitly reviewed installed/current/candidate/restored release IDs to choose health-check protocols. Existing stage1 and CH-HTTPS1 check over HTTP (because the manager is still HTTP), while the future separately reviewed CH-HTTPS3 health checks use **CA-verified HTTPS** with minimum TLS 1.2 and an IP SAN for `127.0.0.1`. The CA path is fixed to `~/.config/bob-system/manager-tls/ca.crt`, ownership/mode checked and never printed. A failed HTTPS handshake, hostname validation or CA validation must not retry plaintext HTTP. No environment variable or forwarded request header may decide transport. `bobctl` independently checks the installed manager's updater-registry SHA before selecting transport.
+
+### Owner install gate after reviewed CI and PR merge
+
+Run these as the existing `openclaw` user without `sudo`:
+
+```bash
+cd ~/bob-next && git pull --ff-only
+bobctl update --check
+```
+
+Confirm the exact target version `v0.8.0-chhttps1`, exactly `bob-release-updater,bobctl`, and `Restart Activity Manager: False`. If any field differs, stop. Then:
+
+```bash
+bobctl update
+```
+
+At the existing trusted updater prompt, type exactly `UPDATE`. This is the established code-only rollback/backup/lock procedure. **Do not** change the manager unit, install a certificate, disable R3 source gates, open a new port or add a reverse proxy.
+
+Read-only post-install report:
+
+```bash
+python3 scripts/report_ch_https1_installed.py
+```
+
+Expect `installed release: verified`, `R3 off source gates: verified`, `R3 schema: ready`, `migration journal: complete`, `current manager transport: http_pre_cutover`, `future tls transport: verified_strict_https`, `authenticated manager health: pass`, `authenticated r3 page: authenticated_read_only_page`, and `installation acceptance: PASS`. The dashboard will still show **HTTP / Not secure** until the independently approved CH-HTTPS3 cutover. This does not authorize any new R3 post, TLS mode switch, manual owner mutation or public canary.
+
+The previous `report_r313d_stage1_installed.py` and `report_ch_https0.py` specifically attest their earlier release IDs and are historical after CH-HTTPS1. Use `report_ch_https1_installed.py` for the new installed release.
+
+**Next:** CH-HTTPS2 local certificate/private CA trust and CH-HTTPS3 separate review, with rollback and Windows client acceptance. Never paste or publish a CA signing key, dashboard password or certificate private key.
+
+---
+
 # CH-HTTPS: Bob Activity Manager HTTPS-only LAN hardening
 
 **Scope:** existing authenticated Activity Manager on the OMEN/OpenClawLab WSL instance, currently accessed at `http://192.168.1.24:18790`. Preserve the same IPv4 address, TCP port, UI routes, existing user account and LAN-only exposure. Do **not** use a public reverse proxy, open WAN firewall rules, expose Bob's Gateway, change publisher credentials, or enable R3 comments as part of TLS work.

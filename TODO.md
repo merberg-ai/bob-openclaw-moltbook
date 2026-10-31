@@ -1,3 +1,14 @@
+## CH-HTTPS1 OMEN transport-aware updater candidate (2026-10-31)
+
+- [x] **CH-HTTPS0 host acceptance PASS (owner-reported):** `v0.8.0-r3stage1` installed, R3 schema ready and completed journal, manager/publisher timer/Scout timer active, authenticated HTTP /r3, listener LAN/wildcard, no preexisting TLS material. Read-only source preflight PASS; no R3 real-send rights.
+- [x] Stage transport-aware two-file candidate `v0.8.0-chhttps1` from installed `v0.8.0-r3stage1`: only `bob-release-updater` and `bobctl`, `restart_manager=false`. No Activity Manager, Gateway, Scout, publisher, SQLite, certificate or service change.
+- [x] Pin explicit release-to-transport mapping: installed R3 stage1 and CH-HTTPS1 use authenticated localhost HTTP only; future separately reviewed CH-HTTPS3 uses hostname/IP-SAN-verified HTTPS with fixed private CA; no unrecognized release or TLS handshake downgrade. Updater preflight/candidate/rollback checks use their respective exact reviewed release IDs.
+- [x] Add read-only `scripts/report_ch_https1_installed.py` and offline transport/CA validation/rollback/bobctl tests, plus CI gating; HTTPS cert provisioning is **not** part of this release.
+- [ ] **Owner CH-HTTPS1 install acceptance:** first `bobctl update --check` to verify exact two files, `v0.8.0-chhttps1`, no manager restart and `v0.8.0-r3stage1` as predecessor; then typed `bobctl update`, then `python3 scripts/report_ch_https1_installed.py` for preserved HTTP /r3, completed Off-schema journal and verified future HTTPS probe. **No TLS switch or owner-mode enablement yet.**
+- [ ] **Next CH-HTTPS2:** private CA/server certificate setup and independent browser trust, then CH-HTTPS3 versioned TLS-only manager cutover. Legacy password rotation and Windows reboot tests require later owner gates.
+
+---
+
 ## CH-HTTPS0: Secure Bob Activity Manager owner LAN (source audit in progress, 2026-10-31)
 
 - [x] Review current manager, `bobctl`, guarded updater and generated R3 dashboard: HTTP Basic credentials currently cross LAN unencrypted; existing updater/CLI HTTP health checks and strict `http://` Origin verification prohibit a safe one-step HTTPS switch.
