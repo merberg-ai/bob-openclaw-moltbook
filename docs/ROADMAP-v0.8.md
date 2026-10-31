@@ -1,3 +1,11 @@
+## CH-HTTPS3 two-system HTTPS browser access observed (2026-10-31)
+
+After importing the public Bob CA on both Windows machines and promoting `v0.8.0-chhttps3`, the owner reports the Activity Manager **appears to work over HTTPS on both the OMEN and the second LAN computer**. This is reported live-client reachability, not yet the comprehensive post-install `scripts/report_ch_https3_cutover.py --installed` output. Leave final CH-HTTPS3 acceptance open until the report verifies installed hashes, completed R3 Off schema, private CA fingerprint, authenticated HTTPS and **plain HTTP refusal** on port 18790; separately confirm neither browser presents a certificate warning. No claim is made that an additional password rotation, reboot test or R3 publishing consent has occurred.
+
+Next after final TLS acceptance: **CH-HTTPS4** old LAN Basic password rotation under a reviewed recovery plan, reconnect both Windows clients, then service/WSL reboot recovery and publisher/no-duplicate validation.
+
+---
+
 ## CH-HTTPS3 owner trust accepted, TLS-only versioned cutover gated (2026-10-31)
 
 Owner reported successful Windows public CA Root imports on both OMEN and main remote LAN computer, using Bob's public CA with previously verified SHA256 `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Actual browser acceptance is still pending until the TLS service is live.

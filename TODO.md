@@ -1,3 +1,11 @@
+## CH-HTTPS3 HTTPS browser check reported on both LAN systems (2026-10-31)
+
+- [x] **Owner-reported HTTPS client access:** Activity Manager is now reachable by HTTPS from both the OMEN host and the second LAN Windows system after public CA imports. This is a live browser observation, not independent evidence that the host's full CH-HTTPS3 acceptance report passed or that both clients were warning-free.
+- [ ] **Final machine-verified CH-HTTPS3 acceptance:** run `python3 scripts/report_ch_https3_cutover.py --installed` as `openclaw` inside `~/bob-next`; require `acceptance: PASS` with exact installed release hashes, R3 Off, CA fingerprint, authenticated HTTPS, and plaintext HTTP rejection. Check there is no browser certificate warning on both computers. Do not turn on R3 manual/automatic publication.
+- [ ] **CH-HTTPS4 next:** plan separate, safe rotation of the old LAN Basic-auth password, including updater/manager consistency and two Windows browser reconnections; then reboot/recovery, LAN-only exposure and no-duplicate/publisher checks. Do not rotate password during unresolved CH-HTTPS3 verification.
+
+---
+
 ## CH-HTTPS3 OMEN Windows CA trust reported; TLS-only cutover release ready for acceptance (2026-10-31)
 
 - [x] Owner confirmed **public CA imported successfully into the Windows trust store on BOTH the OMEN and the primary remote LAN Windows computer**. Verified source certificate SHA256: `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. This is owner-reported store import, not yet a successful post-switch browser HTTPS handshake.

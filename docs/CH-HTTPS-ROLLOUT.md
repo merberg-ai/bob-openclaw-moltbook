@@ -1,3 +1,18 @@
+## CH-HTTPS3 operator-reported HTTPS browser reachability (2026-10-31)
+
+Owner reports Bob Activity Manager is now accessible **over HTTPS from the OMEN and a separate LAN Windows computer**. Both clients had previously imported the public CA. This positive result does not itself prove that browsers showed no certificate warnings, that all installed file hashes were verified, or that the old plaintext listener is refused.
+
+**Remaining acceptance command (read-only):**
+
+```bash
+cd ~/bob-next
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Require `acceptance: PASS`, authenticated R3 HTTPS page, original plain HTTP refused, correct pinned CA fingerprint, original user timers active, completed R3 Off state and no live DB/service mutation. Confirm both browsers open `https://192.168.1.24:18790/r3` **without warnings**. Do not enable R3 publication or rotate the old LAN Basic-auth secret until cutover verification completes; rotate credentials separately in CH-HTTPS4 with the updater and two browsers included in the recovery plan.
+
+---
+
 ## CH-HTTPS3 versioned production TLS-only cutover (owner-host prerequisite: Windows public CA trust imported)
 
 The OMEN owner reports that the public `ca.crt` was imported successfully into the Windows trust store on the OMEN and the other primary LAN Windows computer. The public file's independently verified SHA256 is `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Importing a certificate is **not** proof of a valid browser handshake; that will be tested only after CH-HTTPS3.
