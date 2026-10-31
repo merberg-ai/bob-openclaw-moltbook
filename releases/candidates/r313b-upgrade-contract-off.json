@@ -1,0 +1,30 @@
+{
+  "format": "bob-source-candidate-v1",
+  "candidate": "r3.13b-private-upgrade-consent-source-audit",
+  "source_branch": "next",
+  "installable": false,
+  "auto_installable": false,
+  "cutover_authorized": false,
+  "real_r3_dispatch_compiled": false,
+  "live_schema_migration": false,
+  "owner_control_ui_installed": false,
+  "owner_manual_permission_installed": false,
+  "owner_auto_permission_installed": false,
+  "default_new_r3_permission": "off",
+  "private_migration": "R3.5-compatible schema and independent default-Off R3 settings on marked disposable copy",
+  "exact_private_fixture": "r313b-upgrade-fixtures/r313b-upgrade-copy.sqlite3",
+  "attestation": "read-only exact publisher unit ExecStart and installed binary evidence without paths or hashes in output",
+  "run_readonly": "python3 scripts/report_r313b_host.py",
+  "run_private_copy": "python3 scripts/report_r313b_host.py --private-copy",
+  "legacy_publisher_unchanged": true,
+  "release_manifest_unchanged": true,
+  "test_file": "tests/test_r313b_upgrade_attestation.py",
+  "rollback_policy": "code_and_units_only; no old full SQLite restore over new attempts",
+  "outstanding": [
+    "OMEN sanitized acceptance",
+    "real authenticated owner control UI",
+    "reviewed R3 final after-intent send branch",
+    "separately authorized stage/drain/canary/reboot/rollback",
+    "R2 G1"
+  ]
+}
