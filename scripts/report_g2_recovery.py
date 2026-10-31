@@ -67,6 +67,35 @@ def _inert(row: dict) -> bool:
                 and row["enabled"] in ("disabled", "masked", "masked-runtime")))
 
 
+def _inert_competitor(scope: str, unit: str, states: dict) -> bool:
+    """Narrow exception for the observed disabled system Scout timer.
+
+    A static service lacks an ordinary enable target; that does NOT make it
+    impossible to start through another dependency or manual activation.
+    Accept only THIS named inactive system Scout service while its associated
+    installed system timer is demonstrably disabled AND inactive. Other
+    static services, static timers, active services and unknown states fail.
+    This is a host baseline gate, never proof of external no-duplicate posts.
+    """
+    key = (scope, unit)
+    if key not in REQUIRED_INERT or key not in states:
+        return False
+    row = states[key]
+    if _inert(row):
+        return True
+    if key != ("system", "bob-moltbook-scout.service"):
+        return False
+    timer = states.get(("system", "bob-moltbook-scout.timer"), {})
+    return (
+        row["load"] == "loaded"
+        and row["active"] == "inactive"
+        and row["enabled"] == "static"
+        and timer.get("load") == "loaded"
+        and timer.get("active") == "inactive"
+        and timer.get("enabled") in ("disabled", "masked", "masked-runtime")
+    )
+
+
 def inspect(phase: str) -> dict:
     if phase not in PHASES:
         raise ValueError("unsupported_g2_phase")
@@ -96,7 +125,7 @@ def inspect(phase: str) -> dict:
                 for name in ("bob-moltbook-publisher.timer",
                              "bob-moltbook-scout.timer"))
             no_extra_writers = all(
-                _inert(by_name[(scope, unit)])
+                _inert_competitor(scope, unit, by_name)
                 for scope, unit in REQUIRED_INERT)
             unit_gate = required and timers_enabled and no_extra_writers
         except (OSError, ValueError, KeyError, TypeError):
