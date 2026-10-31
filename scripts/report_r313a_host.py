@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import pwd
 from pathlib import Path
 import sys
 
@@ -23,10 +24,20 @@ from report_r38_effective_units import report as unit_report
 def collect(*, private_copy: bool = False) -> dict:
     fixed = {"home": Path.home(), "queue": QUEUE,
              "paused": PAUSED, "uid": os.geteuid()}
-    boundary = (rehearse(**fixed) if private_copy else
-                {"host": inspect_boundary(**fixed),
-                 "rehearsal": "not_requested",
-                 "cutover_authorized": False})
+    # HOME may be supplied by a process; do not let an alternate HOME
+    # redirect a host-root private-copy operation to an attacker-owned tree.
+    account_home_verified = (
+        Path(pwd.getpwuid(os.geteuid()).pw_dir) == Path.home())
+    boundary = (rehearse(**fixed) if private_copy and account_home_verified
+                else {"host": inspect_boundary(**fixed),
+                      "rehearsal": ("refused_account_home" if private_copy
+                                    and not account_home_verified
+                                    else "not_requested"),
+                      "cutover_authorized": False})
+    if not account_home_verified:
+        boundary["host"]["private_copy_eligible"] = False
+        boundary["host"]["review_blockers"] = sorted(set(
+            boundary["host"]["review_blockers"] + ["account_home_mismatch"]))
     return {
         "format": "bob-r313a-host-preflight-v1",
         "host": boundary["host"],
