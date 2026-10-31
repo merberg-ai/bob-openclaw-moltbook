@@ -1,3 +1,13 @@
+## G2.5 WSL firewall default-block confirmed, no active 8787 listener (2026-10-31)
+
+New owner-provided effective WSL Hyper-V policy result: `Enabled=True`, `DefaultInboundAction=Block`, `AllowHostPolicyMerge=True` for VMCreatorId `{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}`. Combined with previously verified `Bob Activity Manager - WSL LAN` `Enabled=True/Allow/TCP 18790/RemoteAddresses=192.168.1.0/24`, this supports the intended **default-deny inbound with one LAN-scoped dashboard exception**. This passes the WSL-specific Hyper-V firewall check, but host-policy merge is enabled, so other Windows firewall rules and router/WAN/IPv6/VPN paths are separate review gates.
+
+The owner also ran `wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :8787 )'` and saw only the column header: **no current TCP listener on 8787 within that distro**. The unrelated Hyper-V code-server 8787 `Allow/Any` rule remains broader than necessary if unused, but no currently listening service or Internet exposure has been demonstrated. Do not remove it before checking code-server use and other distros if relevant.
+
+**Next nonmutating checks:** review active Windows host firewall allow rules that could match TCP 18790, then check router/NAT/UPnP and public IPv6/VPN exposure. Separately compare persisted legacy attempted/reply IDs to actual Moltbook results across the reboot; unchanged local 23 attempted/0 uncertain cannot independently exclude remote duplicates. Avoid changing the running manager, systemd, certificates, private SQLite or R3 hard-Off settings as part of evidence collection.
+
+---
+
 ## G2.5 Hyper-V inbound ACL: Bob 18790 restricted to LAN, code-server 8787 Any (2026-10-31)
 
 The owner reported the installed WSL Hyper-V inbound `Bob Activity Manager - WSL LAN` rule with `Enabled=True`, `Action=Allow`, TCP local port `18790`, and `RemoteAddresses=192.168.1.0/255.255.255.0` (a private `/24`). This strongly supports intentional LAN scoping for the Linux-owned wildcard `0.0.0.0:18790` listener under WSL mirrored networking. The output also included WSL core ICMPv4/ICMPv6 and mDNS rules with `RemoteAddresses=Any`; those are distinct protocols/ports, **not** TCP 18790 overrides.

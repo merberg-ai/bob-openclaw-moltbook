@@ -1,3 +1,11 @@
+## G2.5 WSL Hyper-V firewall default deny and scoped 18790 rule accepted (2026-10-31)
+
+Owner reported `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore` for WSL with `Enabled=True`, `DefaultInboundAction=Block` and `AllowHostPolicyMerge=True`. The separately observed active `Bob Activity Manager - WSL LAN` rule restricts TCP port **18790** to **192.168.1.0/24**. With WSL `networkingMode=mirrored`, a Linux listener at `0.0.0.0:18790` and working two-client LAN HTTPS, this **passes the WSL Hyper-V inbound default-block/scoped-rule check**. It is not a comprehensive WAN isolation proof because Windows host policy merges and router forwarding/IPv6/VPN or other effective rules have not been independently reviewed.
+
+The unrelated WSL Hyper-V rule `code-server WSL 8787` permits TCP 8787 from `Any`, but owner `ss -lnt '( sport = :8787 )'` showed no listener inside OpenClawLab at test time. Do not misrepresent that as externally open or unsafe to delete without reviewing usage. Full G2 remains open for WAN exposure review and independent Moltbook receipt/no-duplicate reconciliation. No host changes, reboot or R3 posting permissions are necessary.
+
+---
+
 ## G2.4 both LAN browsers reachable after reboot; external checks remain (2026-10-31)
 
 The owner separately confirmed **both Windows systems can access the Activity Manager dashboard** after the completed G2.3 Windows/WSL reboot and healthy Gateway/HTTPS/R3 Off postcheck. This closes the **LAN dashboard reachability observation** for the OMEN and second LAN computer. The owner has not specifically restated absence of TLS warnings, cert bypass or fresh authentication with the newly rotated password in this post-reboot confirmation; those details remain a small visual check, not invented evidence.
