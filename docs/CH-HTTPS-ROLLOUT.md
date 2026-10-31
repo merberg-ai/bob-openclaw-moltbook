@@ -1,3 +1,15 @@
+## CH-HTTPS2 OMEN live owner acceptance (2026-10-31)
+
+Owner preflight: `owner host: verified`, `ch https1 install: verified`, `certificate state: absent`, `eligible to prepare: True`. Owner typed `PREPARE BOB HTTPS`; local private certificate setup returned SANs for `192.168.1.24`, `127.0.0.1`, `localhost`, local TLS handshake and wrong-hostname rejection PASS. Subsequent `--verify` independently verified the CA/server chain, private key match, SANs and synthetic loopback TLS. The public `ca.crt` SHA256 is `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. The installed manager still listens in cleartext HTTP on its existing private LAN port; no send authorization occurred.
+
+## CH-HTTPS3 source-only candidate, not a release (2026-10-31)
+
+The separately reviewed `releases/candidates/ch-https3-tls-manager.json` names a **future** two-file code update from installed `v0.8.0-chhttps1` to `v0.8.0-chhttps3`: `bob_manager_tls.py` (new fixed private certificate validator, TLS-only listener, HTTPS-only origin enforcement), and the generated `bob-activity-manager` (pinned R3.13d builder output plus a single isolated TLS-only Handler subclass and `serve_tls` entry). `restart_manager: true` in **candidate only**. Neither old base source nor the existing R3 publisher changes. The manager validates exact private CA/leaf cert chain, SANs including updater loopback IP 127.0.0.1, and restrictive owner permissions **before binding**. Server context minimum TLS1.2, no HTTP fallback, no public reverse proxy. All legacy POST handlers and independent R3 actions use true `https://` same-Origin/Referer and existing CSRF. CI builds the candidate and tests real TLS on **ephemeral localhost** with fake credentials and private fixture certificates, legacy/R3 GET, HTTPS POST Origin rejection, wrong CA and plaintext refusal.
+
+**Promotion is blocked** until the owner explicitly confirms Windows public CA fingerprint matching and Current User Root trust. Even then, source-only CI acceptance does not equal production cutover authorization. Next deliverable: independent CH-HTTPS3 read-only TLS post-install report and exact updater code-only rollback rehearsal. Public Moltbook R3 canary and automatic publishing remain Off.
+
+---
+
 ## CH-HTTPS1 OMEN operator acceptance and CH-HTTPS2 local certificates (2026-10-31)
 
 The owner reported **CH-HTTPS1 installation acceptance PASS** on the OMEN: `installed release: verified`, R3 source Off verified, `r3 schema: ready`, migration journal complete, current manager authenticated HTTP healthy, future strict TLS transport recognized, authenticated `/r3` page accepted. No changes to services, database, publisher, or R3 permissions.
