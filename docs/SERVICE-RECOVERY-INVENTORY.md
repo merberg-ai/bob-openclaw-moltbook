@@ -1,3 +1,22 @@
+## G2.5 Hyper-V inbound ACL: Bob 18790 restricted to LAN, code-server 8787 Any (2026-10-31)
+
+The owner reported the installed WSL Hyper-V inbound `Bob Activity Manager - WSL LAN` rule with `Enabled=True`, `Action=Allow`, TCP local port `18790`, and `RemoteAddresses=192.168.1.0/255.255.255.0` (a private `/24`). This strongly supports intentional LAN scoping for the Linux-owned wildcard `0.0.0.0:18790` listener under WSL mirrored networking. The output also included WSL core ICMPv4/ICMPv6 and mDNS rules with `RemoteAddresses=Any`; those are distinct protocols/ports, **not** TCP 18790 overrides.
+
+The same reported list has an unrelated enabled Hyper-V inbound rule named `code-server WSL 8787` permitting TCP local port 8787 from `Any` remote address. That is broader than the Bob rule; by itself it does not prove public reachability, a running service, open router forwarding, or absent authentication.
+
+**Not yet supplied:** the effective `Get-NetFirewallHyperVVMSetting` result, specifically firewall `Enabled`, `DefaultInboundAction` and `AllowHostPolicyMerge`. Do not claim LAN-only proof until the default inbound policy is verified and Windows host/firewall merge, router IPv4 forwarding, global IPv6 and VPN exposure are reviewed. Inspect, don't change:
+
+```powershell
+$wslId = '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
+Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore -Name $wslId |
+    Format-List Name,Enabled,DefaultInboundAction,AllowHostPolicyMerge
+wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :8787 )'
+```
+
+The Linux `ss` command checks only whether code-server's listed port is listening, and does not establish exposure or authentication. No service, firewall, Windows portproxy, router or publisher modification is necessary for this evidence collection. A conservative decision on whether to reduce the 8787 rule's remote scope can come after reviewing whether that service is in use. Microsoft Hyper-V firewall reference: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/hyper-v-firewall .
+
+---
+
 ## G2.5 confirmed Linux wildcard listener on WSL mirrored network (2026-10-31)
 
 The owner ran Linux `ss -lnt '( sport = :18790 )'` in OpenClawLab from Windows PowerShell and reported an IPv4 `LISTEN` socket at **`0.0.0.0:18790`**. The owner's `.wslconfig` explicitly sets **`networkingMode=mirrored`**. Combined with confirmed access on two LAN Windows machines and earlier absent Windows host socket/portproxy, this establishes the likely Linux-owned mirrored networking route. It does **not** prove LAN-only restrictions; an IPv4 wildcard socket is not interface-limited.
