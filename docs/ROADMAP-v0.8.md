@@ -1,3 +1,9 @@
+## CH-HTTPS4.1 rotation refusal recovery gate (2026-10-31)
+
+The owner reports original CH-HTTPS4 interactive rotation returned `REFUSED OR INDETERMINATE: CredentialError` despite `--preflight` PASS and successful new-password browser access reported on two Windows computers. There is no accepted old-password rejection proof from that command. Stage CH-HTTPS4.1 to diagnose with non-mutating, hidden-prompt `--audit` comparing exact private local credentials and real CA-verified HTTPS statuses, and replace unhelpfully generic future refusal errors with fixed-safe categories. Keep all live services, installed `v0.8.0-chhttps3` release, SQLite, certs and R3 permissions unchanged. Do not blindly repeat rotation; require audited old 401/new 200/anonymous 401, then independent restart and G2 evidence.
+
+---
+
 ## CH-HTTPS3 formal TLS acceptance PASS; CH-HTTPS4 credential rotation is next (2026-10-31)
 
 Owner supplied the sanitized fixed-host `report_ch_https3_cutover.py --installed` result: **`acceptance: PASS`**. The verified CH-HTTPS3 release, private public-CA SHA256, authenticated HTTPS manager and R3 page, source-Off/migration-journal guarantees, original active timers, and refusal of plaintext HTTP all passed. The owner previously confirmed browser HTTPS reachability from both OMEN and second LAN Windows computer; no-warning browser verification is a distinct visual check.
