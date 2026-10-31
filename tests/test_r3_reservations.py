@@ -185,8 +185,6 @@ class ReservationLabTests(unittest.TestCase):
 
     def test_roll_back_transaction_on_failed_audit_insert(self):
         # Any failure after reservation insertion must roll back both rows.
-        with sqlite3.connect(self.ledger.path) as db:
-            pass
         self.assertEqual(self.reserve(policy=policy(dial="off")).state, "refused")
         with sqlite3.connect(self.ledger.path) as db:
             db.execute("CREATE TRIGGER fail_log BEFORE INSERT ON changes "
