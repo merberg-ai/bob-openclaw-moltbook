@@ -1,3 +1,11 @@
+## CH-HTTPS2 guarded local certificates under review (2026-10-31)
+
+The owner independently accepted CH-HTTPS1 installed on OMEN (`v0.8.0-chhttps1` exact hash and R3 triple source Off; manager HTTP and authenticated `/r3` healthy; schema `ready`/journal `complete`). **HTTP remains in service** while CH-HTTPS2 prepares locally trusted certificate material. A read-only-by-default `scripts/prepare_ch_https2.py` preflight first checks that exact installed release and no existing private material is present. Owner must separately type `PREPARE BOB HTTPS` before generating a brand-new local CA and server key/cert with P-256 ECDSA keys, exact three SANs, short one-year leaf validity, private restrictive file modes, OpenSSL chain/key/SAN/role verification and disposable loopback TLS handshake with wrong-hostname rejection. Afterward a separate `--verify` is read-only. Existing manager service, timers, SQLite, updater registry and publication controls remain untouched.
+
+Windows Current User root trust of **only the public CA certificate** is a later explicit owner action after comparing WSL and Windows public CA SHA256; installing a private CA as a root has broad trust implications and should not be done blindly. This phase does not install the TLS-only server or secure the current HTTP transport. CH-HTTPS3 manager cutover and CH-HTTPS4 LAN/browser verification remain distinct. Full SOP: [CH-HTTPS rollout](CH-HTTPS-ROLLOUT.md).
+
+---
+
 ## CH-HTTPS1 transport-aware updater staged without changing dashboard transport (2026-10-31)
 
 CH-HTTPS0 OMEN owner inventory passed: installed `v0.8.0-r3stage1`, schema `ready`, journal `complete`, authenticated manager /r3 over **still-unencrypted HTTP**, both schedule timers and manager active, certificate material not prepared. The next versioned candidate `v0.8.0-chhttps1` is exactly two code files, `bob-release-updater` and `bobctl`, with no manager restart or publisher change. The guardrails reject unknown release transport, certificate/CA permission errors, missing IP SAN and TLS handshake failure without HTTP fallback. The updater uses pre-upgrade HTTP, post-upgrade release-specific transport, and a release-specific code-only rollback health protocol; `bobctl` independently verifies the installed manager's registry hash before selecting a protocol.
