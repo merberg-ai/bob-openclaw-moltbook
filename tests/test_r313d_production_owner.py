@@ -188,6 +188,22 @@ class R313DOwnerTests(unittest.TestCase):
         self.assertNotIn("http.client",inspect.getsource(producer))
 
 class R313DBundleTests(unittest.TestCase):
+    def test_generated_oc4_shadow_manager_keeps_original_source_pinned(self):
+        import build_r313d_manager_candidate as generated
+        import build_v071_manager_candidate as baseline
+        old=baseline.SOURCE.read_bytes()
+        self.assertEqual(baseline.sha256(old),
+                         baseline.PINNED_BASELINE_SHA256)
+        manager,nav=generated.build()
+        self.assertIn(b"class Handler(R3HandlerMixin, _LegacyHandler):",manager)
+        self.assertIn(b"R3_CSRF_TOKEN = TOKEN",manager)
+        self.assertIn(b"bob_v08_bridge",manager)
+        self.assertIn(b"/investigate",manager)
+        self.assertIn(b"/r3",nav)
+        self.assertIn(b"/v08/now",nav)
+        self.assertIn(b"/v08/inbox",nav)
+        self.assertEqual(old,baseline.SOURCE.read_bytes())
+
     def test_deterministic_build_is_separate_from_shadow4(self):
         import build_r313d_off_package
         a=build_r313d_off_package.build()
