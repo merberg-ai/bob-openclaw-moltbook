@@ -23,8 +23,18 @@
       "source": "src/lib/bob/bob_r313d_owner.py"
     },
     {
+      "name": "bob_r313d_web.py",
+      "source": "src/lib/bob/bob_r313d_web.py"
+    },
+    {
       "name": "bob-activity-manager",
-      "source": "src/bin/bob-activity-manager"
+      "builder": "scripts/build_r313d_manager_candidate.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_r313d_manager_candidate.py",
+      "index": 1
     }
   ],
   "restart_manager": true
