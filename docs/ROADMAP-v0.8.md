@@ -1,10 +1,20 @@
+## R3.13b OMEN owner acceptance PASS (2026-10-30)
+
+The owner ran the merged `next` R3.13b installed-source audit and the independently requested `--private-copy` upgrade rehearsal on the OMEN/OpenClawLab WSL host. The read-only audit reported a trusted queue boundary, matching legacy schema, no installed R3 consent (`absent_off`), reviewed publisher systemd unit shape, an owner-controlled regular installed executable, **verified updater registry hash**, no source or boundary blockers, and the expected difference between the legacy installed binary and the unreleased `next` candidate.
+
+The disposable SQLite copy reported **PASS** for the schema and default-Off R3 owner-control upgrade, crash rollback, repeat migration, complete old history preservation, and code-only rollback that retained a newly simulated uncertain attempt. Existing historical send attempts: **22**; existing uncertain outcomes: **0**. The temporary copy was deleted. This is the operator's sanitized point-in-time acceptance, not an independent live inspection, proof of 22 confirmed public comments, or authorization to change production. **No live DB change, installed publisher change, new R3 manual/auto posting rights or cutover.**
+
+**R3.13b accepted; next R3.13c:** develop/review real single-publisher R3 admission and final safety checks with authenticated owner controls, but remain compiled Off until a separately authorized release, canary and reboot/rollback gate. R2 G1 remains open.
+
+---
+
 ## R3.13b source-only upgrade/consent and publisher executable attestation
 
 The R3.13a owner-accepted host boundary is extended by a reviewed R3.13b **noninstallable** source contract. A marked disposable SQLite copy receives the R3.5 additive proposal/approval/audit tables and four separately named default-Off R3 controls in one transaction; unknown/active preexisting consent fails closed, and all old jobs, decisions, attempts and uncertain-delivery history remain intact. The migration and code-only rollback are rehearsed only on private copied real-queue and synthetic SQLite. A simulated new uncertain attempt after the upgrade cannot be lost by restoring an older database; this phase permits no DB restore.
 
 Independent R3 consent inspection is source-only: manual requires `r3_manual_enabled=1`, compatible `r3_comment_dial` and owner approval bound to the exact Bob draft seal; automatic comments require separate `r3_auto_enabled`, valid `r3_auto_since`, existing v0.7 auto permission and source newer than the R3 opt-in. No dashboard permission UI/setter or production R3 post path is installed; returns never authorize dispatch. A read-only host tool also checks the exact effective publisher service/timer, installed executable ownership/path, updater registry hash when tracked, and difference from the future uninstalled next source without printing paths, secrets or hashes. Untracked binaries require later review rather than implying release attestations.
 
-**Status:** source-only PR CI acceptance and operator OMEN check pending. [R3.13b operator guide](R313B-UPGRADE-CONSENT-ATTESTATION.md). `releases/current.json` still Shadow4, R3.12 real dispatch hard Off, existing v0.7 publisher unchanged, no new owner posting rights. **Next R3.13c** reviewed real single publisher send admission/final barrier plus independent authenticated owner UI; **R3.13d** separately authorized stage/canary/reboot/code-only rollback. R2 G1 still pending.
+**Status:** source-only contract merged and owner OMEN acceptance passed (see above). [R3.13b operator guide](R313B-UPGRADE-CONSENT-ATTESTATION.md). `releases/current.json` still Shadow4, R3.12 real dispatch hard Off, existing v0.7 publisher unchanged, no new owner posting rights. **Next R3.13c** reviewed real single publisher send admission/final barrier plus independent authenticated owner UI; **R3.13d** separately authorized stage/canary/reboot/code-only rollback. R2 G1 still pending.
 
 ---
 
