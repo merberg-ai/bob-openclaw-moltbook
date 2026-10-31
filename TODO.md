@@ -1,11 +1,11 @@
-## R3.13c source-only candidate: sealed Bob envelope and existing publisher path (review pending)
+## R3.13c source-only candidate accepted and merged (2026-10-30)
 
 - [x] Correct the action provenance gap: R3.5 proposal seal/fingerprint do not preserve original Bob decision reason. Add bounded canonical `r313c_action_envelopes` plus versioned `r313c_schema_meta` additive contract, verified against the saved Scout source, independent seal and matching proposal before preflight, claim and dispatch.
 - [x] Wire `bob_r313c_adapter.maybe_r3_publisher_step()` into the **existing** `src/bin/bob-moltbook-publisher`. The publisher's integration guard stays **True=Off**, and both R3.12/R3.13c real production send switches stay hardcoded **False**; candidate dependencies are not imported by the current legacy publisher. Current v0.7 Scout publisher and installed Shadow4 remain untouched; no second credential, service, external request or owner authority.
 - [x] Candidate same-ledger atomic `BEGIN IMMEDIATE` attempted-intent claim, whole-queue manual-first, R3.9 fixed post+author GET, independent R3.13b R3 manual/auto controls, verified source/friend/owner/pause/budgets, final after-intent barrier, API ACK distinct from public verification, human challenge and timeout/crash/restart no-replay.
 - [x] Add offline fake GET/POST regression suite, actual publisher default-Off test, envelope reason tampering, owner revocation, friend, pause, duplicate target, priority and competing workers. Add CI triggers, [guide](docs/R313C-ONE-PUBLISHER-OFF.md) and explicitly noninstallable release candidate metadata.
-- [ ] **R3.13c CI/source acceptance pending** before merge; no on-host installation part of this step.
-- [ ] **R3.13d:** separately authorized production action-envelope migration and trusted producer, authenticated independent owner controls, versioned release and unit drain/canary, real sender activation after explicit owner consent, challenge/reboot/code-only rollback. R2 G1 natural source-linked timer decision remains open.
+- [x] **R3.13c source gate accepted:** PR #84 squash-merged into `next` at `1b13dd7f12c597adffd282f4dc9757df463eb1f6` after GitHub Actions run `41169512190` passed **911 Python tests** and Windows startup parse. The actual legacy publisher's clean install/import and default R3 hold behavior passed. No OMEN installation or R3 real sender/owner authority is part of this acceptance.
+- [ ] **R3.13d next:** separately authorized production action-envelope migration and trusted proposal writer, authenticated independent owner controls, versioned release and publisher drain/canary, real sender activation only after owner consent, challenge/reboot/no-duplicate/code-only rollback. R2 G1 natural source-linked timer decision remains open.
 
 ---
 
