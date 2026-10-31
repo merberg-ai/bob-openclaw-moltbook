@@ -118,7 +118,7 @@ class R313COfflineTests(unittest.TestCase):
         def fake_get(post,author):
             if remote is not None:
                 return remote(post,author)
-            return RemoteReview(post==ID and author=="ThirdPartyAgent",
+            return RemoteReview(post==ID and author==self.obs.author,
                                 "fake_exact_identity")
         if db is not None:
             return candidate_step(db,self.source,self.root/"paused",
@@ -252,7 +252,7 @@ class R313COfflineTests(unittest.TestCase):
     def test_friend_added_after_intent_blocks_automatic_post(self):
         def added_friend():
             with closing(self.connect()) as db:
-                db.execute("INSERT INTO bob_friends VALUES('thirdpartyagent')")
+                db.execute("INSERT INTO bob_friends VALUES('savedagent')")
         result,calls=self.exercise(after_intent=added_friend)
         self.assertEqual(result.status,"uncertain")
         self.assertEqual(calls,[])
