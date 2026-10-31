@@ -1,3 +1,13 @@
+## CH-HTTPS2 OMEN cert PASS; CH-HTTPS3 source-only candidate (2026-10-31)
+
+- [x] **Owner CH-HTTPS2 local cert acceptance PASS:** independent fixed-host read-only preflight verified CH-HTTPS1 install, no material and eligible; owner typed `PREPARE BOB HTTPS`, private CA/server cert created, three SANs verified (192.168.1.24 / 127.0.0.1 / localhost), disposable TLS handshake and wrong-hostname refusal PASS. Repeat `--verify` read-only PASS. Public CA SHA256 **`af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`**. No TLS service activated or R3 send rights.
+- [ ] **Windows CA trust pending:** on owner's Windows session, compare public `ca.crt` SHA256 from WSL share with above. Import public CA only to Current User Root after deliberate confirmation. Never export private `ca.key` or `server.key`; certificate trust of browser connection only proven after actual TLS-only service.
+- [x] **CH-HTTPS3 source-only candidate built:** new `src/lib/bob/bob_manager_tls.py`, additive `scripts/build_ch_https3_manager_candidate.py` over pinned R3 generated UI, and **UNPROMOTED** `releases/candidates/ch-https3-tls-manager.json` with two files `bob_manager_tls.py` + `bob-activity-manager` and `restart_manager:true`. Require fixed private CA/SAN chain and TLS 1.2+ before binding old port; strict HTTPS Origin/Referer/Host, retain Basic auth/CSRF/R3 hard-Off; no plaintext fallback. Real synthetic TLS HTTP tests cover /r3 and legacy routes plus refusal of HTTP, wrong CA, cross-origin and bad CSRF.
+- [ ] **Do not promote/install CH-HTTPS3 yet:** independent owner report confirming verified Windows CA import and browser trust store state first; then explicit reviewed release promotion with health/rollback acceptance before switching the live manager. Publish/Scout/Gateway and SQLite remain untouched.
+- [ ] **Post-cutover CH-HTTPS4:** confirm `https://192.168.1.24:18790/r3` verified browser lock, no warning, HTTP plaintext refused, all owner actions guarded, second LAN device CA trust, password rotation, reboot/reconnect and no publisher regressions. No real R3 canary consent.
+
+---
+
 ## CH-HTTPS2: OMEN certificate provisioning awaiting owner acceptance (2026-10-31)
 
 - [x] **CH-HTTPS1 owner acceptance PASS:** installed release `v0.8.0-chhttps1` verified, R3 schema `ready`, journal `complete`, authenticated existing HTTP manager and R3 owner page pass, no new R3 send rights. HTTP LAN remains unencrypted pending reviewed TLS-only switch.
