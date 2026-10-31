@@ -54,6 +54,62 @@ class G2ReadOnlyTests(unittest.TestCase):
         self.assertEqual(result["moltbook_requests"],0)
         self.assertFalse(result["database_or_credentials_changed"])
 
+    def test_owner_reported_static_scout_and_absent_candidates_pass(self):
+        """Reproduce actual G2 JSON: inactive/static system Scout service."""
+        rows=self.facts()
+        for row in rows:
+            if (row["scope"],row["unit"]) == (
+                    "system","bob-moltbook-scout.service"):
+                row["enabled"]="static"
+            if row["unit"].startswith("bob-r3-candidate-publisher."):
+                row.update(load="not-found",active="inactive",enabled="unknown")
+        result=self.check(rows)
+        self.assertEqual(result["host_gate"],"PASS")
+        self.assertEqual(result["historical_attempts"],23)
+        self.assertFalse(result["actual_duplicate_posting_excluded"])
+
+    def test_static_system_scout_requires_inert_installed_timer(self):
+        for timer_load,timer_active,timer_enabled,expected in (
+                ("loaded","inactive","disabled","PASS"),
+                ("loaded","inactive","masked","PASS"),
+                ("loaded","inactive","masked-runtime","PASS"),
+                ("loaded","inactive","enabled","NOT_VERIFIED"),
+                ("loaded","active","disabled","NOT_VERIFIED"),
+                ("loaded","inactive","unknown","NOT_VERIFIED"),
+                ("not-found","inactive","unknown","NOT_VERIFIED"),
+                ("loaded","inactive","static","NOT_VERIFIED")):
+            rows=self.facts()
+            for row in rows:
+                if (row["scope"],row["unit"]) == (
+                        "system","bob-moltbook-scout.service"):
+                    row["enabled"]="static"
+                if (row["scope"],row["unit"]) == (
+                        "system","bob-moltbook-scout.timer"):
+                    row.update(load=timer_load,active=timer_active,
+                               enabled=timer_enabled)
+            with self.subTest(timer=(timer_load,timer_active,timer_enabled)):
+                self.assertEqual(self.check(rows)["host_gate"],expected)
+
+    def test_static_exception_never_applies_to_other_competitors(self):
+        for scope,name in (
+                ("system","bob-moltbook-scout.timer"),
+                ("user","bob-r3-candidate-publisher.service"),
+                ("user","bob-r3-candidate-publisher.timer")):
+            rows=self.facts()
+            for row in rows:
+                if (row["scope"],row["unit"]) == (scope,name):
+                    row["enabled"]="static"
+            with self.subTest(unit=(scope,name)):
+                self.assertEqual(self.check(rows)["host_gate"],"NOT_VERIFIED")
+
+    def test_active_static_scout_service_still_blocks(self):
+        rows=self.facts()
+        for row in rows:
+            if (row["scope"],row["unit"]) == (
+                    "system","bob-moltbook-scout.service"):
+                row.update(enabled="static",active="active")
+        self.assertEqual(self.check(rows)["host_gate"],"NOT_VERIFIED")
+
     def test_https_r3_source_drift_blocks(self):
         self.assertEqual(self.check(source=False)["host_gate"],"NOT_VERIFIED")
 
