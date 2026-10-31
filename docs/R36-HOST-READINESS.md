@@ -1,5 +1,28 @@
 # R3.6 host readiness and draft-origin contract
 
+## Real OMEN acceptance snapshot: observed 2026-10-30
+
+The owner ran the documented one-command read-only check successfully from `~/bob-next` immediately after a clean fast-forward to `next` commit `1c4a161`. Reported observations:
+
+| Check | Observed result |
+| --- | --- |
+| Legacy publisher timer / service | active / inactive |
+| Shadow timer / startup reconcile timer | active / active |
+| R3 candidate publisher timer / legacy system Scout timer | inactive / inactive |
+| Legacy SQLite schema / policy | match / valid |
+| Global pause / existing v0.7 auto comments | not_paused / enabled |
+| Historical attempted sends | 22 |
+| Delivery states requiring review | 0 |
+| Baseline consistency / review blockers | observed / none |
+| New R3 publication authority / cutover | NONE / NO |
+
+**Assessment: R3.6 point-in-time host baseline accepted.** The inactive publisher oneshot service is consistent with operation between timer invocations. Twenty-two attempts are historical send intents, not twenty-two confirmed public comments; zero review states is not proof every earlier send was publicly visible. The **existing v0.7 auto-comment flag is enabled**, but it confers **no** permission on new v0.8/Bob-generated drafts. Host runtime, actual unit/drop-in semantics, WSL/Windows reboot behavior, current friend/GET preflights and sealed Bob-authored publisher admission are **not** verified by this report. The tool's `cutover authorized: NO` remains binding.
+
+No deployed package, timer, queue content, credential, approval setting or publisher permission was changed by this operator check or by recording it.
+
+---
+
+
 **Status:** source-only, offline CI acceptance first. The current OMEN installation remains `v0.8.0-shadow4`; the existing v0.7 credentialed publisher remains the sole real writer. This work **does not** grant new permissions, install a service or modify the live queue.
 
 ## Operator check, only after PR merge

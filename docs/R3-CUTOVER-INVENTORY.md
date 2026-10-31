@@ -1,3 +1,11 @@
+## R3.6 real-host checkpoint accepted; R3.7 trust gate outstanding (2026-10-30)
+
+Operator-supplied read-only report from updated `~/bob-next`: publisher timer **active**, publisher oneshot service **inactive**, Shadow4 timer **active**, startup reconciliation timer **active**, candidate publisher timer **inactive**, legacy system Scout timer **inactive**; v0.7 SQLite schema **match** and policy **valid**, pause **not_paused**, existing v0.7 automatic comments **enabled**, **22 attempted_at-bearing history records**, **0 states flagged for delivery review**, `baseline consistency: observed`, `review blockers: none`, `cutover authorized: NO`. This verifies a compatible point-in-time host baseline. It does **not** verify actual published comment totals, unit/drop-in topology or reboot resilience, actual live GET/friend result freshness, owner approval of R3 activity, or installed publisher support for new sealed Bob drafts.
+
+R3.7 must gate each proposed new Bob-authored comment through a single credentialed publisher with independently authenticated owner settings, saved-source verification, exact draft seal/consent, reliable local friend protection, authenticated post-existence GET, a final pause and budget check, durable pre-POST intent, and no blind retry for uncertain outcomes. Any auto mode requires separate explicit R3 opt-in in addition to the existing `auto_enabled=1`; do not silently treat the v0.7 setting as consent for new Bob-authored actions. Keep all R3 code uninstalled until a reviewed cutover.
+
+---
+
 ## R3.6 host-check implementation, production approval still withheld
 
 **Code added:** `scripts/report_r36_host_readiness.py` expands the older R3.0 inventory to include the publisher service, Scout service, original/reconcile services and two inert candidate unit names; verifies essential exact v0.7 schema columns and reports **counts only** for attempted and uncertain delivery states, along with validated legacy activity limits and pause/auto settings. Its default CLI prints a compact operator report, optional `--json` remains metadata-only, all under fixed `systemctl show` and SQLite `mode=ro` calls. It never reads API keys, outputs prompt/comment text, alters installed files, starts workers or posts. **No actual OMEN inventory has been run by this PR.**
