@@ -1,3 +1,12 @@
+## R3.1 engineering checkpoint: transactional reservation and simulated pre-send
+
+- [x] Implement source-only `src/bob_v08/r3_reservations.py`: private lab database with atomic source/target reservation, duplicate lock, conservative budget accounting, independent final recheck, simulated intent recording and irreversible unknown state. No real send/approval/worker integration, no v0.8 outbound permission.
+- [x] Add synthetic tests in `tests/test_r3_reservations.py` and CI triggers for two simultaneous claimants, content/source hash drift, policy revocation, UTC rollover, spacing, corrupt clock/settings, crash rollback and no network APIs. This is an engineering fixture, **not a new installed release**.
+- [ ] **R3.2 next:** map authoritative existing v0.7 `publish_jobs`, `decisions`, `publish_settings` and publisher's pre-POST `sending/attempted_at` transition into an exact transactional compatibility gate. Avoid duplicate independent ledgers granting competing dispatch authority. Prove manual-first and stale approval handling; preserve uncertain/verification states and no blind retries. Follow with isolated service cutover and rollback rehearsal, then explicitly approved owner acceptance. No running unit or live credential changes during this preparation.
+- [ ] **R2 remaining:** allow natural Scout observations to reach the active Shadow4 timer and record one timer-driven source-bound decision before declaring the full G1 representative scheduled-decision gate complete. The successful scheduled no-event service run is not equivalent to a fresh model decision.
+
+---
+
 # Bob 💀 — Project TODO
 
 ## Active handoff: v0.8 Shadow4 accepted manually; R2 completion and R3 preparation (2026-10-30)
