@@ -148,9 +148,10 @@ def audit(service_text: str, timer_text: str) -> Audit:
     if not cadence:
         blockers.append("publisher_timer_no_schedule")
     # A unit can have multiple drop-ins: report their count, never their names.
-    service_ok = not any(b.startswith("publisher_") or
-                         b in ("extra_publisher_process_command",)
-                         for b in blockers)
+    service_ok = not any(
+        (b.startswith("publisher_") and not b.startswith("publisher_timer_"))
+        or b in ("extra_publisher_process_command",)
+        for b in blockers)
     timer_ok = not any(b.startswith("timer_") for b in blockers) and (
         "publisher_timer_wrong_target" not in blockers and
         "publisher_timer_no_schedule" not in blockers and
