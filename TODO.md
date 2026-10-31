@@ -1,3 +1,12 @@
+## G2.5 WSL listener inspection corrected after Windows-only probe (2026-10-31)
+
+- [x] **Owner Windows PowerShell observation:** `Get-NetTCPConnection -State Listen -LocalPort 18790` returned `No matching MSFT_NetTCPConnection objects`, and `netsh interface portproxy show all` returned an empty list. These are valid negative observations of *Windows host* TCP listeners and explicit `netsh` portproxy rules. They are NOT a failed Bob service health check, and they cannot prove port 18790 is unexposed while the Activity Manager remains reachable from both Windows LAN machines.
+- [ ] **Read-only WSL-aware diagnostic, PowerShell on OMEN:** `wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :18790 )'` reports Linux socket bind(s) without showing private command-line arguments; `Select-String -Path "$env:USERPROFILE\.wslconfig" -Pattern '^\s*networkingMode\s*=' -ErrorAction SilentlyContinue` reports any explicitly configured WSL networking mode, not necessarily effective runtime configuration. Do not publish full `.wslconfig` content.
+- [ ] **Separate Hyper-V firewall + router acceptance:** WSL mirrored networking can receive direct LAN traffic via Windows/WSL bridging without a Windows process bound in `Get-NetTCPConnection` or `netsh portproxy`. Inspect WSL Hyper-V firewall effective settings and scoped rules, ordinary Windows firewall, host/router perimeter and any inbound WAN forwarding before claiming LAN-only access. No new portproxy, wildcard listener, manual firewall change, R3 send authority or publication.
+- [ ] **Independent real Moltbook external receipt/no-duplicate review still open:** 23 historical attempts / 0 uncertain across reboot is a local evidence point, not external proof.
+
+---
+
 ## G2.4 post-reboot dashboard reachable from BOTH Windows LAN clients (2026-10-31)
 
 - [x] **Owner-reported two-client post-reboot access:** both the OMEN and the second LAN Windows machine can access the Bob Activity Manager dashboard following the successful Windows reboot/logon and G2.3 WSL postcheck. This establishes remote LAN reachability to the dashboard in addition to prior fixed-host verified HTTPS and R3 Off checks.
