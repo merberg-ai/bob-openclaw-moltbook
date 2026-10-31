@@ -1,0 +1,18 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-chhttps3",
+  "from": "v0.8.0-chhttps1",
+  "notes": "Candidate only. TLS-only Activity Manager on existing LAN port with verified private CA/cert and HTTPS Host/Origin checks. Requires independent Windows CA trust approval before promotion. No database or R3 publisher changes.",
+  "files": [
+    {
+      "name": "bob_manager_tls.py",
+      "source": "src/lib/bob/bob_manager_tls.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_ch_https3_manager_candidate.py",
+      "index": 0
+    }
+  ],
+  "restart_manager": true
+}
