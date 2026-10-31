@@ -133,7 +133,7 @@ class InertDispatchTests(unittest.TestCase):
         first=recover_after_restart(self.lab,at=NOW)
         self.assertEqual(first.uncertain_locks,1)
         self.assertFalse(first.safe_to_auto_retry)
-        self.assertEqual(self.row()[0],"uncertain_simulated")
+        self.assertEqual(self.row()[0],"uncertain")
         self.assertEqual(recover_after_restart(self.lab,at=NOW).uncertain_locks,0)
         self.assertEqual(self.go(sink).state,"refused")
         self.assertEqual(len(sink.calls),0)
@@ -145,7 +145,7 @@ class InertDispatchTests(unittest.TestCase):
         self.assertEqual(len(sink.calls),1)
         self.assertEqual(self.row()[0],"sending_simulated")
         self.assertEqual(recover_after_restart(self.lab,at=NOW).uncertain_locks,1)
-        self.assertEqual(self.row()[0],"uncertain_simulated")
+        self.assertEqual(self.row()[0],"uncertain")
         self.assertEqual(self.go(sink).state,"refused")
         self.assertEqual(len(sink.calls),1)
 
@@ -168,7 +168,7 @@ class InertDispatchTests(unittest.TestCase):
         r=self.go(sink,after_intent=pause)
         self.assertEqual(r.reason,"barrier_paused_at_dispatch_barrier")
         self.assertEqual(len(sink.calls),0)
-        self.assertEqual(self.row()[0],"uncertain_simulated")
+        self.assertEqual(self.row()[0],"uncertain")
 
     def test_new_friend_after_intent_prevents_sink(self):
         def save_friend():
