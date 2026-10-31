@@ -2,8 +2,8 @@
 
 This is a rehearsal of the EXISTING executable entrypoint, not a second service.
 It accepts only the marker-locked R3.3 synthetic DB, an exact private descriptor
-and the fixed sibling Scout files. It NEVER imports or calls the live api(),
-api_key(), credentials, systemd or a network client. Every reply is simulated.
+and the fixed sibling Scout files. It NEVER imports or calls the live HTTP API or credential reader,
+systemd controls or any external network client. Every reply is simulated.
 """
 from __future__ import annotations
 
