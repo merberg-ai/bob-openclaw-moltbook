@@ -1,3 +1,11 @@
+## R3.7 trusted publisher admission gate, synthetic only
+
+`src/bob_v08/r37_trusted_gate_lab.py` now rehearses the publisher-owned boundary with **two independent stored-state checks** bracketing an injected, synthetic GET callback. It requires a valid R3.6 Bob-authored sealed proposal, exact pinned Scout evidence, an unattempted queued job, separate persisted R3 auto consent, persisted owner dial, post-opt-in source, current v0.7 attempt policy, no manual-first queue priority conflict, verified private friend roster and global pause marker. External preflight must report exact target **and** consistent author (no missing ID treated as success), non-deleted result and bounded clock gap. Any change after the GET rechecks, with strict refusal. The only positive path produces a `sending_simulated` entry inside the existing marked private R3.3 SQLite fixture; no Moltbook POST or live dispatcher exists here. Manual-only mode requires separate approval of Bob's own comment seal.
+
+**R3.7 is NOT live authentication or cutover acceptance.** The injected GET and clock are controlled by the test harness, not real trusted transport; file-system and SQLite state can still change between the final rehearsal read and an actual network send. Existing v0.7 remains the sole credentialed publisher and still rejects Bob-authored proposal seals. Next: R3.8 effective-unit/owner-host evidence and production-like isolated dispatcher harness, then explicit opt-in and rollback gates.
+
+---
+
 ## R3.6 operator host-readiness acceptance (2026-10-30)
 
 The owner ran `python3 scripts/report_r36_host_readiness.py` from updated `~/bob-next` and provided the sanitized output. It reported **legacy publisher timer active / service inactive**, Shadow4 timer and startup-reconcile timer active, candidate publisher and legacy system-scope Scout timers inactive; legacy queue schema `match`, posting policy `valid`, pause `not_paused`, legacy auto comments `enabled`, **22 historical attempted sends**, **0 delivery states requiring review**, `baseline consistency: observed`, and `review blockers: none`. This completes the R3.6 **point-in-time operator snapshot gate**. It is not a cutover approval, a public publication count, a proof of reboot continuity, or evidence the new R3 code can dispatch.
