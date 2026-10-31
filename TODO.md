@@ -1,3 +1,12 @@
+## G2.5 WSL Hyper-V inbound rule review: Bob LAN scope confirmed, default action still needed (2026-10-31)
+
+- [x] **Owner supplied effective inbound rules:** `Bob Activity Manager - WSL LAN` was `Enabled=True`, `Action=Allow`, `Protocol=TCP`, `LocalPorts=18790`, `RemoteAddresses=192.168.1.0/255.255.255.0` (the user's `192.168.1.0/24` LAN). This is an appropriately scoped exception, even though the WSL process binds `0.0.0.0:18790` in mirrored mode. It does NOT by itself prove that traffic outside the LAN is blocked.
+- [ ] **Need effective WSL Hyper-V firewall defaults:** the user-supplied output contained only individual rules, not `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'` values `Enabled`, `DefaultInboundAction`, `AllowHostPolicyMerge`. Require `Enabled=True` and a blocking default before calling scoped rules effective in isolation; review Windows firewall host merge and router separately.
+- [ ] **Separate 8787 code-server potential exposure:** an unrelated enabled `code-server WSL 8787` inbound Hyper-V `Allow TCP 8787 RemoteAddresses=Any` rule exists. **Not proof of WAN exposure**, but more permissive than Bob's rule. Read-only check whether WSL actually listens on TCP 8787 before any rule change; inspect authentication and router/WAN path separately if used. The ICMPv4/v6 and mDNS defaults shown by the user are unrelated protocols/ports and should not be mistaken for generic port 18790 allows.
+- [ ] **Remaining G2 security boundary:** Windows host/firewall, IPv6, VPN and router forwarding/WAN exposure review; no live changes now. Keep external Moltbook no-duplicate receipt/queue comparison separate from these host-firewall checks. R3 remains hard Off.
+
+---
+
 ## G2.5 OMEN mirrored WSL listener confirmed (2026-10-31)
 
 - [x] **Owner-confirmed Linux listener and WSL mode:** from Windows PowerShell, `wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :18790 )'` returned `LISTEN 0.0.0.0:18790`. `Select-String ... .wslconfig ...` returned `networkingMode=mirrored` on line 2. A Linux-owned wildcard IPv4 socket in WSL mirrored mode explains access from both LAN Windows clients even though Windows `Get-NetTCPConnection` showed no listener and Windows `netsh portproxy` had no entries. `0.0.0.0` is **not LAN-only** binding proof.
