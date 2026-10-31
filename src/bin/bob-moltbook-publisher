@@ -343,5 +343,45 @@ def main():
         print('Direct replies newly detected:',reply_check(db),flush=True)
     return 0
 
+def r311_inert_cli(argv):
+    """Deliberately disabled-for-production R3.11 single-executable rehearsal.
+
+    Normal publisher_step(), verification_step() and main() are UNCHANGED.
+    The only accepted file is a marker-verified private synthetic R3.3 lab DB.
+    The imported runner never reads credentials, uses external HTTP or sends.
+    """
+    if len(argv)!=2 or argv[0] not in ('--r311-inert-rehearsal','--r311-inert-recover'):
+        print('R3.11: inert fixture mode requires exactly one private lab path')
+        return 2
+    from bob_v08.r311_inert_entry import run_inert_entry, recover_inert_entry
+    from bob_v08.r38_dispatch_lab import SimulatedPowerLoss
+    try:
+        if argv[0]=='--r311-inert-recover':
+            result=recover_inert_entry(Path(argv[1]))
+        else:
+            result=run_inert_entry(Path(argv[1]))
+    except SimulatedPowerLoss:
+        print('R3.11: synthetic process interruption; counted attempt locked')
+        return 3
+    # Never print private comment text, filesystem paths or credentials.
+    print(json.dumps({
+        'format':'bob-r311-inert-entry-v1',
+        'state':result.state,
+        'reason':result.reason,
+        'simulated':result.simulated,
+        'acted':result.acted,
+        'dispatch_authorized':result.dispatch_authorized,
+        'attempt_recorded':result.attempted,
+        'inert_sink_calls':result.sink_calls,
+        'external_requests':result.external_requests,
+        'credential_reads':result.credential_reads,
+        'installed_changes':result.installed_changes,
+        'cutover_authorized':False,
+    },sort_keys=True))
+    return 0 if result.state in ('acknowledged_simulated','recovered_simulated') else 3
+
+
 if __name__=='__main__':
+    if len(sys.argv)>1 and sys.argv[1].startswith('--r311-'):
+        raise SystemExit(r311_inert_cli(sys.argv[1:]))
     raise SystemExit(main())

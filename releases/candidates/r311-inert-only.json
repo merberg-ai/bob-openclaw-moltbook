@@ -1,0 +1,27 @@
+{
+  "format": "bob-source-candidate-v1",
+  "candidate": "r3.11-inert-single-entrypoint",
+  "source_branch": "next",
+  "installable": false,
+  "auto_installable": false,
+  "production_dispatch_enabled": false,
+  "cutover_authorized": false,
+  "publisher_entrypoint": "src/bin/bob-moltbook-publisher",
+  "inert_options": [
+    "--r311-inert-rehearsal",
+    "--r311-inert-recover"
+  ],
+  "default_live_publisher_behavior": "legacy_v07_unchanged",
+  "new_bob_auto_consent_default": "off_missing",
+  "database": "private_r3_unified_synthetic_fixture_only",
+  "network_posts": 0,
+  "credential_reads": 0,
+  "required_tests": [
+    "tests/test_r311_inert_entrypoint.py",
+    "tests/test_r310_atomic_claim.py",
+    "tests/test_r39_publisher_review.py"
+  ],
+  "excluded_from_installed_release_manifest": true,
+  "operator_acceptance": "not_requested",
+  "notes": "Source metadata only, not consumed by updater. Actual R3 Bob-authored publishing remains prohibited; future reviewed release and explicit owner opt-in required."
+}
