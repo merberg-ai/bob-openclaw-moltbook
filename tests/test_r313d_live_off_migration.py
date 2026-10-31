@@ -32,7 +32,7 @@ class LiveOffCoreTests(unittest.TestCase):
     def setUp(self):
         tmp=tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.file=Path(tmp.name)/"private-legacy.sqlite3"
+        self.file=Path(tmp.name)/"private-fixture"/"private-legacy.sqlite3"
         create_legacy_fixture(self.file)
 
     def con(self):
