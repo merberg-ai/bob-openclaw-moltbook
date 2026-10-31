@@ -1,3 +1,14 @@
+## R3.13d production owner Controls and sealed OpenClaw proposal path (Off-first CI review)
+
+- [x] Preserve hash-pinned v0.6 manager source and full legacy generated UI chain; add **separate R3 Controls** page via additive subclass over R2 Shadow + FM4.1/OC4 manager. Inherit existing LAN Basic/Host/Origin/CSRF. Publish settings still independent of Scout v0.7 auto and approvals.
+- [x] Add exact sealed Bob-draft owner approval, independent manually enabled R3 setting, separately typed manual queue action and safe revocation of **only unattempted** R3 jobs. R3 automatic publication is hardcoded **compiled Off**, even when old auto mode is On.
+- [x] Add `bob-r3-propose --once` trusted OpenClaw Bob/main-agent proposal-only worker. It rereads saved Scout evidence and original model decision, persists a bounded canonical action-envelope plus proposal transactionally, but cannot queue/send, infer approvals, or read credentials.
+- [x] Add deterministic standalone R3 module archive, updater-registry hash/owner/path verified import, R2/OC4-compatible manager/nav generator, separate **Off-first** `v0.8.0-r3stage1` release candidate (not active), read-only `report_r313d_off_first.py` review, tests and [operator guide](docs/R313D-PRODUCTION-OFF-FIRST.md). The legacy credentialed publisher is excluded from this release.
+- [ ] **CI approval and source merge pending** for production owner-code candidate; `releases/current.json` remains Shadow4, not installable by `bobctl update` until a distinct owner-approved promotion.
+- [ ] **Production host cutover still pending:** owner-verified versioned Off-first install, trusted maintenance/backup and actual additive DB migration (no stale DB restores), separately approved manual-only real Moltbook canary via one publisher, systemd/Windows/WSL reboot, post-verification and no-duplicate recovery. Do not authorize automatic R3 posting by default. R2 G1 remains open.
+
+---
+
 ## R3.13d OMEN private staging acceptance PASS (2026-10-31)
 
 - [x] **Owner-reported read-only host audit PASS:** trusted queue boundary `yes`, legacy schema `match`, installed R3 consent `absent_off`, effective publisher unit `reviewed_shape`, installed executable `owner_controlled_regular`, updater registry hash `verified_registry_hash`, all three source-level R3 gates `verified_three`, staging eligible `yes`; boundary blockers `none`, source blockers `none`.

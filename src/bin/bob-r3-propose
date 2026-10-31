@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Bob R3 local proposal writer: real OpenClaw, source-linked, NEVER sends."""
+from __future__ import annotations
+
+import os
+import sys
+
+def main():
+    os.umask(0o077)
+    if sys.argv[1:] != ["--once"]:
+        print("Usage: bob-r3-propose --once")
+        return 2
+    try:
+        from bob_r313d_package import load_verified
+        load_verified()  # packaged source must match installed updater registry
+        from bob_v08.r313d_producer import main as real_main
+        return real_main(["--once"])
+    except (OSError,ValueError,TypeError,ImportError,KeyError):
+        print('BOB R3 PROPOSAL: refused; package/registry/owner review unavailable')
+        return 1
+
+if __name__ == "__main__":
+    raise SystemExit(main())
