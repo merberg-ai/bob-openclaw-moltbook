@@ -161,6 +161,7 @@ def upgrade_private_copy(db: sqlite3.Connection, *,
         raise ValueError("existing_r3_owner_setting_needs_review")
     before = _history_digest(db)
     counts = _history_counts(db)
+    missing_keys = OWNER_KEYS - current.keys()
     db.execute("BEGIN IMMEDIATE")
     try:
         schema_added = _apply_copy_schema(db)
@@ -176,13 +177,13 @@ def upgrade_private_copy(db: sqlite3.Connection, *,
             raise RuntimeError("r313b_synthetic_crash_before_commit")
         # The only change allowed to original tables is adding four Off
         # settings rows; preserve ALL previously existing rows by comparison.
-        for name in OFF_SETTINGS:
+        for name in missing_keys:
             db.execute("DELETE FROM publish_settings WHERE name=?", (name,))
         if _history_digest(db) != before or _history_counts(db) != counts:
             raise ValueError("legacy_history_changed")
-        for name, value in OFF_SETTINGS.items():
+        for name in missing_keys:
             db.execute("INSERT INTO publish_settings(name,value) VALUES(?,?)",
-                       (name, value))
+                       (name, OFF_SETTINGS[name]))
         db.commit()
     except BaseException:
         db.rollback()
