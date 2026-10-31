@@ -133,13 +133,6 @@ def _one_pass(lab: UnifiedLab, source_dir: Path, action: Action, mode: str, at,
                 "WHERE source_run=?", (action.source_run,)).fetchone()
             if approved != (seal, "approved"):
                 return "specific_bob_draft_not_approved", None
-        try:
-            limits = read_limits(db)
-            eligible, _ = legacy_allowed(db, "comment", mode=mode, at=_utc(at))
-        except (ValueError, TypeError, sqlite3.Error):
-            return "legacy_limits_unavailable", None
-        if not eligible:
-            return "legacy_budget_or_spacing", None
         if db.execute("SELECT 1 FROM publish_jobs WHERE post_id=? "
                       "AND run_id<>? AND (attempted_at IS NOT NULL OR state IN "
                       "('sending','uncertain','published','verified_unconfirmed',"
@@ -147,6 +140,13 @@ def _one_pass(lab: UnifiedLab, source_dir: Path, action: Action, mode: str, at,
                       "'verification_failed')) LIMIT 1",
                       (action.target_id, action.source_run)).fetchone():
             return "duplicate_or_uncertain_target", None
+        try:
+            limits = read_limits(db)
+            eligible, _ = legacy_allowed(db, "comment", mode=mode, at=_utc(at))
+        except (ValueError, TypeError, sqlite3.Error):
+            return "legacy_limits_unavailable", None
+        if not eligible:
+            return "legacy_budget_or_spacing", None
         head = db.execute(
             "SELECT run_id FROM publish_jobs WHERE state='queued' "
             "ORDER BY CASE WHEN mode='manual' THEN 0 ELSE 1 END,"
