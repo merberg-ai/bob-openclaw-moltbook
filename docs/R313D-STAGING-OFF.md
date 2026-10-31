@@ -4,6 +4,14 @@
 
 The owner's request to proceed with R3.13d authorizes development and offline rehearsal. It does **not** implicitly approve a new public comment or automatic posting. The real publisher stays protected by three source-level Off gates. No environment variable, old `auto_enabled` setting, test result or active Shadow4 timer enables R3 sends.
 
+## Owner-operated OMEN acceptance: PASS (2026-10-31)
+
+Both recommended commands were run on the owner's OMEN/OpenClawLab WSL host after merging the source-only R3.13d stage. The first, read-only check reported: trusted queue `yes`; legacy schema `match`; installed R3 owner consent `absent_off`; effective publisher unit `reviewed_shape`; executable `owner_controlled_regular`; private updater registry `verified_registry_hash`; three source-level hard-Off gates `verified_three`; staging eligible `yes`; no source/boundary blockers.
+
+The explicit `--private-copy` rehearsal reported a successful disposable schema upgrade with action-envelope schema `match`, default-Off R3 controls, passing crash rollback, idempotence, unchanged legacy history and a synthetic uncertain attempt preserved under code-only rollback. Historical snapshot: **22 attempted sends, 0 uncertain states**. Private copy was deleted. The operator output confirms no changes to installed services/files, live database, R3 permissions or publication dispatch.
+
+**Scope:** sanitized *operator-reported point-in-time private-stage acceptance*. These results do not imply a live SQLite migration, a new installed publisher, permission to publish Bob's comments, confirmation of public visibility for the 22 historical attempts, or completed production R3.13d acceptance. No `bobctl update` or systemd mutation is required for this staging checkpoint.
+
 ## What's implemented
 
 - `src/bob_v08/r313d_staging.py` implements the reviewed additive migration **only for the exact marked R3.13b disposable SQLite fixture**. It validates the existing legacy schema and explicit Off R3 settings, adds `r313c_action_envelopes` and `r313c_schema_meta` (version `r313c-action-v1`) in one `BEGIN IMMEDIATE` transaction, checks schema and all preexisting history, and fails closed on partial, corrupted, future-version or already-enabled R3 owner state. A synthetic pre-commit crash leaves neither new table. Reapplication is idempotent.
