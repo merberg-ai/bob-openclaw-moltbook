@@ -1,3 +1,34 @@
+## CH-HTTPS4 accepted password rotation; owner manager-restart checkpoint (2026-10-31)
+
+**Operator-supplied accepted result:** the old-to-same-password attempt was correctly refused by the replacement policy. After an explicit different new password, the owner received `CH-HTTPS4 credential change: APPLIED`, `old password rejected + new password accepted over verified HTTPS: PASS`, `installed TLS/R3 safeguard recheck: PASS`, and `No systemd, SQLite, publisher or Moltbook action performed`. The first refusal is explained; no forced password reset or TLS rollback is appropriate. The two Windows logins mentioned before this accepted rotation do **not** establish that either browser has subsequently accepted the *distinct new* password.
+
+**Before manager restart:** open fresh InPrivate/Incognito browser windows on the OMEN and other LAN Windows computer, both at `https://192.168.1.24:18790/r3`; verify the distinct new password, no certificate warning, and no unintended HTTP fallback. Confirm both can reach the R3 view and the old password does not authenticate.
+
+From the non-root `openclaw` WSL terminal, capture the read-only baseline:
+
+```bash
+cd ~/bob-next
+python3 scripts/ch_https4_rotate_dashboard.py --verify
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Require **`installed HTTPS, current login and R3 Off: PASS`** and **`acceptance: PASS`**. Neither command writes live state. If either fails, stop and investigate; do not rotate credentials again or start a separate listener.
+
+**Separate operator-authorized manager-only restart**, only after both browsers pass:
+
+```bash
+systemctl --user restart bob-activity-manager.service
+systemctl --user is-active bob-activity-manager.service
+python3 scripts/ch_https4_rotate_dashboard.py --verify
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Require systemd `active`, CH4 `PASS`, and CH3 `acceptance: PASS`; then freshly reauthenticate on both Windows browser clients. If a check fails, inspect `systemctl --user status bob-activity-manager.service --no-pager` and sanitized unit logs before any further action. Do not restart/enable publisher or Scout services, change the WSL network, trust a different CA, restore SQLite, run the updater, or enable R3 publishing in response.
+
+**Out of scope for this checkpoint:** Windows/WSL reboot and startup persistence, network/firewall/WAN exposure checks, publisher/Scout natural run/no-duplicate ledger evidence, R3 manual canary. Those remain independent G2 and R3 review gates, not inferred from this manager-only restart.
+
+---
+
 ## CH-HTTPS4.1: ambiguous rotation refusal and read-only recovery audit (2026-10-31)
 
 After CH-HTTPS3 PASS, the owner ran the reviewed CH-HTTPS4 `--preflight` (PASS), then `--apply` and received `CH-HTTPS4 REFUSED OR INDETERMINATE: CredentialError`. The owner's report of successful new-password logins from both Windows machines is encouraging but does not, by itself, prove the historical password was rejected or identify why `--apply` refused. **Do not repeat `--apply` blindly.** Original CH4 deliberately concealed all `CredentialError` descriptions; they can arise from the current password not matching the stored secret, a replacement policy/confirmation failure, or unsafe private credential store/lock. The browser's Basic-auth cache may also mislead if not started fresh.
