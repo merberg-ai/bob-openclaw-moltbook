@@ -11,13 +11,14 @@ import argparse
 import base64
 import fcntl
 import hashlib
-from http.client import HTTPConnection
+from http.client import HTTPConnection, HTTPSConnection
 import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,17 @@ REPO = "merberg-ai/bob-openclaw-moltbook"
 RELEASE_ID = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9._-]{2,79}\Z")
 TARGET = re.compile(r"(?:bobctl|bob[-_][a-zA-Z0-9._-]+|navigation_shell\.py)\Z")
 MANIFEST = "releases/current.json"
+# Reviewed release identities, not caller flags or unauthenticated headers,
+# select the manager transport. Unknown releases MUST fail closed.
+MANAGER_TRANSPORTS = {
+    "v0.8.0-r3stage1": "http",
+    "v0.8.0-chhttps1": "http",
+    "v0.8.0-chhttps3": "https",
+}
+TLS_DIR = HOME / ".config/bob-system/manager-tls"
+TLS_CA = TLS_DIR / "ca.crt"
+MANAGER_HOST = "127.0.0.1"
+MANAGER_PORT = 18790
 ORIGINS = frozenset((
     "https://github.com/" + REPO + ".git",
     "https://github.com/" + REPO,
@@ -341,41 +353,82 @@ def authorization():
     return "Basic " + base64.b64encode(raw).decode("ascii")
 
 
-def healthy(auth):
-    for route in ("/healthz", "/settings", "/activity", "/system/status", "/api/system/status"):
-        conn = HTTPConnection("127.0.0.1", 18790, timeout=16 if "status" in route else 5)
-        try:
-            conn.request("GET", route, headers={"Host":"127.0.0.1:18790", "Authorization": auth})
-            res = conn.getresponse()
-            payload = res.read(262145)
-            if res.status != 200 or len(payload) > 262144:
-                return False
-            if route == "/healthz" and json.loads(payload).get("ok") is not True:
-                return False
-            if route == "/api/system/status" and not isinstance(json.loads(payload).get("services"), list):
-                return False
-        except (OSError, ValueError, json.JSONDecodeError):
-            return False
-        finally:
-            conn.close()
-    return True
+def manager_transport(release=None):
+    """Fixed release-to-transport binding. Never guess or downgrade."""
+    if release is None:
+        release=registry()["release"]
+    if not isinstance(release,str) or release not in MANAGER_TRANSPORTS:
+        raise ValueError("manager_transport_release_unreviewed")
+    return MANAGER_TRANSPORTS[release]
 
 
+def manager_tls_context():
+    """Trust only the fixed private CA, and verify the loopback IP SAN.
 
-def wait_for_health(auth, *, seconds=35):
-    """Give a freshly restarted dashboard a bounded readiness window.
-
-    A brief connection refusal after systemctl restart isn't a failed release.
-    This performs authenticated GETs only; it never invokes worker endpoints.
+    No CA path override, insecure SSL option, X-Forwarded-Proto signal,
+    system-wide fallback trust or plaintext fallback on TLS errors.
     """
-    deadline = time.monotonic() + seconds
+    safe_private(TLS_DIR,directory=True)
+    safe_private(TLS_CA)
+    if not 1 <= TLS_CA.stat().st_size <= 32768:
+        raise ValueError("manager_tls_ca_invalid_size")
+    context=ssl.create_default_context(cafile=str(TLS_CA))
+    context.minimum_version=ssl.TLSVersion.TLSv1_2
+    if context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname:
+        raise ValueError("manager_tls_verification_not_enforced")
+    return context
+
+
+def _manager_connection(*, release, timeout):
+    mode=manager_transport(release)
+    if mode=="https":
+        return HTTPSConnection(MANAGER_HOST,MANAGER_PORT,
+                               timeout=timeout,context=manager_tls_context())
+    return HTTPConnection(MANAGER_HOST,MANAGER_PORT,timeout=timeout)
+
+
+def healthy(auth, *, release=None):
+    """All routes must pass over the reviewed installed/candidate transport.
+
+    During a versioned TLS upgrade, the caller explicitly chooses the
+    current (preflight), candidate (postflight), or restored (rollback)
+    release. A failed HTTPS handshake does not retry over HTTP.
+    """
+    try:
+        mode=manager_transport(release)
+        for route in ("/healthz","/settings","/activity",
+                      "/system/status","/api/system/status"):
+            conn=_manager_connection(
+                release=release,timeout=16 if "status" in route else 5)
+            try:
+                conn.request("GET",route,headers={
+                    "Host":"127.0.0.1:18790","Authorization":auth})
+                res=conn.getresponse()
+                payload=res.read(262145)
+                if res.status!=200 or len(payload)>262144:
+                    return False
+                if route=="/healthz" and json.loads(payload).get("ok") is not True:
+                    return False
+                if route=="/api/system/status" and not isinstance(
+                        json.loads(payload).get("services"),list):
+                    return False
+            finally:
+                conn.close()
+        return True
+    except (OSError,ValueError,TypeError,json.JSONDecodeError,ssl.SSLError):
+        return False
+
+
+def wait_for_health(auth, *, seconds=35, release=None):
+    """Bounded authenticated GET-only readiness, exact candidate transport."""
+    deadline=time.monotonic()+seconds
     while True:
-        if healthy(auth):
+        if healthy(auth,release=release):
             return True
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
+        remaining=deadline-time.monotonic()
+        if remaining<=0:
             return False
-        time.sleep(min(1.0, remaining))
+        time.sleep(min(1.0,remaining))
 
 
 def restart_manager():
@@ -450,9 +503,9 @@ def rollback(journal, *, auth):
     save_private(REGISTRY, (json.dumps(old_registry, sort_keys=True) + "\n").encode("utf-8"))
     if journal["restart_manager"]:
         restart_manager()
-    if not live_ok(old_registry) or not wait_for_health(auth):
+    if not live_ok(old_registry) or not wait_for_health(auth,release=old_registry["release"]):
         store_journal({**journal, "phase": "incident"})
-        raise RuntimeError("rollback HTTP health failed")
+        raise RuntimeError("rollback authenticated manager health failed")
     store_journal({**journal, "phase": "rolled_back"})
     return "baseline_restored"
 
@@ -465,7 +518,7 @@ def update(folder, current, plan, contents, *, auth):
             raise ValueError("incomplete prior release; use --recover")
         if not live_ok(current):
             raise ValueError("installed file hash drift")
-        if not healthy(auth):
+        if not healthy(auth,release=current["release"]):
             raise ValueError("existing authenticated UI unhealthy")
         # Backup is verified before any live code is replaced.
         from backup_live_sqlite import create_verified_backup
@@ -511,7 +564,7 @@ def update(folder, current, plan, contents, *, auth):
             next_state = {"format": FORMAT, "release": plan["release"], "files": next_files}
             if not live_ok(next_state):
                 raise RuntimeError("updated installation file hash mismatch")
-            if not wait_for_health(auth):
+            if not wait_for_health(auth,release=plan["release"]):
                 raise RuntimeError("dashboard failed bounded post-restart health checks")
             save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
             store_journal({**journal, "phase": "complete"})
