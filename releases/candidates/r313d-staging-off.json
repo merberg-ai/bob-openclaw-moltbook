@@ -1,0 +1,32 @@
+{
+  "format": "bob-r313d-source-stage-v1",
+  "candidate": "r3.13d-staging-off-private-only",
+  "source_branch": "next",
+  "installable": false,
+  "auto_installable": false,
+  "cutover_authorized": false,
+  "live_sqlite_ddl": false,
+  "production_release_manifest_modified": false,
+  "default_owner_r3_manual": "off",
+  "default_owner_r3_automatic": "off",
+  "owner_ui_installed": false,
+  "production_sealed_proposal_writer_installed": false,
+  "real_dispatch_compiled": false,
+  "publisher_units_modified": false,
+  "credential_access": false,
+  "public_moltbook_requests": false,
+  "private_schema": [
+    "r35_schema_meta",
+    "r3_proposals",
+    "r3_owner_approvals",
+    "r3_lab_audit",
+    "r313c_action_envelopes",
+    "r313c_schema_meta"
+  ],
+  "required_r313c_schema_version": "r313c-action-v1",
+  "read_only_command": "python3 scripts/report_r313d_host.py",
+  "private_copy_command": "python3 scripts/report_r313d_host.py --private-copy",
+  "rollback_policy": "code_and_units_only; never overwrite newer live SQLite history",
+  "next": "review owner controls, trusted producer, release/installation, explicit canary and WSL reboot",
+  "tests": "tests/test_r313d_staged_upgrade.py"
+}

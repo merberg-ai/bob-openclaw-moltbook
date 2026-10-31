@@ -1,3 +1,13 @@
+## R3.13d staged rollout engineering: private schema/proposal and safe rollback (host acceptance pending)
+
+- [x] Add marked-copy-only versioned `r313c_action_envelopes` and `r313c_schema_meta` migration after R3.13b's explicit default-Off controls. Verify exact legacy rows, atomic crash rollback, idempotence, future/partial/drifted schema rejection, and zero live schema or permission changes.
+- [x] Rehearse a **sealed Bob action producer** only inside the trusted private fixture: reconstruct source-linked original decision, validate canonical envelope/seal/fingerprint, insert draft proposal atomically without `publish_jobs` queueing, owner approval or any public network request.
+- [x] Add fixed-host read-only report and explicit `--private-copy` SQLite online backup (including committed WAL), installed publisher registry and effective-unit checks, three source-level Off gate checks, post-upgrade synthetic uncertain attempt and code-only no-history-rewind check. Add synthetic regressions, CI triggers, [operator guide](docs/R313D-STAGING-OFF.md) and expressly noninstallable candidate. `releases/current.json` remains Shadow4.
+- [ ] **OMEN operator read-only and private-copy acceptance pending after source CI/merge.** No `bobctl update` or production DDL for this source-only stage.
+- [ ] **R3.13d production completion remains:** audited authenticated Activity Manager manual/auto R3 Controls and source-linked proposal writer, separately reviewed installable `v0.8.0-cutover1` transaction, authorized maintenance/drain/backup/live additive migration and one-publisher canary, WSL/Windows reboot and code-only rollback. No real R3 send/automatic consent without express owner authorization. R2 G1 remains independently open.
+
+---
+
 ## R3.13c source-only candidate accepted and merged (2026-10-30)
 
 - [x] Correct the action provenance gap: R3.5 proposal seal/fingerprint do not preserve original Bob decision reason. Add bounded canonical `r313c_action_envelopes` plus versioned `r313c_schema_meta` additive contract, verified against the saved Scout source, independent seal and matching proposal before preflight, claim and dispatch.

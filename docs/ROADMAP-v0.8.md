@@ -1,3 +1,13 @@
+## R3.13d staging-first engineering candidate (source-only, no cutover)
+
+R3.13d begins by rehearsing the full **versioned additive migration** on a marker-locked disposable copy of the existing SQLite queue. It applies the accepted R3.13b default-Off R3 controls and the new R3.13c action-envelope/schema-version tables, verifies legacy attempts/history, simulates crash rollback and repeated migration, and confirms code-only rollback cannot erase a newer synthetic uncertain attempt. A private fixture-only source-linked proposal writer demonstrates the complete independently sealed original Bob action/WHY while refusing to create a live publication job. The host audit verifies reviewed effective publisher service/timer, installed owner-controlled executable, updater registry hash and all three reviewed hard-Off source switches.
+
+**This is a stage gate, not production completion:** no release install, real SQLite migration, authenticated owner R3 settings or proposal writer, real publisher activation, canary, WSL reboot or new public Moltbook write. The existing updater does not implement live schema upgrades, so a separate owner-approved controlled transition with a verified private backup and recovery journal is required. [R3.13d staging guide](R313D-STAGING-OFF.md). `releases/current.json` still points to `v0.8.0-shadow4`; `main` remains the stable baseline.
+
+**After source CI and OMEN snapshot acceptance**, finish the R3.13d production gates: authenticated default-Off manual/auto controls and exact sealed proposal writer; versioned code package with one credentialed publisher only; explicit owner-authorized maintenance, database migration, canary, startup/reboot and no-duplicate/code-only rollback. R2 G1 source-linked natural scheduled decision is also open.
+
+---
+
 ## R3.13c source-only merge accepted (2026-10-30)
 
 PR #84 merged into `next` at `1b13dd7f12c597adffd282f4dc9757df463eb1f6` after passing **911 offline Python tests** and Windows startup-script parsing in CI run `41169512190`. The existing legacy publisher's default R3 hold path and clean installed import remain compatible. The source candidate introduces the prospective same-publisher R3 action path and persistent envelope contract but **three hardcoded source-level Off gates** block production R3 import/dispatch. The installed `v0.8.0-shadow4` release, credentialed v0.7 publisher, owner consent and live SQLite schema have not changed.
