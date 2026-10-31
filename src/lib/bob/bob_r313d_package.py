@@ -59,4 +59,35 @@ def load_verified() -> str:
         raise ValueError("r3_package_registry_unverified") from None
     if str(file) not in sys.path:
         sys.path.insert(0,str(file))
+    # The existing R2 dashboard imports bob_v08.inspect FIRST, which caches
+    # bob_v08.__path__ pointing exclusively at its Shadow4 ZIP. Python will
+    # not discover R3 submodules just because sys.path now includes R3.
+    # Admit this secondary archive only after verifying BOTH installed ZIPs.
+    previous = sys.modules.get("bob_v08")
+    if previous is not None:
+        r2 = home/".local/bin/bob_v08_package.pyz"
+        r2origin = str(r2)+"/bob_v08/__init__.py"
+        if getattr(previous,"__file__",None) == r2origin:
+            try:
+                old = r2.lstat()
+                old_digest = record["files"]["bob_v08_package.pyz"]
+                if (not stat.S_ISREG(old.st_mode) or old.st_uid != uid
+                        or old.st_mode & 0o077 or old.st_nlink != 1
+                        or not 0 < old.st_size <= 512*1024
+                        or not isinstance(old_digest,str)
+                        or not re.fullmatch(r"[a-f0-9]{64}",old_digest)
+                        or hashlib.sha256(r2.read_bytes()).hexdigest()
+                        != old_digest):
+                    raise ValueError("r3_legacy_shadow_archive_unverified")
+            except (OSError,KeyError):
+                raise ValueError("r3_legacy_shadow_archive_unavailable") from None
+        elif getattr(previous,"__file__",None) != (
+                str(file)+"/bob_v08/__init__.py"):
+            raise ValueError("r3_existing_package_source_untrusted")
+        paths = getattr(previous,"__path__",None)
+        if not isinstance(paths,list):
+            raise ValueError("r3_existing_package_path_untrusted")
+        source = str(file)+"/bob_v08"
+        if source not in paths:
+            paths.insert(0,source)
     return "verified_registry_archive"
