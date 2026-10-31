@@ -154,6 +154,9 @@ class HTTPS3CandidateTests(unittest.TestCase):
             config=home/".config/bob-system"
             tls=config/"manager-tls"
             tls.mkdir(parents=True,mode=0o700)
+            # pathlib creates implicit parent directories with default mode.
+            # The real Bob parent is 0700; mirror that trusted fixture.
+            config.chmod(0o700)
             with patch.object(certificates,"OPENSSL",Path("/usr/bin/openssl")):
                 with patch.object(certificates,"TLS_DIR",tls):
                     certificates._generate(tls)
