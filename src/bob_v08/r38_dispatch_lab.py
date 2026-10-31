@@ -65,7 +65,7 @@ class InertSink:
             return {"success": True}
         if self.response == "challenge":
             # Verification is a separate human-controlled workflow.
-            return {"verification_required": True}
+            return {"success": True, "verification_required": True}
         return {"success": True, "comment": {"id": self.comment_id}}
 
 
