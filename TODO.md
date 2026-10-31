@@ -1,3 +1,13 @@
+## R3.13d Off-first stage1 release promotion (install acceptance pending)
+
+- [x] Promote the previously accepted `v0.8.0-r3stage1` **code-only** manifest to `releases/current.json` on `next`, chained exactly from installed `v0.8.0-shadow4`. Only seven R3 proposal/dashboard/navigation files are in the manifest; **the credentialed legacy Moltbook publisher and its timer are excluded**. This is not an automatic installation, live schema migration, or real R3 publication authorization.
+- [x] Fix trusted R3 ZIP namespace loading: the existing Shadow4 dashboard imports `bob_v08.inspect` first and caches the package path. The new loader now verifies BOTH installed archives against the private updater registry before exposing reviewed R3 submodules to the cached package. Add real LAN Basic/Host/Origin/CSRF localhost HTTP smoke and installed-runtime tests while retaining the production account boundary.
+- [x] Add `scripts/report_r313d_stage1_installed.py` as a **read-only** post-install check for exact updater registry SHA, installed binary hashes, three R3 source Off gates, reviewed publisher effective unit, independent R3 consent Off and authenticated `/r3` response. It never changes database, permissions, services or Moltbook state.
+- [ ] **OMEN install acceptance pending:** After this promotion PR is green/merged, run `cd ~/bob-next && git pull --ff-only && bobctl update --check`, then `bobctl update` with typed `UPDATE` only for exact `v0.8.0-r3stage1` seven-file manifest. Finally `python3 scripts/report_r313d_stage1_installed.py`; expected `installation acceptance: PASS` and R3 posting rights NONE.
+- [ ] **Still separate R3.13d gates:** owner-approved paused/drained maintenance and live Off-only SQLite migration; safe service restart, WSL/Windows reboot; separate exact-post and exact-draft manual canary and G2 no-duplicate recovery. Auto R3 stays compiled Off. R2 G1 natural fresh timer decision remains open.
+
+---
+
 ## R3.13d Off-first release + controlled live migration source accepted (2026-10-31)
 
 - [x] Implement isolated production-compatible `BEGIN IMMEDIATE` additive **R3 Off** schema transaction: exact R3.5 and versioned R3.13c tables, four default-Off independent owner keys, historical record/attempt digest, idempotence, future/partial schema and non-Off consent rejection, crash-before-commit rollback. No network or R3 publishing authority.
