@@ -1,3 +1,11 @@
+## R3.6 operator host-readiness acceptance (2026-10-30)
+
+The owner ran `python3 scripts/report_r36_host_readiness.py` from updated `~/bob-next` and provided the sanitized output. It reported **legacy publisher timer active / service inactive**, Shadow4 timer and startup-reconcile timer active, candidate publisher and legacy system-scope Scout timers inactive; legacy queue schema `match`, posting policy `valid`, pause `not_paused`, legacy auto comments `enabled`, **22 historical attempted sends**, **0 delivery states requiring review**, `baseline consistency: observed`, and `review blockers: none`. This completes the R3.6 **point-in-time operator snapshot gate**. It is not a cutover approval, a public publication count, a proof of reboot continuity, or evidence the new R3 code can dispatch.
+
+**Next R3.7:** review the effective installed service/drop-in topology and authenticated data sources, then implement and offline-test a publisher-owned trusted source/owner/friend/GET/pause admission contract. Keep existing auto-comment consent separate from any future R3/Bob-authored comment consent; preserve one credentialed writer and uncertain send history. No live adapter or new v0.8 permissions have been deployed.
+
+---
+
 ## R3.6 source-only real-host inventory and draft origin contract
 
 The R3.6 change adds a read-only, bounded **installed-host data collection script** using `systemctl show` on fixed Bob unit names and SQLite `mode=ro`, with a concise printable summary and optional sanitized JSON. It observes current publisher/shadow/reconcile state, legacy SQLite schema, validated posting limits, pause, historical attempted and uncertain counts. The collector cannot toggle services or grant permissions, and its `cutover_authorized` field is always false. It is **not deployed** by an updater and requires a single owner-run check in the separate `~/bob-next` source checkout for real-host acceptance. See [R3.6 host review](docs/R36-HOST-READINESS.md).
