@@ -162,12 +162,12 @@ class UnifiedLab:
                              (action.source_run,)).fetchone()
             if row != (action.target_id, seal, fingerprint, "proposed"):
                 return Outcome("refused", "unsealed_or_changed_draft")
-            gate = self._permission(db, action, seal, mode, policy, at=at)
-            if gate != "allow":
-                return Outcome("refused", gate)
             if db.execute("SELECT 1 FROM decisions WHERE run_id=?",
                           (action.source_run,)).fetchone():
                 return Outcome("refused", "legacy_scout_run_collision")
+            gate = self._permission(db, action, seal, mode, policy, at=at)
+            if gate != "allow":
+                return Outcome("refused", gate)
             if db.execute("SELECT 1 FROM publish_jobs WHERE run_id=? OR post_id=?",
                           (action.source_run, action.target_id)).fetchone():
                 return Outcome("refused", "existing_legacy_target_or_job")
