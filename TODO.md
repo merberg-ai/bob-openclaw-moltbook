@@ -1,3 +1,13 @@
+## CH-HTTPS3 server acceptance PASS; CH-HTTPS4 owner credential gate staged (2026-10-31)
+
+- [x] **OMEN CH-HTTPS3 acceptance PASS (operator-supplied report):** `python3 scripts/report_ch_https3_cutover.py --installed` returned `acceptance: PASS`, exact installed release verified, CA SHA256 matched, R3 schema/journal/source Off verified, authenticated HTTPS manager/R3 both pass, plaintext HTTP 18790 refused, manager and existing publisher/Scout timers active. Read-only report changed no services, DB or publishing rights.
+- [x] Both OMEN and a second Windows LAN computer reported successfully opening the Activity Manager over HTTPS after installing the public CA. Explicit browser *absence of certificate warnings* remains an operator visual confirmation, not remotely proven by the WSL report.
+- [x] **CH-HTTPS4 source-only implementation staged for review:** `scripts/ch_https4_rotate_dashboard.py` requires installed CH3 `PASS`, trusted interactive `openclaw` terminal, exact typed consent, old/new/confirm hidden password prompts, atomic existing credential rotation, and negative old-password/anonymous plus positive new-password probes over CA/IP-SAN verified HTTPS. `--preflight` and `--verify` remain read-only. No installed release manifest change.
+- [ ] After reviewed CI/merge, run `python3 scripts/ch_https4_rotate_dashboard.py --preflight`; then separately approve `--apply` and verify `PASS`. Do **not** paste secrets into chat, GitHub or shell arguments.
+- [ ] Reconnect BOTH Windows browsers with the new password and valid certificate; check the old password no longer works. Check `--verify` after a separately approved manager restart. Confirm LAN-only routing/firewall. Full Windows/WSL reboot and G2 no-duplicate/publisher evidence remain independent gates; no R3 real send authorization.
+
+---
+
 ## CH-HTTPS3 HTTPS browser check reported on both LAN systems (2026-10-31)
 
 - [x] **Owner-reported HTTPS client access:** Activity Manager is now reachable by HTTPS from both the OMEN host and the second LAN Windows system after public CA imports. This is a live browser observation, not independent evidence that the host's full CH-HTTPS3 acceptance report passed or that both clients were warning-free.

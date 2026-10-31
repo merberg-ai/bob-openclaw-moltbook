@@ -1,3 +1,51 @@
+## CH-HTTPS4: post-cutover password rotation and recovery (source-only, 2026-10-31)
+
+**CH-HTTPS3 installed acceptance: PASS.** The owner ran `python3 scripts/report_ch_https3_cutover.py --installed` on the OMEN and supplied an all-green report: installed files and CA fingerprint verified, R3 schema/journal/send-source Off verified, manager and existing timers active, authenticated HTTPS and R3 pass, plaintext HTTP on 18790 refused. Both Windows LAN browsers were independently reported to reach the HTTPS page after CA imports. The report does not itself examine the browser security UI or verify absence of WAN port forwarding.
+
+**Implementation:** `scripts/ch_https4_rotate_dashboard.py` is **source-only** and is not part of `releases/current.json`; the guarded updater does not need to run. It uses the existing `bob_dashboard_auth.rotate` locking + fsync + atomic private credential replacement. The manager rereads the credential on every request. Only the dashboard Basic-auth password changes, not the username, CA/certs, gateway, service units, timers, SQLite, Moltbook tokens, or Bob R3 permissions. The operator must be the non-root `openclaw` user on the known WSL host, pass live CH3 installed HTTPS acceptance, and use an interactive terminal (no password options, env variables, logs, GitHub text or chat).
+
+### Operator procedure (owner-only, after this PR is reviewed, CI passed and merged to `next`)
+
+```bash
+cd ~/bob-next && git pull --ff-only
+python3 scripts/ch_https4_rotate_dashboard.py --preflight
+```
+
+Require `installed HTTPS, current login and R3 Off: PASS`. Confirm the local and second Windows browser load `https://192.168.1.24:18790/r3` with **no browser certificate warning or bypass**. If the gate fails, **do not rotate**. No browser-client certificate import should need repeating solely because the password changes.
+
+The separately approved operator change:
+
+```bash
+python3 scripts/ch_https4_rotate_dashboard.py --apply
+```
+
+Type **`ROTATE BOB HTTPS PASSWORD`** exactly when prompted; enter the **current** LAN dashboard password, a distinct new **20–256 printable ASCII-character** password, and confirmation. Passwords are hidden (terminal only), never copied into shell history. The username is retained. Choose a unique passphrase and store it in a trusted password manager; do not paste it into ChatGPT. No systemd restart is performed. After the atomic change, the tool makes three live, CA/IP-SAN verified HTTPS GET requests to the fixed local R3 route, proving **old credential 401**, **new credential 200 with R3 compiled locked**, and **no credential 401**. It rechecks the installed CH3 safeguards. Require **`old password rejected + new password accepted over verified HTTPS: PASS`**. A `NOT_VERIFIED` postflight is **not** proof that the write failed; the tool deliberately never restores the historical plaintext-era password. Use trusted console recovery if needed.
+
+On **each Windows client**, close the existing authenticated session and use a fresh InPrivate/Incognito session at `https://192.168.1.24:18790/r3`. Confirm the old password is rejected and the new password works without a certificate warning. HTTP on port 18790 must continue to fail. Basic-auth browser caches can persist across tabs; closing all windows of that browser may be necessary to clear the old credentials. The TLS trust store and private keys must not be reset.
+
+### Recovery and restart checks
+
+Run the read-only checks any time after the password change:
+
+```bash
+python3 scripts/ch_https4_rotate_dashboard.py --verify
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Both must pass. `--verify` proves the **current** stored credential and TLS/R3 host gates, **not** that a historical password is rejected; that latter negative proof runs during `--apply` and must be visually checked on both clients. If the interactive rotation fails or the new password is unknown, the existing trusted local `python3 scripts/set_dashboard_login.py` is the owner-only recovery path (no sudo and no web endpoint); confirm the CH3 report still passes afterward. Do not revert to the old password, change the public CA to cure a login failure, enable HTTP fallback, or restore a stale SQLite backup.
+
+**Separate operator-approved manager restart only after both browsers reconnect** (this does not restart publisher/Scout):
+
+```bash
+systemctl --user restart bob-activity-manager.service
+python3 scripts/ch_https4_rotate_dashboard.py --verify
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Reopen both Windows clients with the new password and no TLS warning. Confirm two existing timers remain active and no duplicate manager listener is serving plaintext HTTP. This is **not** a Windows/WSL reboot test. Later G2 requires a separately planned Windows/WSL reboot, startup recovery of the correct user services, external LAN reachability, effective unit/listener/firewall/port-forward inventory and read-only ledger-based publisher/no-duplicate evidence. Do not manually trigger a publisher oneshot, rewrite live state, or claim that successful HTTPS proves WAN inaccessibility. **R3 real posting remains compiled Off and separately unauthorized.**
+
+---
+
 ## CH-HTTPS3 operator-reported HTTPS browser reachability (2026-10-31)
 
 Owner reports Bob Activity Manager is now accessible **over HTTPS from the OMEN and a separate LAN Windows computer**. Both clients had previously imported the public CA. This positive result does not itself prove that browsers showed no certificate warnings, that all installed file hashes were verified, or that the old plaintext listener is refused.

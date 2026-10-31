@@ -1,3 +1,11 @@
+## CH-HTTPS3 formal TLS acceptance PASS; CH-HTTPS4 credential rotation is next (2026-10-31)
+
+Owner supplied the sanitized fixed-host `report_ch_https3_cutover.py --installed` result: **`acceptance: PASS`**. The verified CH-HTTPS3 release, private public-CA SHA256, authenticated HTTPS manager and R3 page, source-Off/migration-journal guarantees, original active timers, and refusal of plaintext HTTP all passed. The owner previously confirmed browser HTTPS reachability from both OMEN and second LAN Windows computer; no-warning browser verification is a distinct visual check.
+
+CH-HTTPS4 now stages a **source-only**, exact-host terminal rotation tool over the existing private `lan-auth.json` credential store. Require CH-HTTPS3 PASS before and after, old-password verification and explicit typed operator consent, new-password verification on CA-validated HTTPS, 401 old/anonymous and 200 new. Never restart anything for the credential change. New credential persistence across separately approved manager restart, both Windows browsers, LAN-only exposure and G2 reboot/no-duplicate evidence remain open. `releases/current.json` stays `v0.8.0-chhttps3`; **no Bob R3 send authorization** is conveyed.
+
+---
+
 ## CH-HTTPS3 two-system HTTPS browser access observed (2026-10-31)
 
 After importing the public Bob CA on both Windows machines and promoting `v0.8.0-chhttps3`, the owner reports the Activity Manager **appears to work over HTTPS on both the OMEN and the second LAN computer**. This is reported live-client reachability, not yet the comprehensive post-install `scripts/report_ch_https3_cutover.py --installed` output. Leave final CH-HTTPS3 acceptance open until the report verifies installed hashes, completed R3 Off schema, private CA fingerprint, authenticated HTTPS and **plain HTTP refusal** on port 18790; separately confirm neither browser presents a certificate warning. No claim is made that an additional password rotation, reboot test or R3 publishing consent has occurred.
