@@ -66,6 +66,16 @@ try:
     status,page=req("GET","/r3",authn=True)
     assert status==200,(status,page[:300])
     assert "Bob R3 Controls" in page
+    # Fake HOME deliberately differs from CI's actual passwd home, so
+    # production account/registry guard MUST refuse it before we explicitly
+    # simulate the synthetic OpenClawLab account for the positive test.
+    assert "Owner controls remain unavailable" in page,page[:700]
+    import pwd,types
+    real_getpwuid=pwd.getpwuid
+    pwd.getpwuid=lambda uid: types.SimpleNamespace(
+        pw_dir=os.path.expanduser("~"))
+    status,page=req("GET","/r3",authn=True)
+    assert status==200,(status,page[:300])
     assert "The R3 schema is absent or host verification failed" in page,page[:700]
     import bob_v08
     assert str(os.path.expanduser("~/.local/bin/bob_r3_package.pyz"))+"/bob_v08" in bob_v08.__path__,bob_v08.__path__
