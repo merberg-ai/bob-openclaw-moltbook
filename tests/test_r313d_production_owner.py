@@ -45,6 +45,10 @@ class R313DOwnerTests(unittest.TestCase):
         fixture(self.dbfile)
         with closing(self.connect()) as db:
             db.execute("CREATE TABLE bob_friends(handle_key TEXT PRIMARY KEY)")
+            db.execute("CREATE TABLE publish_events("
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                       "at TEXT NOT NULL,kind TEXT NOT NULL,"
+                       "details TEXT NOT NULL)")
             db.execute(ENVELOPE_DDL)
             db.execute("CREATE TABLE r313c_schema_meta "
                        "(name TEXT PRIMARY KEY,value TEXT NOT NULL)")
