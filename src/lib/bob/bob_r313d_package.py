@@ -27,6 +27,16 @@ def load_verified() -> str:
         raise ValueError("r3_package_account_untrusted")
     file = home/".local/bin"/ARCHIVE
     registry = home/".local/state/bob-updater/installed.json"
+    # Refuse symlinked/writable ancestors before reading either file.
+    for folder in (home, home/".local", home/".local/bin",
+                   home/".local/state", home/".local/state/bob-updater"):
+        try:
+            info = folder.lstat()
+            if (not stat.S_ISDIR(info.st_mode) or info.st_uid not in (0,uid)
+                    or info.st_mode & 0o022):
+                raise ValueError("r3_package_untrusted_ancestor")
+        except OSError:
+            raise ValueError("r3_package_ancestor_missing") from None
     for path,limit in ((file,512*1024),(registry,32768)):
         try:
             meta = path.lstat()
