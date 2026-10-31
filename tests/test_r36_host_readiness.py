@@ -15,7 +15,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/"scripts"),str(ROOT/"src"),str(ROOT/"tests")]
 
-from report_r36_host_readiness import queue_schema, review
+from report_r36_host_readiness import queue_schema, review, compact
 from report_r3_cutover_inventory import UNITS
 from bob_v08.core import Action
 from bob_v08.r36_admission_contract import classify_draft
@@ -96,6 +96,11 @@ class HostContractTests(unittest.TestCase):
         self.assertEqual(len(data["units"]),len(UNITS))
         self.assertEqual(data["queue_state"]["auto_enabled"],"disabled")
         self.assertIn("publisher",data["production_cutover_requirements"][0])
+        short=compact(data)
+        self.assertIn("cutover authorized: NO",short)
+        self.assertIn("legacy queue schema: match",short)
+        self.assertIn("delivery states requiring review: 1",short)
+        self.assertNotIn("private ambiguous",short)
 
     def test_active_candidate_and_untrusted_unit_text_are_rejected_and_sanitized(self):
         def hostile(scope,name):
