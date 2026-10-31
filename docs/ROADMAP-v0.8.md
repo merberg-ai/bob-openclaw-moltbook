@@ -1,3 +1,11 @@
+## CH-HTTPS2 OMEN certificates verified, CH-HTTPS3 candidate under review (2026-10-31)
+
+Owner successfully created the local private certificate material using the separately confirmed CH-HTTPS2 script and verified it again with read-only `--verify`: SANs 192.168.1.24, 127.0.0.1 and localhost; valid chain, private keys, synthetic TLS handshake and wrong-hostname rejection. SHA256 of the **public** `ca.crt`: `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Existing Activity Manager remains HTTP; Windows browser CA import is unconfirmed.
+
+A source-only CH-HTTPS3 candidate extends the existing pinned R3 manager with a fixed owner-controlled TLS certificate verification module, TLS1.2+ socket on the existing port, strict HTTPS-only Host/Origin/CSRF and authenticated old+R3 routes. Its release manifest is only at `releases/candidates/ch-https3-tls-manager.json`, **not `releases/current.json`**, so `bobctl update` must remain `v0.8.0-chhttps1`. Promotion and installation require confirmation of deliberate Windows public CA Root import and a separate reviewed rollback/end-to-end TLS acceptance plan. No R3 public dispatch authorization.
+
+---
+
 ## CH-HTTPS2 guarded local certificates under review (2026-10-31)
 
 The owner independently accepted CH-HTTPS1 installed on OMEN (`v0.8.0-chhttps1` exact hash and R3 triple source Off; manager HTTP and authenticated `/r3` healthy; schema `ready`/journal `complete`). **HTTP remains in service** while CH-HTTPS2 prepares locally trusted certificate material. A read-only-by-default `scripts/prepare_ch_https2.py` preflight first checks that exact installed release and no existing private material is present. Owner must separately type `PREPARE BOB HTTPS` before generating a brand-new local CA and server key/cert with P-256 ECDSA keys, exact three SANs, short one-year leaf validity, private restrictive file modes, OpenSSL chain/key/SAN/role verification and disposable loopback TLS handshake with wrong-hostname rejection. Afterward a separate `--verify` is read-only. Existing manager service, timers, SQLite, updater registry and publication controls remain untouched.
