@@ -1,3 +1,18 @@
+## CH-HTTPS4 post-restart installed acceptance PASS; full G2 not yet tested (2026-10-31)
+
+Operator supplied before-and-after manager-only restart reports. `bob-activity-manager.service` restarted and was `active`; both `scripts/ch_https4_rotate_dashboard.py --verify` and `scripts/report_ch_https3_cutover.py --installed` passed before and afterward. HTTPS CA/public fingerprint, authenticated R3 page, HTTP refusal, source Off, current credential and original active user publisher/Scout timers all survived. Prior distinct-password `--apply` provided explicit old-password 401/new-password 200 proof. No systemd, SQLite or external Moltbook operation was performed by the read-only checks; only the separately approved manager service restart occurred.
+
+**Outstanding:** fresh successful login from both Windows browsers with the distinct new password after restart without certificate warnings, LAN-only/WAN exposure, Windows startup login-chain behavior and actual full Windows/WSL reboot. G2 read-only report is available after reviewed source-only CI/merge:
+
+```bash
+cd ~/bob-next && git pull --ff-only
+python3 scripts/report_g2_recovery.py --baseline
+```
+
+It shows allowlisted unit states and historical attempted/uncertain counts; `host gate: PASS` is readiness to plan a reboot, **not proof one happened or that Moltbook has no duplicate posts**. Separately review the Windows Startup-folder chain using the existing `scripts/inventory_windows_startup.ps1` before reboot. If a system-level Scout unit is enabled or active, or an inert R3 candidate writer is enabled, stop and investigate rather than automatically disabling anything. Avoid manually invoking publisher oneshots, restoring older SQLite snapshots or enabling R3 real-send permissions.
+
+---
+
 ## CH-HTTPS4 accepted password rotation; owner manager-restart checkpoint (2026-10-31)
 
 **Operator-supplied accepted result:** the old-to-same-password attempt was correctly refused by the replacement policy. After an explicit different new password, the owner received `CH-HTTPS4 credential change: APPLIED`, `old password rejected + new password accepted over verified HTTPS: PASS`, `installed TLS/R3 safeguard recheck: PASS`, and `No systemd, SQLite, publisher or Moltbook action performed`. The first refusal is explained; no forced password reset or TLS rollback is appropriate. The two Windows logins mentioned before this accepted rotation do **not** establish that either browser has subsequently accepted the *distinct new* password.
