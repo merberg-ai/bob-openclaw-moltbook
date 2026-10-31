@@ -1,3 +1,14 @@
+## R3.13c source-only candidate: sealed Bob envelope and existing publisher path (review pending)
+
+- [x] Correct the action provenance gap: R3.5 proposal seal/fingerprint do not preserve original Bob decision reason. Add bounded canonical `r313c_action_envelopes` plus versioned `r313c_schema_meta` additive contract, verified against the saved Scout source, independent seal and matching proposal before preflight, claim and dispatch.
+- [x] Wire `bob_r313c_adapter.maybe_r3_publisher_step()` into the **existing** `src/bin/bob-moltbook-publisher`. Both R3.12 and R3.13c real production send switches remain hardcoded **False**. Current v0.7 Scout publisher and installed Shadow4 remain untouched; no second credential, service, external request or owner authority.
+- [x] Candidate same-ledger atomic `BEGIN IMMEDIATE` attempted-intent claim, whole-queue manual-first, R3.9 fixed post+author GET, independent R3.13b R3 manual/auto controls, verified source/friend/owner/pause/budgets, final after-intent barrier, API ACK distinct from public verification, human challenge and timeout/crash/restart no-replay.
+- [x] Add offline fake GET/POST regression suite, actual publisher default-Off test, envelope reason tampering, owner revocation, friend, pause, duplicate target, priority and competing workers. Add CI triggers, [guide](docs/R313C-ONE-PUBLISHER-OFF.md) and explicitly noninstallable release candidate metadata.
+- [ ] **R3.13c CI/source acceptance pending** before merge; no on-host installation part of this step.
+- [ ] **R3.13d:** separately authorized production action-envelope migration and trusted producer, authenticated independent owner controls, versioned release and unit drain/canary, real sender activation after explicit owner consent, challenge/reboot/code-only rollback. R2 G1 natural source-linked timer decision remains open.
+
+---
+
 ## R3.13b OMEN operator acceptance PASS (2026-10-30)
 
 - [x] **Read-only installed-source review PASS:** trusted queue boundary `yes`; legacy schema `match`; installed R3 owner settings `absent_off`; effective publisher unit `reviewed_shape`; executable `owner_controlled_regular`; updater registry `verified_registry_hash`; installed versus unreleased `next` source `different_legacy_release_expected`; boundary and source review blockers `none`.
