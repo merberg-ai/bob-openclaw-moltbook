@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from bob_v08.core import Action, Observation
+from bob_v08.core import Action, Observation, Policy
 from bob_v08.r3_legacy_compat import LegacyCompatLab, LAB_MARKER
 
 WHEN = datetime(2026, 10, 30, 23, 30, tzinfo=timezone.utc)
@@ -23,6 +23,12 @@ PID_AUTO = "31ca4dd9-a0b4-4991-a671-f063946e1123"
 SHA = "a" * 64
 TEXT_MANUAL = "This is a careful, source-linked technical observation."
 TEXT_AUTO = "This is a separate, freshly reviewed, technical comment."
+
+
+def synthetic_policy():
+    from dataclasses import replace
+    return replace(Policy(), shadow=False, dials={"comment":"auto"},
+                   budgets={"comment":2}, minimum_spacing={"comment":0})
 
 
 def candidate(run, target, draft):
@@ -95,11 +101,30 @@ class CompatTests(unittest.TestCase):
                            (action.source_run, SHA, "approved", WHEN.isoformat()))
 
     def claim(self, action=None, obs=None, *, paused=False,
-              preflight_verified=True, friend_status="clear", at=WHEN):
+              preflight_verified=True, friend_status="clear", at=WHEN,
+              policy=None):
         return self.lab.simulated_claim(
             action or self.manual, obs or self.manual_obs, at=at,
             paused=paused, preflight_verified=preflight_verified,
-            friend_status=friend_status)
+            friend_status=friend_status,
+            policy=policy if policy is not None else synthetic_policy())
+
+    def test_default_v08_shadow_and_off_are_never_legacy_authority(self):
+        self.job(self.manual)
+        normal = self.lab.simulated_claim(
+            self.manual, self.manual_obs, at=WHEN, paused=False,
+            preflight_verified=True)
+        self.assertEqual((normal.state, normal.reason), ("refused", "shadow_only"))
+        from dataclasses import replace
+        shadow_off = replace(synthetic_policy(), shadow=True)
+        self.assertEqual(self.claim(policy=shadow_off).reason, "shadow_only")
+        dial_off = replace(synthetic_policy(), dials={"comment":"off"})
+        self.assertEqual(self.claim(policy=dial_off).reason, "v08_comment_not_auto")
+        frozen = replace(synthetic_policy(), paused=True)
+        self.assertEqual(self.claim(policy=frozen).reason, "v08_global_pause")
+        with sqlite3.connect(self.file) as db:
+            self.assertIsNone(db.execute(
+                "SELECT attempted_at FROM publish_jobs").fetchone()[0])
 
     def test_synthetic_manual_head_passes_shared_legacy_policy_without_network(self):
         self.job(self.manual)
