@@ -1,9 +1,19 @@
+## R3.13d OMEN OFF-first migration and service restoration COMPLETE (owner-reported, 2026-10-31)
+
+- [x] Live schema migrated, independently checked `ready` with journal `complete`; migrated schema preserves **23** historical send attempts, **0** uncertain outcomes and four R3 independent settings `off/0/0/empty`.
+- [x] Activity Manager restarted under private maintenance pause; authenticated `/r3` returned expected compiled-Off controls, and `scripts/report_r313d_stage1_installed.py` passed with exact installed `v0.8.0-r3stage1` registry and all three source real-send guards Off.
+- [x] **Service restoration accepted:** original publisher and Scout user timers (both `enabled/active` before maintenance) re-enabled and active; manager remained active/healthy; owner checked exact private pause content and removed it **last**. Operator output: `R3.13d: SERVICES RESTORED; MAINTENANCE PAUSE REMOVED`. Legacy Scout/publisher scheduling is restored; independent Bob-authored R3 publishing remains compiled Off. This is an owner report, not direct host introspection.
+- [ ] **Later independent checks:** post-resume natural timer run, service-restart/Windows-WSL reboot, no-duplicate/uncertain outcome evidence (G2). No assertion that post-resume scheduled publisher has completed a fresh cycle yet.
+- [ ] **Remaining R3 canary prerequisites:** HTTPS or equivalently protected LAN owner actions; independently authorized exact Bob draft+target and one-publisher send cutover, rollback/no-duplicate acceptance. R2 G1 remains independent. Do not rerun live DDL or restore a stale SQLite backup.
+
+---
+
 ## R3.13d OMEN post-migration acceptance PASS (operator-reported, 2026-10-31)
 
 - [x] Owner fast-forwarded `next` to `3b0cd9b` (PR #97) and reran read-only post-migration reports. The fixed-host schema report now verifies `installed_off_first_release_verified: true`, `r3_schema: ready`, `journal: complete`, **23** historical attempts, **0** uncertain attempts, private global pause `true`, and real R3 dispatch `false`.
 - [x] Independent installed-stage report: `installed release: verified`, `R3 real-send source gates: verified_off`, `authenticated R3 Controls: authenticated_read_only_page`, `installation acceptance: PASS`, no live changes from check, and no Moltbook canary authorization. Manager running makes `publisher_and_manager_drained: false` expected; completed migration makes `eligible_for_off_migration: false` expected.
-- [ ] **Service restoration NEXT:** original owner snapshot confirms publisher and Scout user timers both `enabled/active`, publisher worker `inactive` after its prior successful completion, Scout worker `inactive`, and Activity Manager `enabled/active`. With the existing private pause still present, enable/start only these two timers, check both timers `enabled/active` and manager healthy, then remove the **same maintenance-created pause marker LAST**. Do not restart the Gateway, manually fire publisher/scout services, restore old SQLite or rerun `--apply-off`. After unpause, legacy v0.7 schedules resume their original behavior; R3 real dispatch remains compiled Off.
-- [ ] **Post-restoration acceptance:** verify timer states, pause removed, manager and installed R3 reports healthy, R3 auto Off, and no duplicate/uncertain outcomes. Future HTTPS owner-controls hardening, direct Bob-authored manual canary with distinct explicit approval, G2 reboot/recovery, R2 G1 remain open.
+- [x] **Service restoration completed:** original user publisher/Scout timers returned to `enabled/active` and manager health reverified; private pause removed last. See acceptance checkpoint above.
+- [x] **Post-restoration immediate acceptance:** timers active+enabled, maintenance pause removed, manager and installed R3 controls verified healthy and source gates Off. Longer-term natural timer/no-duplicate and G2 reboot recovery remain separate open acceptance gates.
 
 ---
 
