@@ -1,3 +1,12 @@
+## CH-HTTPS4.1: owner hit an ambiguous credential rotation refusal (2026-10-31)
+
+- [x] Owner ran original CH-HTTPS4 `--preflight` with `installed HTTPS, current login and R3 Off: PASS`. A subsequent terminal `--apply` completed hidden prompts but printed `CH-HTTPS4 REFUSED OR INDETERMINATE: CredentialError` rather than an accepted rotation proof. Owner additionally reports both LAN Windows browser logins successful using what they identify as the new password. The sanitized script did not identify where the credential check failed; do **not** assume it wrote, failed to write, or proved rejection of historical login solely from that output.
+- [x] CH-HTTPS4.1 adds terminal-only, **read-only** `--audit`: hidden historical/new password prompts; compare stored credentials with real CA/IP-SAN verified HTTPS old/new/anonymous requests; classify `ROTATED_OLD_REJECTED_NEW_ACCEPTED`, `UNCHANGED_OLD_ACCEPTED_NEW_REJECTED`, or `NOT_VERIFIED`. No writes or restart. Adds safe refusal categories for future `--apply` without printing credentials or paths.
+- [ ] Owner, **after review + CI + merge**: `cd ~/bob-next && git pull --ff-only && python3 scripts/ch_https4_rotate_dashboard.py --audit` and separately `--verify`; then run CH3 `--installed`. Do not retry `--apply` blindly.
+- [ ] After positive credential proof, repeat fresh independent Windows browser tests without certificate warnings, and schedule manager restart and separate G2 Windows/WSL reboot. Keep R3 real publishing compiled Off.
+
+---
+
 ## CH-HTTPS3 server acceptance PASS; CH-HTTPS4 owner credential gate staged (2026-10-31)
 
 - [x] **OMEN CH-HTTPS3 acceptance PASS (operator-supplied report):** `python3 scripts/report_ch_https3_cutover.py --installed` returned `acceptance: PASS`, exact installed release verified, CA SHA256 matched, R3 schema/journal/source Off verified, authenticated HTTPS manager/R3 both pass, plaintext HTTP 18790 refused, manager and existing publisher/Scout timers active. Read-only report changed no services, DB or publishing rights.
