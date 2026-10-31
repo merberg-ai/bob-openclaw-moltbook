@@ -164,6 +164,19 @@ class ManifestAndCommandTests(unittest.TestCase):
             self.assertFalse(obj["restart_manager"])
             self.assertEqual({i["name"] for i in obj["files"]},
                              {"bob_v08_package.pyz", "bob-v08-shadow"})
+        elif obj["release"] == "v0.8.0-r3stage1":
+            self.assertEqual(obj["from"], "v0.8.0-shadow4")
+            self.assertTrue(obj["restart_manager"])
+            # OFF-first R3: owner dashboard/proposal files only. No
+            # credentialed publisher, timer, legacy Scout, auto switch or
+            # live SQLite migration is part of this versioned code update.
+            self.assertEqual({i["name"] for i in obj["files"]},
+                             {"bob_r3_package.pyz", "bob-r3-propose",
+                              "bob_r313d_package.py", "bob_r313d_owner.py",
+                              "bob_r313d_web.py", "bob-activity-manager",
+                              "navigation_shell.py"})
+            self.assertNotIn("bob-moltbook-publisher",
+                             {i["name"] for i in obj["files"]})
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:
