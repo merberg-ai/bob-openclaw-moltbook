@@ -1,3 +1,13 @@
+## CH-HTTPS3 owner trust accepted, TLS-only versioned cutover gated (2026-10-31)
+
+Owner reported successful Windows public CA Root imports on both OMEN and main remote LAN computer, using Bob's public CA with previously verified SHA256 `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Actual browser acceptance is still pending until the TLS service is live.
+
+The tested candidate is now promoted to versioned release `v0.8.0-chhttps3` from accepted `v0.8.0-chhttps1`, containing **only** `bob_manager_tls.py` and the generated `bob-activity-manager`, `restart_manager:true`. Authenticated local HTTPS with fixed private CA and IP SAN, HTTPS Origin/CSRF policy, and refusal of plaintext HTTP are mandatory. The updater performs old HTTP preflight, new HTTPS postflight and original HTTP code-only rollback on failed installation. Never restore a stale SQLite database, interrupt publisher or enable Bob R3 real sends.
+
+New source-only reports: `scripts/report_ch_https3_cutover.py --preflight` before the owner-typed update and `--installed` after. They verify CA SHA256 and private certs, installed binary hashes, migrated R3 schema/Off source, existing timers, authenticated manager and TLS-only endpoint. The separate CH-HTTPS4 client/browser test and password rotation remain open. See [CH-HTTPS rollout](CH-HTTPS-ROLLOUT.md).
+
+---
+
 ## CH-HTTPS2 OMEN certificates verified, CH-HTTPS3 candidate under review (2026-10-31)
 
 Owner successfully created the local private certificate material using the separately confirmed CH-HTTPS2 script and verified it again with read-only `--verify`: SANs 192.168.1.24, 127.0.0.1 and localhost; valid chain, private keys, synthetic TLS handshake and wrong-hostname rejection. SHA256 of the **public** `ca.crt`: `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Existing Activity Manager remains HTTP; Windows browser CA import is unconfirmed.
