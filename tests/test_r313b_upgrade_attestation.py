@@ -84,10 +84,21 @@ class PrivateUpgradeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "untrusted_private_upgrade_fixture"):
                 upgrade_private_copy(db)
             os.chmod(self.marker, 0o600)
-        alias = self.root / "activity-queue.sqlite3"
-        alias.symlink_to(self.dbfile)
+        # SQLite canonicalizes a symlink alias in PRAGMA database_list.
+        # Test a symlink to a distinct unmarked legacy queue instead; the
+        # marker-locked target contract, not alias spelling, is the boundary.
+        outside = self.root / "activity-queue.sqlite3"
+        create_legacy_fixture(outside)
+        alias = self.root / "activity-queue-alias.sqlite3"
+        alias.symlink_to(outside)
         with closing(sqlite3.connect(alias)) as db:
             with self.assertRaisesRegex(ValueError, "untrusted_private_upgrade_fixture"):
+                upgrade_private_copy(db)
+
+    def test_additional_attached_database_refused(self):
+        with closing(self.connect()) as db:
+            db.execute("ATTACH DATABASE ':memory:' AS extra")
+            with self.assertRaisesRegex(ValueError, "unreviewed_attached_database"):
                 upgrade_private_copy(db)
 
     def test_existing_opt_in_even_if_legacy_auto_is_on_refuses_migration(self):
