@@ -1,20 +1,20 @@
-## R3.13d Off-first production release and controlled live-schema gate (source acceptance pending)
+## R3.13d Off-first release + controlled live migration source accepted (2026-10-31)
 
 - [x] Implement isolated production-compatible `BEGIN IMMEDIATE` additive **R3 Off** schema transaction: exact R3.5 and versioned R3.13c tables, four default-Off independent owner keys, historical record/attempt digest, idempotence, future/partial schema and non-Off consent rejection, crash-before-commit rollback. No network or R3 publishing authority.
 - [x] Implement `scripts/r313d_live_off_migration.py` as a **read-only by default**, fixed-user/host command; `--apply-off` demands owner TTY phrase `MIGRATE R3 OFF`, installed registry-attested `v0.8.0-r3stage1`, reviewed effective publisher, three hard-Off source gates, private global pause marker, disabled and inactive publisher timer, inactive publisher/manager services, serialized updater lock, restore-tested private SQLite backup and fsync `prepared/complete` journal. No arbitrary source path, unit action, credential or Moltbook request. Code-only rollback only.
 - [x] Add offline synthetic database crash/history/unknown-schema/unit-drain/unauthorized-action regressions, CI paths and [operator guide](docs/R313D-LIVE-OFF-MIGRATION-GATE.md).
-- [ ] **CI/source merge pending**; no live schema altered by this branch.
+- [x] **CI/source acceptance PASS:** PR #90 merged to `next` at `ea8f3506a336a3616e5fe64b829d583f86f3d922`; GitHub Actions run `41213864893` passed **941 Python tests** and Windows startup-script parse. No live schema or installed R3 publisher changed.
 - [ ] **Owner host acceptance and installation remain separate:** merged Off-first candidate report on the OMEN, explicit release promotion/install, explicit drained maintenance and live Off schema migration; **real Bob-authored manual canary requires distinct exact owner approval**, and publisher remains hard Off. Reboot, challenge and no-duplicate production G2 still open. R2 G1 independently open.
 
 ---
 
-## R3.13d production owner Controls and sealed OpenClaw proposal path (Off-first CI review)
+## R3.13d owner Controls and sealed OpenClaw proposal source accepted (2026-10-31)
 
 - [x] Preserve hash-pinned v0.6 manager source and full legacy generated UI chain; add **separate R3 Controls** page via additive subclass over R2 Shadow + FM4.1/OC4 manager. Inherit existing LAN Basic/Host/Origin/CSRF. Publish settings still independent of Scout v0.7 auto and approvals.
 - [x] Add exact sealed Bob-draft owner approval, independent manually enabled R3 setting, separately typed manual queue action and safe revocation of **only unattempted** R3 jobs. R3 automatic publication is hardcoded **compiled Off**, even when old auto mode is On.
 - [x] Add `bob-r3-propose --once` trusted OpenClaw Bob/main-agent proposal-only worker. It rereads saved Scout evidence and original model decision, persists a bounded canonical action-envelope plus proposal transactionally, but cannot queue/send, infer approvals, or read credentials.
 - [x] Add deterministic standalone R3 module archive, updater-registry hash/owner/path verified import, R2/OC4-compatible manager/nav generator, separate **Off-first** `v0.8.0-r3stage1` release candidate (not active), read-only `report_r313d_off_first.py` review, tests and [operator guide](docs/R313D-PRODUCTION-OFF-FIRST.md). The legacy credentialed publisher is excluded from this release.
-- [ ] **CI approval and source merge pending** for production owner-code candidate; `releases/current.json` remains Shadow4, not installable by `bobctl update` until a distinct owner-approved promotion.
+- [x] **Off-first owner source accepted:** PR #89 merged to `next` at `d12ca1fa90d36456872598ec330dfd66c75a33cc`; **932 Python tests** and Windows startup parse passed. The candidate is not the active updater manifest; separate owner-approved release promotion/install remains required.
 - [ ] **Production host cutover still pending:** owner-verified versioned Off-first install, trusted maintenance/backup and actual additive DB migration (no stale DB restores), separately approved manual-only real Moltbook canary via one publisher, systemd/Windows/WSL reboot, post-verification and no-duplicate recovery. Do not authorize automatic R3 posting by default. R2 G1 remains open.
 
 ---
