@@ -150,6 +150,13 @@ class R312AdapterTests(unittest.TestCase):
                 (rid,digest,pid,oldtext,"manual",
                  datetime.now(timezone.utc).isoformat(),
                  datetime.now(timezone.utc).isoformat()))
+        # R3.3 synthetic ledger mirrors publish_jobs but intentionally lacks
+        # the v0.7 publisher's unrelated diagnostic event table.
+        with sqlite3.connect(self.path) as con:
+            con.execute("CREATE TABLE publish_events("
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        "at TEXT NOT NULL,kind TEXT NOT NULL,"
+                        "details TEXT NOT NULL)")
         fake_calls=[]
         def api(method,path,payload=None,*,key=None):
             fake_calls.append((method,path))
@@ -269,7 +276,9 @@ class R312AdapterTests(unittest.TestCase):
                 with sqlite3.connect(fixture_path) as con:
                     status=con.execute("SELECT state,attempted_at "
                                        "FROM publish_jobs WHERE run_id=?",(RUN,)).fetchone()
-                self.assertEqual(status[0],"uncertain")
+                self.assertIn(status[0],("uncertain","uncertain_simulated"))
+                # Timeout uses legacy uncertainty; malformed/rejected fake
+                # receipts use an explicit simulated state. Neither retries.
                 self.assertIsNotNone(status[1])
 
     def fresh_fixture(self):
