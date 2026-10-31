@@ -108,12 +108,13 @@ def inspect_boundary(*, home: Path, queue: Path, paused: Path, uid: int) -> dict
         (paused.parent, True, "pause_directory_not_private"),
         (queue, False, "queue_file_not_private"),
     ):
-        # Normal Unix home may be 0755; require owner/no symlink, but
-        # enforce 0700 on every directory containing Bob private data.
-        if path == home:
+        # Conventional home/.config may be 0755; require same owner,
+        # no symlink and no group/other write. Private leaf dirs stay 0700.
+        if path in (home, home / ".config"):
             try:
                 s = path.lstat()
-                good = stat.S_ISDIR(s.st_mode) and s.st_uid == uid
+                good = (stat.S_ISDIR(s.st_mode) and s.st_uid == uid
+                        and not (s.st_mode & 0o022))
             except OSError:
                 good = False
         else:
