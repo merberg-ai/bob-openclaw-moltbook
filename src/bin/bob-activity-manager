@@ -339,6 +339,13 @@ def originals_page():
 
 def r3_controls_page():
     """Authenticated LAN dashboard for independent Bob R3, NOT legacy Scout."""
+    try:
+        from bob_r313d_package import load_verified
+        load_verified()
+    except (OSError,ValueError,ImportError,KeyError):
+        return tab_page("Bob R3 Controls",
+            '<p>R3 production package is not installed or does not match '
+            'the updater registry. Owner controls remain unavailable.</p>')
     from bob_r313d_owner import (
         control_state, recent_proposals, trusted_manager_boundary,
     )
@@ -621,6 +628,8 @@ background:#131e30;padding:25px}}p{{color:#bccce4}}
                 self._error_page(403,"R3 action blocked",
                                  "Expired CSRF token; reload the page")
                 return
+            from bob_r313d_package import load_verified
+            load_verified()
             from bob_r313d_owner import (
                 trusted_manager_boundary, set_owner_mode, decide_exact,
             )
