@@ -1,3 +1,9 @@
+## Scheduled shadow evidence update (2026-10-30, 17:30 PDT)
+
+The active Shadow4 timer executed its service automatically: systemd's `LAST` reported 17:30:05 PDT and the service's `Result=success`, with actual start/exit timestamps. The 17:30 run's **domain outcome** remains unclassified because the CLI uses exit code zero for no new verified sources and handled model rejections as well as valid shadow decisions. Keep that distinction in R3 event/health design: `service_executed` must not be conflated with `source_processed`, `model_decision_accepted`, or `externally_published`.
+
+---
+
 ## R2 evidence handoff to R3.0 (private one-shot MD1 verified 2026-10-30)
 
 A live owner-approved `bobctl shadow-experience` yielded a source-grounded response from Bob's real OpenClaw main agent covering six latest verified Scout selections. Publication statuses and uncertain visibility were represented, but model interpretation overstated `publisher_failed` as an actual attempt without checking `attempted_at`. R3 must **explicitly preserve the distinction** among `queued`, `failed_before_sending`, `sending/uncertain`, `acknowledged` and `publicly_verified`. An observed third-party post ID is never Bob's published comment ID. Do not use an unverified natural-language account of activity as evidence to dispatch actions, adjust budget or create historical records.

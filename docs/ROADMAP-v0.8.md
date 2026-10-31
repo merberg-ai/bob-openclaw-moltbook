@@ -1,3 +1,13 @@
+## R2 scheduled service execution verified (2026-10-30, 17:30 PDT)
+
+**Owner-supplied systemd proof:** `bob-v08-shadow.timer` listed `LAST Fri 2026-10-30 17:30:05 PDT`, `NEXT Fri 2026-10-30 17:51:12 PDT`, and its oneshot `bob-v08-shadow.service` showed `Result=success` with matching start and exit timestamps `17:30:05 PDT`. This completes the **timer-trigger and service-execution gate**, unlike the earlier screenshot showing only a future scheduled time.
+
+**Outcome still needs classification:** `src/bob_v08/shadow.py:main` prints one sanitized JSON result and exits 0 for a processed valid shadow decision, `no_new_verified_sources` and a recorded `model_invalid_or_unavailable` outcome. Therefore `Result=success` alone does **not** prove a timer-driven OpenClaw decision occurred. Inspect a bounded `journalctl --user -u bob-v08-shadow.service` entry from 17:30 or a later natural run. No replay, database resets or new external permissions to force an outcome.
+
+R2's real manual agent decision and owner-approved MD1 one-shot experience review have separately passed. Remaining G1 work is representative scheduled-result inspection and accurate source-bound semantics. R3.0 source-only inventory can proceed while the shadow timer operates without Moltbook writes.
+
+---
+
 ## MD1 one-shot experience check: real-host success with interpretation gaps (2026-10-30 PDT)
 
 The owner invoked `bobctl shadow-experience` and typed `ASK-BOB` on the installed OMEN. The real OpenClaw main agent answered privately using the six most recent source-verified saved Scout selections from `bob_v08.digest`. The answer linked six post IDs, named their observed times and titles, distinguished no matching publisher record, queued and failed publisher states, and explicitly marked public visibility unknown/not rechecked. It did not invent a friendship, public reply or confirmed publication. This proves **one isolated opt-in private experience review works**, not persistent Gateway recall, PM2 memory, independent online verification or all-history knowledge.
