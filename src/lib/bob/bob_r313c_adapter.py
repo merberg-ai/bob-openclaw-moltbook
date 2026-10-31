@@ -33,6 +33,17 @@ def _trusted_single_publisher_db(db: sqlite3.Connection) -> bool:
     account = Path.home()
     if os.geteuid() == 0 or pwd.getpwuid(os.geteuid()).pw_dir != str(account):
         return False
+    # The private leaf checks alone are insufficient if HOME/.config
+    # ancestors are symlinked or writable by a different local process.
+    import stat
+    for path in (account, account / ".config"):
+        try:
+            info = path.lstat()
+            if (not stat.S_ISDIR(info.st_mode)
+                    or info.st_uid != os.geteuid() or info.st_mode & 0o022):
+                return False
+        except OSError:
+            return False
     if not all(_private(path, directory=True, uid=os.geteuid()) for path in (
             DATA, account / ".config/bob-system")):
         return False
