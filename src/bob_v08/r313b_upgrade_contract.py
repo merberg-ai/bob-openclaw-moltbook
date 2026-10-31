@@ -47,9 +47,15 @@ class PermissionReview:
 def validate_private_connection(db: sqlite3.Connection) -> None:
     """Refuse accidental migration of a host/live queue or attached DB."""
     database_rows = db.execute("PRAGMA database_list").fetchall()
-    if len(database_rows) != 1 or database_rows[0][1] != "main":
+    mains = [row for row in database_rows if row[1] == "main"]
+    extras = [row for row in database_rows
+              if row[1] != "main" and not (
+                  row[1] == "temp" and not row[2])]
+    # SQLite may allocate its internal in-memory temp schema during an
+    # online backup; reject all user-ATTACHed database files or aliases.
+    if len(mains) != 1 or extras:
         raise ValueError("unreviewed_attached_database")
-    path = Path(database_rows[0][2])
+    path = Path(mains[0][2])
     marker = path.parent / LAB_MARKER
     if (not path.is_absolute() or path.name != LAB_FILE
             or path.parent.name != LAB_DIR
