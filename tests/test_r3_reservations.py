@@ -37,7 +37,7 @@ class ReservationLabTests(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.root = Path(tmp.name)
-        self.ledger = SimulationLedger(self.root / "simulation.sqlite3")
+        self.ledger = SimulationLedger(self.root / "r3-reservation-lab.sqlite3")
         self.action, self.observed = candidate()
         self.current = PolicyState(BEFORE)
 
@@ -119,6 +119,27 @@ class ReservationLabTests(unittest.TestCase):
                 self.assertEqual(self.ledger.simulate_pre_send(
                     accepted.token, action, obs, policy(), self.current,
                     auto_enabled=True).reason, "reservation_not_pending")
+
+    def test_stale_pre_send_clock_and_invalid_spacing_are_held(self):
+        earlier = PolicyState(BEFORE - timedelta(seconds=2))
+        first = self.reserve()
+        self.assertEqual(first.state, "reserved")
+        outcome = self.preflight(first.token, state=earlier)
+        self.assertEqual((outcome.state, outcome.reason),
+                         ("held", "invalid_reservation_clock"))
+        action2, obs2 = candidate(OTHER, "20261030T200611Z")
+        p = policy()
+        bad = replace(p, minimum_spacing={"comment": -1})
+        result = self.ledger.simulate_reserve(
+            action2, obs2, bad, self.current, auto_enabled=True)
+        self.assertEqual((result.state, result.reason), ("refused", "invalid_spacing"))
+
+    def test_lowered_budget_at_pre_send_holds_even_after_reservation(self):
+        first = self.reserve()
+        policy_cut = policy(budget=0)
+        outcome = self.preflight(first.token, policy=policy_cut)
+        self.assertEqual((outcome.state, outcome.reason), ("held", "daily_budget"))
+        self.assertEqual(self.preflight(first.token).reason, "reservation_not_pending")
 
     def test_concurrent_same_target_has_exactly_one_winner(self):
         def job(i):
@@ -209,7 +230,12 @@ class ReservationLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unverified_source"):
             self.ledger.simulate_reserve(
                 self.action, bad_source, policy(), self.current, auto_enabled=True)
-        link = self.root / "linked.sqlite3"
+        with self.assertRaisesRegex(ValueError, "untrusted_simulation_path"):
+            SimulationLedger(self.root / "activity-queue.sqlite3").simulate_reserve(
+                self.action, self.observed, policy(), self.current, auto_enabled=True)
+        linkdir = self.root / "links"
+        linkdir.mkdir(mode=0o700)
+        link = linkdir / "r3-reservation-lab.sqlite3"
         link.symlink_to(self.root / "not-created.sqlite3")
         with self.assertRaisesRegex(ValueError, "unsafe_simulation_database"):
             SimulationLedger(link).simulate_reserve(
