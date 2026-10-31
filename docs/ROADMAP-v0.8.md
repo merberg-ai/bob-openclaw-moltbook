@@ -1,3 +1,11 @@
+## G2.4 both LAN browsers reachable after reboot; external checks remain (2026-10-31)
+
+The owner separately confirmed **both Windows systems can access the Activity Manager dashboard** after the completed G2.3 Windows/WSL reboot and healthy Gateway/HTTPS/R3 Off postcheck. This closes the **LAN dashboard reachability observation** for the OMEN and second LAN computer. The owner has not specifically restated absence of TLS warnings, cert bypass or fresh authentication with the newly rotated password in this post-reboot confirmation; those details remain a small visual check, not invented evidence.
+
+G2 is not yet fully closed: the 23/0 unchanged historical attempted/uncertain counts do not independently establish absence of duplicated external Moltbook posts; inspect external IDs/receipts against the queue without manually invoking any publisher. Also review the host listener/firewall/Windows portproxy and router WAN-forwarding perimeter; LAN reachability does not establish WAN isolation. No R3 real posting authorization, service change or certificate change.
+
+---
+
 ## G2.3 observed Windows reboot and OpenClaw recovery PASS; external acceptance remains (2026-10-31)
 
 Owner provided before/after Windows reboot evidence. **Before reboot:** G2 local host `PASS`, HTTPS and R3 hard Off `PASS`, expected user timer/manager and dormant competitors `PASS`, effective legacy publisher reviewed, SQLite schema/journal verified, legacy attempts **23**, uncertain **0**, linger yes. **After Windows reboot and sign-in:** Windows `wsl.exe --list --verbose` showed `OpenClawLab Running`. Subsequent WSL G2 `--postcheck` again gave `host gate: PASS` with the same 23 attempted/0 uncertain counts and all safeguards; `openclaw-gateway.service` returned `active`. This provides owner-witnessed recovery after Windows interactive logon, not unattended machine boot and not proof that the specific shortcut is the only boot mechanism.
