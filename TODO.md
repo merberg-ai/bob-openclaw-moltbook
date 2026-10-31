@@ -1,3 +1,14 @@
+## R3.11 single-publisher executable inert rehearsal (source-only)
+
+- [x] Add `r311_inert_entry.py`: strictly marker/private-path-bound R3.3 fixture plus exact sealed Bob draft/action descriptor. Reuse R3.10 two-pass checked `BEGIN IMMEDIATE` durable claim; then recheck source/owner/friend/pause limits and use only R3.8 **in-memory fake sink**, with no Moltbook POST or API token access.
+- [x] Add *two explicit inert subcommands* to the **existing** `src/bin/bob-moltbook-publisher` executable, `--r311-inert-rehearsal` and `--r311-inert-recover`. Normal `publisher_step()` remains byte-for-byte unchanged compared with `next` before this phase; no second credentialed publisher or new service unit is created. Missing/Off R3 owner settings always deny, even with v0.7 auto posting enabled.
+- [x] Add `tests/test_r311_inert_entrypoint.py` to run the **real publisher CLI subprocess** with isolated HOME and private synthetic DB/source files. Verify fake ACK, challenge, timeout, competing processes, exact original text/seal, source rejection, default Off, owner revocation, post-claim crash and restart uncertainty without resend, and metadata-only stdout. CI trigger added.
+- [x] Record `releases/candidates/r311-inert-only.json` as **noninstallable**, not referenced by `releases/current.json`. [R3.11 guide](docs/R311-INERT-PUBLISHER-ENTRYPOINT.md) states `dispatch_authorized:false`, `acted:false`, no live host changes or permissions.
+- [ ] **R3.12 next:** a separate reviewed production adapter and locked-down, disabled-by-default publisher integration, end-to-end fake-credentialed POST within an isolated test host, migration/rollback and true owner consent. Do not wire R3 comments into the deployed posting path or turn on R3 auto merely because source tests pass.
+- [ ] **R2 G1 separately pending:** naturally timer-driven OpenClaw decision from a new verified Scout post.
+
+---
+
 ## R3.10 implemented: one-queue atomic claim, source-only and default Off
 
 - [x] Add `src/bob_v08/r310_atomic_claim_lab.py`, a **marked synthetic fixture only** single-publisher claim rehearsal. Source root (`scout`) and pause marker (`paused`) are derived from the verified private fixture directory, never passed by a model. R3.9 two-pass source/permission/GET review runs read-only; it explicitly does **not** authorize a send.
