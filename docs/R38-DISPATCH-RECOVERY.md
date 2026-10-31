@@ -26,6 +26,24 @@ The command updates **only the clean development checkout**, then calls **`syste
 
 The output is **evidence**, not a permission grant. A reviewed-shape response does not prove WSL reboot continuity or complete credentialed publisher safety. A blocker should be investigated, not silenced by enabling/disabling a timer.
 
+## Real OMEN operator acceptance, October 30, 2026
+
+The owner ran the documented read-only `report_r38_effective_units.py` check in OpenClawLab after PR #74 was merged. The sanitized output showed:
+
+| Check | Observed |
+| --- | --- |
+| Effective legacy publisher service | `reviewed_shape` |
+| Effective publisher timer | `reviewed_shape` |
+| Service drop-ins | `0` |
+| Timer drop-ins | `0` |
+| Environment declarations | `1` |
+| Review blockers | `none` |
+| R3 cutover authorized | `NO` |
+
+**R3.8 point-in-time effective-unit checkpoint accepted.** The observed publisher command shape, oneshot contract, timer mapping, and cadence satisfy the narrow R3.8 audit. One environment declaration is informational; no value was printed. The audit did not validate executable hashes, actual runtime payload, complete WSL/Windows reboot behavior, owner authorization, source trust, or a real credentialed R3 dispatch. This acceptance must **not** change any service or grant new posting permissions.
+
+---
+
 ## Still blocked before a real cutover
 
 - A real, hardened host-owned GET/author proof and pause consistency check must be integrated inside the **existing single credentialed publisher**.

@@ -1,3 +1,11 @@
+## R3.8 operator effective-unit acceptance (2026-10-30)
+
+The owner ran the reviewed read-only systemd unit audit on OpenClawLab after merge of PR #74. It reported **effective publisher service: `reviewed_shape`**, **timer: `reviewed_shape`**, **0 service drop-ins**, **0 timer drop-ins**, **1 environment declaration**, **no review blockers**, and **R3 cutover authorized: NO**. This marks the R3.8 **point-in-time effective-unit-shape gate accepted**. The observed environment declaration is intentionally not exposed; no installed units or posting rights were modified. This confirms the conservative service and timer shape check, **not** credential isolation, real dispatch readiness, a Windows/WSL reboot acceptance, or permission to publish Bob-generated comments.
+
+**R3.9 next:** preserve the current single credentialed publisher and owner permission boundaries while designing an isolated real-publisher admission adapter for independently sealed Bob-authored drafts. Real authenticated GET, fresh friend evidence, final pre-POST pause/consent/CAS and versioned rollback are still outstanding. Do not infer automatic R3 consent from the enabled v0.7 auto setting.
+
+---
+
 ## R3.8 simulated dispatch and one-writer recovery, plus effective-unit read-only audit
 
 The R3.8 code-only stage now tests the post-intent lifecycle in one marked synthetic SQLite queue. R3.7's trusted-boundary rehearsal records a durable `sending_simulated` + `attempted_at` before any in-memory `InertSink` call. R3.8 separately rereads owner auto consent, saved-source seal, private friends roster, pause marker and remaining strict budgets before the sink; a revoked boundary conservatively locks the consumed attempt. Fake acknowledgments are only `acknowledged_simulated`; fake challenge responses require human verification; timeouts and malformed responses become `uncertain_simulated`. Process crashes on either side of the sink are recovered without replay, and a code-only rollback retains all attempted/uncertain history. All tests remain local with no actual API or credentialed transport.
