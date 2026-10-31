@@ -1,3 +1,15 @@
+## R3.7 implementation checkpoint: publisher-owned trust boundary (offline simulation)
+
+- [x] Build `src/bob_v08/r37_trusted_gate_lab.py`: a **marked synthetic fixture only** two-pass host-source/permission/queue verification gate that ties the R3.6 source classifier to the existing `r3_unified` transaction. Read authenticated-by-file Scout bytes, exact Bob-authored seal, queued unattempted job, owner `r3_comment_dial`, **both** `auto_enabled` and `r3_auto_enabled`, opt-in date, separate manual approval, legacy limits, manual priority and duplicate/uncertain history. No action policy from the model grants authority.
+- [x] Add a conservative saved-friend guard using the exact verified Scout feed and existing `bob_friends` table. Missing/damaged table, tagged friend batch, saved friend target and changed batch refuse auto mode; no implicit friendship bypass when extra Bob autonomy is enabled.
+- [x] Recheck the owner flags, feed integrity, queue, friend table, budget and pause marker **after** a strictly target-and-author-matching GET *fixture*, without holding a SQLite write lock across the simulated GET. A matching GET alone is not authorization. Only the existing offline `UnifiedLab.simulated_pre_send` may record `sending_simulated`; every returned result has `acted=False`, `dispatch_authorized=False`.
+- [x] Add `tests/test_r37_trusted_gate.py` to verify revoked owner consent, changed friend state, pause activation, changed rate limits, wrong/missing/deleted GET identity, stale clock, concurrent legacy priority, attempted/uncertain target history and private manual seal. CI path updated.
+- [ ] **R3.7 live adapter NOT built:** the GET function and clock are host-test callbacks, not a verified installed HTTPS client; `UnifiedLab` is marker-locked synthetic SQLite, not the production queue. There is no installed v0.7 publisher change, new consent setting UI, credential or HTTP POST. A real host-side adapter needs exact service/root ownership, secure GET parsing, final pause recheck, source/file consistency and one publisher-owned pre-POST CAS.
+- [ ] **R3.8 next:** build independent isolated effective-unit template/override review and a production-like publisher dispatch rehearsal using inert transport and crash/reboot hooks. No release/update or production permissions without explicit owner approval.
+- [ ] **R2 G1 still pending:** a naturally timed source-linked model decision, distinct from the verified no-event timer run.
+
+---
+
 ## R3.6 implementation: read-only real-host readiness audit and draft-origin contract
 
 - [x] Add `scripts/report_r36_host_readiness.py`: a single compact owner-run report that reads only fixed allowlisted systemd **unit states** and existing SQLite queue schema/metadata in `mode=ro`. Includes publisher service/timer, startup reconcile, shadow and inert candidate, system legacy Scout, exact legacy table shape, validated policy, pause, attempted and uncertain counts. Every report explicitly says **cutover_authorized: false**. Expanded `--json` remains sanitized.
