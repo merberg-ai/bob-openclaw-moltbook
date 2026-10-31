@@ -1,6 +1,6 @@
 # R3.13d production code: Off-first owner controls and sealed Bob proposals
 
-**Implementation candidate only. Do not claim live cutover, real posting, or installed owner controls.** The active updater manifest remains `v0.8.0-shadow4` and the installed legacy publisher remains the sole credentialed Moltbook writer.
+**Promoted code-only release manifest on `next`; owner OMEN installation not yet confirmed. Do not claim live cutover or real posting.** `releases/current.json` now advertises `v0.8.0-r3stage1`, chained from the already reviewed `v0.8.0-shadow4` installation. The existing legacy publisher remains the sole credentialed Moltbook writer; its executable and timer are excluded from stage1.
 
 ## What is ready for source review
 
@@ -8,7 +8,7 @@
 - Explicit typed `ENABLE R3 MANUAL` or `DISABLE R3` owner controls; no R3 rights are inferred from legacy Scout approvals or legacy `auto_enabled`. `R3_AUTO_UI_COMPILED_OFF=True` prohibits automatic Bob-authored comment publication regardless of owner settings or form submission. Every new Bob draft needs an **independent SHA-sealed approval**, and queueing the exact approved text requires separate typed `QUEUE BOB COMMENT` confirmation. Revocation cancels only **unattempted R3** queue jobs; existing legacy jobs and attempted/uncertain history are retained.
 - A fixed local `bob-r3-propose --once` process invokes the real OpenClaw main Bob through his verified saved Scout observation, validates the strict five-field model decision, and stores a canonical envelope and proposal under a single SQLite `BEGIN IMMEDIATE`. A skipped response creates no comment. **No publish_jobs row, owner approval, API credential lookup, HTTP POST, new publisher or implicit auto queue** is ever created by this worker. Any R3 owner approval must be separately made from the dashboard.
 - A deterministic, separate `bob_r3_package.pyz` with required R3 modules, compiled from reviewed source. Its local owner-reader uses the installed updater's **recorded SHA-256** and private regular-file/path checks before importing it. This package is independent of the Shadow4 package and activation pointer.
-- An **Off-first release candidate** at `releases/candidates/r313d-off-first-owner-controls.json`, upgrade chain `v0.8.0-shadow4` to `v0.8.0-r3stage1`. The reviewed manifest installs *only* the new R3 package, proposal launcher, R3 owner modules, generated manager and navigation. It **does not replace the installed credentialed publisher**. The existing guarded updater's rollback changes only code, never rewinds SQLite history.
+- An **Off-first promoted release** in `releases/current.json` (with an identical retained candidate at `releases/candidates/r313d-off-first-owner-controls.json`), upgrade chain `v0.8.0-shadow4` to `v0.8.0-r3stage1`. The reviewed manifest installs *only* the new R3 package, proposal launcher, R3 owner modules, generated manager and navigation. It **does not replace the installed credentialed publisher**. The existing guarded updater's rollback changes only code, never rewinds SQLite history.
 - A read-only report `scripts/report_r313d_off_first.py` which builds both candidate bundles in memory, requires the current active manifest to remain Shadow4, verifies all three hard-Off publisher source gates, and reuses the previously accepted OMEN trusted-host/publisher registry attestation. It has no install, DDL, service or network option.
 
 ## OMEN pre-install review accepted (2026-10-31)
@@ -27,11 +27,11 @@ cd ~/bob-next && git pull --ff-only && python3 scripts/report_r313d_off_first.py
 
 This is **read only**. A PASS is proof of source/build compatibility and a point-in-time installed host boundary, **not** permission to migrate the real DB or send a comment.
 
-This checkpoint intentionally does not change `releases/current.json`; `bobctl update` is not the installation command until the independent Off-first release promotion has been reviewed and approved.
+This original **pre-promotion** check is historical and is expected to report a different current manifest after promotion. For the now-promoted stage1 release, use [the explicit owner installation SOP](R313D-STAGE1-INSTALL.md), starting with `bobctl update --check`. The updater still requires typed `UPDATE` before any code is installed. It does not migrate the live database.
 
 ## Remaining explicit production approvals
 
-The next deployment gate must separately promote the reviewed Off-first release and install through the existing authenticated guarded updater, while preserving the current legacy publisher and R2 shadow files. The R3 schema must then be migrated with verified offline maintenance boundaries, private restore-tested backup, transactional additive tables and default-Off settings, durable migration journal, and **code-only rollback without restoring stale database contents**. The dashboard will show R3 schema unavailable until then.
+The next deployment gate must **install the already promoted Off-first release through the existing authenticated guarded updater after explicit owner confirmation**, preserving the current legacy publisher and R2 shadow files. The R3 schema must then be migrated with verified offline maintenance boundaries, private restore-tested backup, transactional additive tables and default-Off settings, durable migration journal, and **code-only rollback without restoring stale database contents**. The dashboard will show R3 schema unavailable until then.
 
 The manual-only credentialed publisher canary requires a **separate owner-approved release and an exact post/draft approval**, final source+author public GET, friend/owner/pause/rate final barrier, no concurrent second publisher, and a verified reboot/recovery. Unknown sends remain uncertain with no automatic retry. Automatic R3 posting stays Off until its own later explicit permission.
 
