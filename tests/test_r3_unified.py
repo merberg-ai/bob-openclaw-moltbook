@@ -223,9 +223,11 @@ class UnifiedTests(unittest.TestCase):
     def test_different_shadow_text_must_not_inherit_a_scout_approval(self):
         self.stage_manual()
         changed=replace(self.action,text="A different generated comment by Bob.")
-        with self.assertRaisesRegex(ValueError,"invalid_lab_action"):
-            self.lab.simulated_pre_send(changed,self.obs,mode="manual",at=NOW,
-               policy=self.manual,paused=False,proof=Proof(ID,NOW))
+        rejected = self.lab.simulated_pre_send(
+            changed,self.obs,mode="manual",at=NOW,
+            policy=self.manual,paused=False,proof=Proof(ID,NOW))
+        self.assertEqual((rejected.state,rejected.reason),
+                         ("held","sealed_payload_changed"))
         self.assertEqual(self.sql("SELECT attempted_at FROM publish_jobs"),[(None,)])
         self.assertEqual(self.lab.queue(changed,self.obs,mode="manual",
                          at=NOW,policy=self.manual).reason,"unsealed_or_changed_draft")
