@@ -8,6 +8,7 @@ Does not create/modify databases, enable units, touch settings or make HTTP call
 """
 from __future__ import annotations
 
+from contextlib import closing
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -58,8 +59,8 @@ def queue_schema(path: Path = QUEUE) -> dict:
             return result
         # SQLite URI mode=ro does not create a new DB. Do NOT use immutable=1:
         # this must see the latest committed WAL state.
-        with sqlite3.connect(p.absolute().as_uri() + "?mode=ro",
-                             uri=True, timeout=2) as con:
+        with closing(sqlite3.connect(p.absolute().as_uri() + "?mode=ro",
+                                    uri=True, timeout=2)) as con:
             con.execute("PRAGMA query_only=ON")
             con.execute("BEGIN")
             table_names = {
@@ -192,12 +193,49 @@ def _allowed_field(key: str) -> frozenset[str]:
     }.get(key, ()))
 
 
-def main() -> int:
+def compact(report: dict) -> str:
+    """Small, non-sensitive operator output; full sanitized JSON via --json."""
+    unit = {(p["scope"], p["unit"]): p for p in report["units"]}
+    def status(scope, name):
+        return unit.get((scope, name), {}).get("active", "unknown")
+    schema = report["queue_contract"]
+    queue = report["queue_state"]
+    blockers = report["review_blockers"]
+    lines = [
+        "R3.6 HOST READINESS (read-only, no cutover)",
+        "legacy publisher timer: " + status("user", "bob-moltbook-publisher.timer"),
+        "legacy publisher service: " + status("user", "bob-moltbook-publisher.service"),
+        "shadow timer: " + status("user", "bob-v08-shadow.timer"),
+        "startup reconcile timer: " + status("user", "bob-startup-reconcile.timer"),
+        "candidate publisher timer: " + status("user", "bob-r3-candidate-publisher.timer"),
+        "system legacy scout timer: " + status("system", "bob-moltbook-scout.timer"),
+        "legacy queue schema: " + schema["legacy_contract"],
+        "queue policy: " + str(queue["policy_status"]),
+        "owner pause: " + str(queue["pause"]),
+        "legacy auto comments: " + str(queue["auto_enabled"]),
+        "historical attempted sends: " + str(schema["attempted_jobs"]),
+        "delivery states requiring review: " + str(schema["uncertain_jobs"]),
+        "baseline consistency: " + ("observed" if report["baseline_observed"] else "unverified"),
+        "review blockers: " + (", ".join(blockers) if blockers else "none"),
+        "new R3 publication authority: NONE",
+        "cutover authorized: NO",
+    ]
+    return "\n".join(lines)
+
+
+def main(argv=None) -> int:
     import os
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         print("R3.6 REVIEW: refuse root")
         return 1
-    print(json.dumps(review(), sort_keys=True, indent=2))
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv not in ([], ["--json"]):
+        print("Usage: python3 scripts/report_r36_host_readiness.py [--json]")
+        return 2
+    facts = review()
+    print(json.dumps(facts, sort_keys=True, indent=2) if argv == ["--json"]
+          else compact(facts))
     return 0
 
 
