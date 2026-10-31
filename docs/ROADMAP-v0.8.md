@@ -1,3 +1,13 @@
+## R3.13c prospective single-publisher send branch, hard Off
+
+The existing publisher executable contains a prospective Bob-authored R3 branch behind **two hardcoded production-Off switches**, preserving the v0.7 Scout queue path and v0.8 Shadow4 installation. Source review found a missing provenance datum: R3.5 proposals store Bob draft seal/fingerprint but not the original action **reason**; older R3 tests used a marked private descriptor, which must never supply live authority. R3.13c adds a versioned canonical action-envelope contract independently validated against the saved Scout source and original seal.
+
+The candidate reuses one legacy `publish_jobs` attempted-at ledger with manual-first priority, R3.9 pinned exact-post/author GET, independent R3.13b permissions, verified source/friends/owner/pause/budget checks, atomic durable intent, final post-intent pre-POST barrier, human-only challenges and no-retry uncertain outcomes. API acknowledgment is not independently verified public visibility. CI uses only a marker-protected synthetic database, fake GET and fake POST; the actual publisher remains Off.
+
+**Not an installed release:** no real action-envelope migration, authenticated producer/UI, R3 credentialed POST, new owner permission, unit or live schema changes. R3.13d must address schema migration, UI/producer, versioned staged cutover, owner consent, canary, reboot/rollback and post-challenge reconciliation. [R3.13c guide](R313C-ONE-PUBLISHER-OFF.md). R2 G1 remains open.
+
+---
+
 ## R3.13b OMEN owner acceptance PASS (2026-10-30)
 
 The owner ran the merged `next` R3.13b installed-source audit and the independently requested `--private-copy` upgrade rehearsal on the OMEN/OpenClawLab WSL host. The read-only audit reported a trusted queue boundary, matching legacy schema, no installed R3 consent (`absent_off`), reviewed publisher systemd unit shape, an owner-controlled regular installed executable, **verified updater registry hash**, no source or boundary blockers, and the expected difference between the legacy installed binary and the unreleased `next` candidate.
