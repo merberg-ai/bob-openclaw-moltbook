@@ -1,3 +1,11 @@
+## R3.1 isolated reservation lab (implementation under offline CI)
+
+The next R3 engineering slice is implemented on `next` as an **uninstalled, synthetic-only reservation engine**. It exercises `BEGIN IMMEDIATE` SQLite serialization, one-target idempotency, conservative simulated budget/spacing consumption, final source/content/policy recheck, owner disabling and changed budgets, UTC rollover, uncertainty locking and transactional rollback. Only metadata hashes and bounded state transitions live in the separate lab DB. No network write path or permission grant is added, and no existing v0.7 queue or production service is touched. The positive fixture uses an explicitly synthetic policy where `shadow=false`; installed Shadow4 remains shadow-only.
+
+This is **not** R3 cutover readiness. Next is trusted legacy source-of-truth mapping and transaction bridging, plus simulated race, failure and rollback rehearsals before any opt-in host cutover. The naturally scheduled R2 model-decision confirmation remains a distinct pending evidence check.
+
+---
+
 ## R3.0 source-only inventory started; R2 17:30 tick produced no events
 
 A new `scripts/report_r3_cutover_inventory.py` is under reviewed CI with focused offline tests, for **read-only metadata-only** cutover analysis. It is not deployed and does not authorize a cutover. It reads only the allowlisted user/system unit states and aggregated queue/settings metadata, with bounded error categories, no credentials or publication calls.
