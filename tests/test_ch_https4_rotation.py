@@ -52,6 +52,76 @@ class CHHTTPS4RotationTests(unittest.TestCase):
         self.assertTrue(auth.authorized(self.path, self.header(self.new)))
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
 
+    def test_read_only_audit_recognizes_successfully_rotated_password(self):
+        auth.rotate(self.path, self.old, self.new, self.new)
+        with patch.object(rotation, "_ready", return_value=True), \
+             patch.object(rotation, "_https_get",side_effect=self.responses()), \
+             patch.object(rotation.auth, "rotate") as change:
+            self.assertEqual(rotation.audit_credentials(
+                self.path,self.old,self.new),
+                "ROTATED_OLD_REJECTED_NEW_ACCEPTED")
+            change.assert_not_called()
+
+    def test_read_only_audit_detects_unchanged_password(self):
+        page = self.responses()[1][1]
+        responses = [(200,page),(401,b""),(401,b"")]
+        with patch.object(rotation, "_ready", return_value=True), \
+             patch.object(rotation, "_https_get",side_effect=responses), \
+             patch.object(rotation.auth, "rotate") as change:
+            self.assertEqual(rotation.audit_credentials(
+                self.path,self.old,self.new),
+                "UNCHANGED_OLD_ACCEPTED_NEW_REJECTED")
+            change.assert_not_called()
+
+    def test_read_only_audit_never_accepts_conflicts_or_tls_outage(self):
+        with patch.object(rotation, "_ready",return_value=True), \
+             patch.object(rotation, "_https_get") as get:
+            self.assertEqual(rotation.audit_credentials(
+                self.path,self.old,self.old), "NOT_VERIFIED")
+            get.assert_not_called()
+        with patch.object(rotation, "_ready",return_value=True), \
+             patch.object(rotation, "_https_get",
+                          side_effect=[(200,b""),(200,b""),(401,b"")]):
+            self.assertEqual(rotation.audit_credentials(
+                self.path,self.old,self.new), "NOT_VERIFIED")
+        with patch.object(rotation, "_ready",return_value=True), \
+             patch.object(rotation, "_https_get",
+                          side_effect=ConnectionError("synthetic")):
+            self.assertEqual(rotation.audit_credentials(
+                self.path,self.old,self.new), "NOT_VERIFIED")
+
+    def test_audit_console_prompts_hidden_and_returns_success_after_rotate(self):
+        output=StringIO()
+        with patch.object(rotation, "_operator_account",return_value=True), \
+             patch.object(rotation, "_ready",return_value=True), \
+             patch.object(rotation.sys,"stdin",SimpleNamespace(isatty=lambda: True)), \
+             patch.object(rotation.sys,"stderr",SimpleNamespace(isatty=lambda: True)), \
+             patch.object(rotation.getpass,"getpass",
+                          side_effect=[self.old,self.new]) as hidden, \
+             patch.object(rotation,"audit_credentials",
+                          return_value="ROTATED_OLD_REJECTED_NEW_ACCEPTED"), \
+             patch.object(rotation.auth,"rotate") as change, \
+             contextlib.redirect_stdout(output):
+            self.assertEqual(rotation.main(["--audit"]),0)
+            hidden.assert_called()
+            change.assert_not_called()
+        self.assertIn("READ ONLY",output.getvalue())
+        self.assertNotIn(self.old,output.getvalue())
+        self.assertNotIn(self.new,output.getvalue())
+
+    def test_safe_refusal_categories_only(self):
+        self.assertEqual(rotation.safe_refusal_code(
+            auth.CredentialError("current password incorrect")),
+            "CURRENT_PASSWORD_REJECTED")
+        self.assertEqual(rotation.safe_refusal_code(
+            auth.CredentialError("invalid replacement password")),
+            "NEW_PASSWORD_POLICY_OR_CONFIRMATION")
+        self.assertEqual(rotation.safe_refusal_code(
+            auth.CredentialError("arbitrary secret content")),
+            "CREDENTIAL_VALIDATION_REFUSED")
+        self.assertEqual(rotation.safe_refusal_code(OSError("private paths")),
+            "LOCAL_IO_UNVERIFIED")
+
     def test_bad_old_password_refused_without_writing(self):
         with patch.object(rotation, "_ready", return_value=True), \
              patch.object(rotation, "_https_get") as get:

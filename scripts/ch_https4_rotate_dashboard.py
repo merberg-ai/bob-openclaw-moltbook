@@ -89,6 +89,61 @@ def _rotation_proven(path: Path, username: str, old: str, new: str) -> bool:
             and anonymous_status == 401)
 
 
+
+def audit_credentials(path: Path, historical: str, candidate: str) -> str:
+    """Read-only local-file AND live CA-verified HTTPS login comparison.
+
+    This is a recovery audit, not password rotation or a password reset.
+    Return only fixed status codes, never credential values or HTTP payloads.
+    """
+    if not _ready() or historical == candidate:
+        return "NOT_VERIFIED"
+    try:
+        username = auth.load(path)["username"]
+        old_header = _basic(username, historical)
+        new_header = _basic(username, candidate)
+        local_old = auth.authorized(path, old_header)
+        local_new = auth.authorized(path, new_header)
+        old_status, old_body = _https_get(old_header)
+        new_status, new_body = _https_get(new_header)
+        anonymous_status, _ = _https_get(None)
+        if anonymous_status != 401:
+            return "NOT_VERIFIED"
+        def expected_r3(status, body):
+            return (status == 200 and 0 < len(body) <= 65536
+                    and b"Bob R3 Controls" in body
+                    and b"compiled locked" in body)
+        if (not local_old and local_new and old_status == 401
+                and expected_r3(new_status, new_body)):
+            return "ROTATED_OLD_REJECTED_NEW_ACCEPTED"
+        if (local_old and not local_new and new_status == 401
+                and expected_r3(old_status, old_body)):
+            return "UNCHANGED_OLD_ACCEPTED_NEW_REJECTED"
+    except (OSError, ValueError, TypeError, UnicodeError, ssl.SSLError,
+            HTTPException):
+        return "NOT_VERIFIED"
+    return "NOT_VERIFIED"
+
+
+def safe_refusal_code(exc: Exception) -> str:
+    """Fixed, non-secret operator diagnosis for safe error categories only."""
+    if isinstance(exc, auth.CredentialError):
+        categories = {
+            "HTTPS preflight refused": "HTTPS_PREFLIGHT_FAILED",
+            "invalid replacement password": "NEW_PASSWORD_POLICY_OR_CONFIRMATION",
+            "invalid new password": "NEW_PASSWORD_POLICY_OR_CONFIRMATION",
+            "current password incorrect": "CURRENT_PASSWORD_REJECTED",
+            "unsafe credential lock": "CREDENTIAL_LOCK_UNSAFE",
+            "unsafe credential permissions": "CREDENTIAL_FILE_PERMISSIONS_UNSAFE",
+            "credential file unavailable": "CREDENTIAL_FILE_UNAVAILABLE",
+            "invalid credential file": "CREDENTIAL_FILE_INVALID",
+            "invalid credentials": "CREDENTIAL_FILE_INVALID",
+        }
+        return categories.get(str(exc), "CREDENTIAL_VALIDATION_REFUSED")
+    if isinstance(exc, (OSError, IOError)):
+        return "LOCAL_IO_UNVERIFIED"
+    return "INTERACTIVE_INPUT_UNVERIFIED"
+
 def _new_password_ok(current: str, replacement: str, confirmation: str) -> bool:
     """ASCII printable for predictable Windows browser Basic-auth encoding."""
     return (replacement == confirmation and replacement != current
@@ -114,13 +169,31 @@ def rotate_and_verify(path: Path, old: str, new: str, confirmation: str) -> bool
 
 def main(argv=None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if args not in ([], ["--preflight"], ["--verify"], ["--apply"]):
+    if args not in ([], ["--preflight"], ["--verify"], ["--audit"], ["--apply"]):
         print("Usage: python3 scripts/ch_https4_rotate_dashboard.py "
-              "[--preflight | --verify | --apply]")
+              "[--preflight | --verify | --audit | --apply]")
         return 2
     if not _operator_account():
         print("CH-HTTPS4 REFUSED: expected openclaw non-root account")
         return 1
+    if args == ["--audit"]:
+        if not (sys.stdin.isatty() and sys.stderr.isatty()):
+            print("CH-HTTPS4 AUDIT REFUSED: interactive trusted terminal required")
+            return 1
+        if not _ready():
+            print("CH-HTTPS4 AUDIT REFUSED: installed HTTPS preflight NOT_VERIFIED")
+            return 1
+        try:
+            old = getpass.getpass("Historical dashboard password (hidden): ")
+            new = getpass.getpass("Candidate new dashboard password (hidden): ")
+            result = audit_credentials(AUTH_FILE, old, new)
+        except (OSError, EOFError, KeyboardInterrupt, ValueError,
+                auth.CredentialError):
+            result = "NOT_VERIFIED"
+        print("CH-HTTPS4 CREDENTIAL AUDIT (READ ONLY)")
+        print("credential audit: " + result)
+        print("credential, service, database or publishing writes: NONE")
+        return 0 if result == "ROTATED_OLD_REJECTED_NEW_ACCEPTED" else 1
     if args != ["--apply"]:
         ready = _ready()
         print("CH-HTTPS4 HTTPS CREDENTIAL GATE (READ ONLY)")
@@ -149,9 +222,9 @@ def main(argv=None) -> int:
             auth.CredentialError) as exc:
         # An I/O exception after an atomic rename can leave new credentials
         # installed. Never claim credentials are unchanged on an exception.
-        print("CH-HTTPS4 REFUSED OR INDETERMINATE: " + type(exc).__name__)
-        print("Do not retry blindly; check HTTPS, then use trusted console reset "
-              "if needed. No secrets were printed.")
+        print("CH-HTTPS4 REFUSED OR INDETERMINATE: " + safe_refusal_code(exc))
+        print("Run --audit to check the old/new login state without modifying it.")
+        print("Do not retry blindly; no secrets were printed.")
         return 1
     print("CH-HTTPS4 credential change: APPLIED")
     print("old password rejected + new password accepted over verified HTTPS: "
