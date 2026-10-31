@@ -1,3 +1,11 @@
+## R3.0 source-only inventory started; R2 17:30 tick produced no events
+
+A new `scripts/report_r3_cutover_inventory.py` is under reviewed CI with focused offline tests, for **read-only metadata-only** cutover analysis. It is not deployed and does not authorize a cutover. It reads only the allowlisted user/system unit states and aggregated queue/settings metadata, with bounded error categories, no credentials or publication calls.
+
+For R2, owner separately confirmed automatic `bob-v08-shadow.service Result=success` at 17:30 PDT and a read-only SQLite query across that two-minute period found **0 new shadow events**. This is consistent with no fresh verified selection; exact return reason cannot be established from absence of events or exit code. Do not count it as a scheduled model decision. Await naturally arriving sources. Manual real OpenClaw decision and isolated MD1 experience review remain accepted.
+
+---
+
 ## R2 scheduled service execution verified (2026-10-30, 17:30 PDT)
 
 **Owner-supplied systemd proof:** `bob-v08-shadow.timer` listed `LAST Fri 2026-10-30 17:30:05 PDT`, `NEXT Fri 2026-10-30 17:51:12 PDT`, and its oneshot `bob-v08-shadow.service` showed `Result=success` with matching start and exit timestamps `17:30:05 PDT`. This completes the **timer-trigger and service-execution gate**, unlike the earlier screenshot showing only a future scheduled time.
