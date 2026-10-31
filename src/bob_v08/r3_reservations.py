@@ -146,40 +146,49 @@ class SimulationLedger:
         if self.path.exists() and (not self.path.is_file()
                 or self.path.stat().st_mode & 0o077):
             raise ValueError("unsafe_simulation_database")
-        previous = os.umask(0o077)
+        # Unlike os.umask(), an explicit fd mode is safe across concurrent
+        # threads. Existing files and the created file must both be private.
+        fd = os.open(self.path, os.O_RDONLY | os.O_CREAT |
+                     getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
-            db = sqlite3.connect(self.path, timeout=4, isolation_level=None)
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) & 0o077:
+                raise ValueError("unsafe_simulation_database")
         finally:
-            os.umask(previous)
-        db.execute("PRAGMA busy_timeout=4000")
-        # BEGIN IMMEDIATE before schema creation serializes first users too.
-        db.execute("BEGIN IMMEDIATE")
-        db.execute("""CREATE TABLE IF NOT EXISTS meta(
-                     name TEXT PRIMARY KEY, value TEXT NOT NULL)""")
-        db.execute("""CREATE TABLE IF NOT EXISTS reservations(
-                     token TEXT PRIMARY KEY,
-                     kind TEXT NOT NULL,
-                     source_run TEXT NOT NULL,
-                     target_id TEXT NOT NULL,
-                     action_digest TEXT NOT NULL,
-                     created_utc TEXT NOT NULL,
-                     state TEXT NOT NULL CHECK(state IN (
-                       'reserved','held','intent_simulated','uncertain_simulated')),
-                     UNIQUE(kind,target_id),
-                     UNIQUE(kind,source_run,target_id))""")
-        db.execute("""CREATE TABLE IF NOT EXISTS changes(
-                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                     token TEXT NOT NULL,
-                     at_utc TEXT NOT NULL,
-                     transition TEXT NOT NULL,
-                     reason TEXT NOT NULL)""")
-        db.execute("INSERT OR IGNORE INTO meta(name,value) VALUES('format',?)",
-                   (FORMAT,))
-        if db.execute("SELECT value FROM meta WHERE name='format'").fetchone() != (FORMAT,):
+            os.close(fd)
+        db = sqlite3.connect(self.path, timeout=4, isolation_level=None)
+        try:
+            db.execute("PRAGMA busy_timeout=4000")
+            # BEGIN IMMEDIATE before schema creation serializes first users too.
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("""CREATE TABLE IF NOT EXISTS meta(
+                         name TEXT PRIMARY KEY, value TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS reservations(
+                         token TEXT PRIMARY KEY,
+                         kind TEXT NOT NULL,
+                         source_run TEXT NOT NULL,
+                         target_id TEXT NOT NULL,
+                         action_digest TEXT NOT NULL,
+                         created_utc TEXT NOT NULL,
+                         state TEXT NOT NULL CHECK(state IN (
+                           'reserved','held','intent_simulated','uncertain_simulated')),
+                         UNIQUE(kind,target_id),
+                         UNIQUE(kind,source_run,target_id))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS changes(
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         token TEXT NOT NULL,
+                         at_utc TEXT NOT NULL,
+                         transition TEXT NOT NULL,
+                         reason TEXT NOT NULL)""")
+            db.execute("INSERT OR IGNORE INTO meta(name,value) VALUES('format',?)",
+                       (FORMAT,))
+            if db.execute("SELECT value FROM meta WHERE name='format'").fetchone() != (FORMAT,):
+                raise ValueError("reservation_schema_mismatch")
+            return db
+        except BaseException:
             db.rollback()
             db.close()
-            raise ValueError("reservation_schema_mismatch")
-        return db
+            raise
 
     def simulate_reserve(self, action: Action, observed: Observation,
                          policy: Policy, state: PolicyState, *,
