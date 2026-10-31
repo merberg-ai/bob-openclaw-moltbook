@@ -51,7 +51,7 @@ class R313DOwnerTests(unittest.TestCase):
             db.execute("INSERT INTO r313c_schema_meta VALUES"
                        "('version','r313c-action-v1')")
             for key,value in OFF_SETTINGS.items():
-                db.execute("INSERT INTO publish_settings VALUES(?,?)",(key,value))
+                db.execute("INSERT OR REPLACE INTO publish_settings VALUES(?,?)",(key,value))
         self.seal=hashlib.sha256(
             (ID+"\n"+TEXT+"\n"+verified_source(self.source,self.action)[0].snapshot_sha256
              ).encode("utf-8")).hexdigest()
