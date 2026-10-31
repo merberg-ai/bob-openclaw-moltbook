@@ -1,3 +1,15 @@
+## R3.12 source checkpoint: disabled single-publisher queue adapter and fake-credentialed POST
+
+- [x] Add `src/lib/bob/bob_r312_adapter.py` into the **existing** `src/bin/bob-moltbook-publisher` queue selector. Recognize separately sealed R3 proposals so the old Scout-only validator does not falsely mark Bob-authored drafts as corrupt. Preserve the original legacy queue SQL when no additive R3 schema exists; old Scout jobs continue through existing single credentialed publisher path. Malformed R3 schema fails closed.
+- [x] **Hard production Off:** `R312_REAL_DISPATCH=False` is a source-level restriction, regardless of legacy `auto_enabled` or synthetic R3 owner settings. R3 jobs are left queued, unattempted, and cannot reach the live Moltbook POST path. No new active publisher/worker or posting permissions. This source change is **not installed on OMEN**.
+- [x] Add `src/bob_v08/r312_fake_credentialed.py` and explicit `--r312-fake-credentialed` option on the same publisher executable. Marker-locked private R3 fixture only: original sealed source/owner/friend/pause/queue/rate rules, one atomic R3.10 attempted_at claim, final R3.8 barrier, in-memory fake credential and exact POST-shaped method/path/payload. ACK/challenge/timeout/rejected/unknown outcomes are simulated; no real HTTP or credentials.
+- [x] Add `tests/test_r312_disabled_adapter.py`: actual publisher `publisher_step()` with R3 and approved v0.7 Scout jobs side by side under fake network, actual publisher CLI subprocess fake-credentialed path, default Off, malformed schema, fake credential enforcement, late pause, competition, crash and uncertain no-replay. Include CI trigger and [R3.12 guide](docs/R312-DISABLED-PUBLISHER-ADAPTER.md).
+- [x] Create `releases/candidates/r312-adapter-off.json` as explicitly **noninstallable** source metadata. `releases/current.json` remains `v0.8.0-shadow4`; no live migration, Windows/WSL startup, credential or service change.
+- [ ] **R3.13 next:** authenticated installed-source and owner-setting contract, additive live-schema migration rehearsed in a private copy, and a reviewed real publisher R3 send branch with final after-intent barrier. Plan a separately authorized staged install, canary, WSL reboot/rollback and no-duplicate recovery before any live R3 posting.
+- [ ] **R2 G1 remains pending:** naturally timer-driven source-linked model decision from a fresh Scout selection.
+
+---
+
 ## R3.11 single-publisher executable inert rehearsal (source-only)
 
 - [x] Add `r311_inert_entry.py`: strictly marker/private-path-bound R3.3 fixture plus exact sealed Bob draft/action descriptor. Reuse R3.10 two-pass checked `BEGIN IMMEDIATE` durable claim; then recheck source/owner/friend/pause limits and use only R3.8 **in-memory fake sink**, with no Moltbook POST or API token access.
