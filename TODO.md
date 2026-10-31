@@ -1,3 +1,15 @@
+## CH-HTTPS0: Secure Bob Activity Manager owner LAN (source audit in progress, 2026-10-31)
+
+- [x] Review current manager, `bobctl`, guarded updater and generated R3 dashboard: HTTP Basic credentials currently cross LAN unencrypted; existing updater/CLI HTTP health checks and strict `http://` Origin verification prohibit a safe one-step HTTPS switch.
+- [x] Choose **direct TLS-only on the existing OMEN LAN port `192.168.1.24:18790`**; no internet exposure, second public socket or remote reverse-proxy hop. Preserve original authenticated UI and R3 triple compiled-Off send gates.
+- [x] Add `scripts/report_ch_https0.py` with no-write owner/installed schema and journal, three service/timer statuses, authenticated localhost GET, listener/cert metadata; no passwords, private keys or Moltbook API calls. Add offline refusal tests and [HTTPS rollout SOP](docs/CH-HTTPS-ROLLOUT.md).
+- [ ] **OMEN CH-HTTPS0 read-only audit:** after CI and source merge, run `cd ~/bob-next && git pull --ff-only && python3 scripts/report_ch_https0.py`; save sanitized report. No user service, browser trust or certificate changes in this checkpoint.
+- [ ] **CH-HTTPS1:** reviewed first versioned code-only release to make updater, `bobctl` and acceptance checks explicitly transport aware, with phase-accurate HTTP/HTTPS health and rollback and no TLS switch.
+- [ ] **CH-HTTPS2:** owner-local CA/server certificate provisioning, SAN `192.168.1.24`/`127.0.0.1`/`localhost`, private key files and browser trust on OMEN plus laptop; prefer DNS-01 trusted name only if selected separately. Never export CA private key or trust unverified certificates.
+- [ ] **CH-HTTPS3/4:** separately approved manager TLS-only cutover on **same port**, HTTPS Origin/CSRF/authenticated health + code-only rollback, proof plaintext HTTP refuses connections, browser trust and LAN-only accessibility. Rotate historical LAN Basic password after verified cutover; no R3 canary or auto publishing enabled.
+
+---
+
 ## R3.13d OMEN OFF-first migration and service restoration COMPLETE (owner-reported, 2026-10-31)
 
 - [x] Live schema migrated, independently checked `ready` with journal `complete`; migrated schema preserves **23** historical send attempts, **0** uncertain outcomes and four R3 independent settings `off/0/0/empty`.

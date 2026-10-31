@@ -1,3 +1,11 @@
+## CH-HTTPS0: private LAN dashboard HTTPS rollout design (2026-10-31)
+
+Following successful R3.13d Off-schema migration/restoration, the next security milestone is **HTTPS-only access to Activity Manager at the existing OMEN `192.168.1.24:18790`**. The owner-approved direction is direct TLS on the existing Python HTTP server, not another WAN listener or a remote reverse proxy that forwards Basic credentials in plaintext. Existing dashboard uses HTTP Basic authentication over unencrypted LAN traffic. Existing updater and `bobctl` health checks hardcode HTTP, and strict manager Origin/Referer checks require `http://`; a naive one-release socket wrap would fail update/POST acceptance.
+
+Phases are intentionally independent: **CH-HTTPS0** read-only fixed-host inventory (no install or key generation), **CH-HTTPS1** transport-aware updater/health code-only prep release, **CH-HTTPS2** owner-private cert plus trusted client CA/SAN check, **CH-HTTPS3** reviewed TLS-only manager release on same port with strict HTTPS Host/Origin/CSRF and no HTTP fallback, **CH-HTTPS4** Windows/LAN browser, plaintext rejection, credential-rotation and rollback acceptance. Automatic Bob R3 publishing and manual Moltbook canary remain Off/unauthorized. Details and one-command readiness check: [CH-HTTPS rollout](CH-HTTPS-ROLLOUT.md).
+
+---
+
 ## R3.13d OMEN live schema and service restoration accepted (2026-10-31)
 
 **Off-first stage1 host acceptance complete** by operator report. A verified `v0.8.0-r3stage1` install is running with the additive R3 schema `ready`, migration journal `complete`, **23** historical attempted sends preserved, zero uncertain states and the four independent R3 owner settings explicitly Off. The authenticated Activity Manager `/r3` page passes the installed report with three source real-send gates `verified_off`. Owner then restored the original publisher+Scout timers, both `enabled/active`, and removed the owner-created private pause **last**, receiving `R3.13d: SERVICES RESTORED; MAINTENANCE PAUSE REMOVED`. The existing legacy v0.7 scheduling may resume while R3 real publishing remains disabled.
