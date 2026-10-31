@@ -11,10 +11,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import hashlib
+import json
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 import build_r313d_manager_candidate as builder
+import build_r313d_off_package as r3_builder
+import build_v08_shadow_package as r2_builder
 
 CHILD=r"""
 import base64
@@ -25,7 +29,9 @@ from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader,module_from_spec
 import threading
 import sys
+import os
 from urllib.parse import urlencode
+os.umask(0o077)
 loader=SourceFileLoader("bob_r313d_http_smoke",sys.argv[1])
 spec=spec_from_loader(loader.name,loader)
 mod=module_from_spec(spec)
@@ -60,8 +66,11 @@ try:
     status,page=req("GET","/r3",authn=True)
     assert status==200,(status,page[:300])
     assert "Bob R3 Controls" in page
-    assert ("Owner controls remain unavailable" in page or
-            "Owner controls are read-only" in page),page[:600]
+    assert "The R3 schema is absent or host verification failed" in page,page[:700]
+    import bob_v08
+    assert str(os.path.expanduser("~/.local/bin/bob_r3_package.pyz"))+"/bob_v08" in bob_v08.__path__,bob_v08.__path__
+    from bob_v08.r313c_candidate import ENVELOPE_DDL
+    assert "r313c_action_envelopes" in ENVELOPE_DDL
     assert req("GET","/activity",authn=True)[0]==200
     assert req("GET","/v08/now",authn=True)[0]==200
     assert req("GET","/v08/inbox",authn=True)[0]==200
@@ -101,6 +110,27 @@ class R313DRealHttpTests(unittest.TestCase):
             auth_dir=home/".config/bob-system"
             bin_dir.mkdir()
             auth_dir.mkdir(parents=True,mode=0o700)
+            installed=home/".local/bin"
+            installed.mkdir(parents=True,mode=0o700)
+            state=home/".local/state/bob-updater"
+            state.mkdir(parents=True,mode=0o700)
+            r2zip,_=r2_builder.build()
+            r3zip,_=r3_builder.build()
+            for name,raw in (
+                    ("bob_v08_package.pyz",r2zip),
+                    ("bob_r3_package.pyz",r3zip)):
+                target=installed/name
+                target.write_bytes(raw)
+                target.chmod(0o700)
+            registry=state/"installed.json"
+            registry.write_text(json.dumps({
+                "format":"bob-updater-v1",
+                "release":"v0.8.0-r3stage1",
+                "files":{
+                    "bob_v08_package.pyz":hashlib.sha256(r2zip).hexdigest(),
+                    "bob_r3_package.pyz":hashlib.sha256(r3zip).hexdigest(),
+                }}),encoding="utf-8")
+            registry.chmod(0o600)
             cfg=auth_dir/"lan-auth.json"
             cfg.write_text(
                 '{"username":"r3-fixture-user",'
