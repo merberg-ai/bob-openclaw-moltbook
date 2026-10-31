@@ -6,7 +6,8 @@ stays hard Off, and no new R3 manual or automatic posting permission is granted.
 
 ## Fixed installed-host boundary
 
-The R3.13a CLI accepts no arbitrary database, source, pause, service, token,
+The R3.13a CLI checks that HOME matches the local account's passwd home
+and accepts no arbitrary database, source, pause, service, token,
 URL or model-proof arguments. Paths derive from the current WSL user's home
 and the existing R3 inventory constants:
 
@@ -17,10 +18,10 @@ and the existing R3 inventory constants:
   bob-moltbook-publisher.timer examined by the sanitized R3.8 effective-unit
   auditor
 
-The check requires owner-owned, non-symlinked, private 0700 config/data/pause
-directories, an owner-owned regular single-link 0600 queue under 256 MiB,
-and a trusted pause marker. The home itself may have conventional Unix
-permissions but must be an owner-owned real directory. The report checks the
+The check requires owner-owned, non-symlinked home and .config directories
+that are not group/other writable (0755 is allowed), private 0700 Moltbook
+and pause data directories, an owner-owned single-link regular 0600 queue
+under 256 MiB, and a trusted pause marker. The report checks the
 legacy SQLite table shape and that R3 tables are absent. Unknown or partial
 R3 tables block the rehearsal. Unsafe permissions are reported, NEVER
 automatically fixed.
