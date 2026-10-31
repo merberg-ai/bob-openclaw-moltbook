@@ -1,3 +1,13 @@
+## R3.12 candidate integrated into old publisher selector but real new posting remains Off
+
+`src/lib/bob/bob_r312_adapter.py` is imported by the **existing** `src/bin/bob-moltbook-publisher` executable, replacing only the *queue-head selection*. When the additive R3 proposal table is absent, legacy SQL remains exactly the same. When present and valid, separately sealed Bob-author drafts are recognized and held instead of fed to the Scout-only integrity validator; original v0.7 Scout jobs remain eligible for the one credentialed publisher. Unknown/corrupt R3 table shapes fail closed. `R312_REAL_DISPATCH=False` is not an owner-toggle shortcut: even with independent R3 Auto flags present in a synthetic fixture, no R3 row can enter normal live API POST.
+
+The explicit `--r312-fake-credentialed` mode exercises the actual publisher executable under a private marker-locked R3.3 SQLite database with exact independent owner consent, final attempted_at CAS and source/friend/pause/budget checks; after intent it accepts only a fake in-memory credential and local POST-shaped response. In subprocess tests it never reads installed credentials or contacts Moltbook. Successful fake ACK is `acknowledged_simulated`; timeout/ambiguous results stay locked. R3 approval is not inherited from v0.7; a noninstallable source candidate exists at `releases/candidates/r312-adapter-off.json`. See [R3.12 guide](R312-DISABLED-PUBLISHER-ADAPTER.md).
+
+**Remaining:** No released code is installed on OMEN, no live R3 queue migration/owner consent exists, no installed trusted GET/friend-proof source or real R3 publisher POST path has been authorized. The earlier R3.6/R3.8 real-host snapshots are legacy baseline evidence only. The versioned rollout, WSL reboot/drain, uncertain delivery and rollback must be accepted separately. Do not restore stale full SQLite backups over newer attempted history. `releases/current.json` remains Shadow4.
+
+---
+
 ## R3.11 actual legacy publisher executable, inert-only source candidate
 
 `src/bin/bob-moltbook-publisher` now recognizes explicit `--r311-inert-rehearsal`/`--r311-inert-recover` commands for a **private marked synthetic** SQLite fixture only. These paths run source/owner/queue integrity checks via R3.9/R3.10 and simulated receipt/crash recovery via R3.8. Tests execute the original executable under an isolated HOME, showing no token reads, no external requests, no production writes, one fake send at most, and failure-closed second attempts. The existing `publisher_step()`, `verification_step()` and `main()` live pathways remain unmodified; prior to merge, the full legacy `publisher_step()` body was byte-for-byte identical to `next`. No new service is installed.
