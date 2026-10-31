@@ -1,3 +1,12 @@
+## G2 baseline false blocker: inactive/static system Scout service (2026-10-31)
+
+- [x] **Owner-supplied G2 read-only JSON diagnosed:** all three required user units `active/enabled`; system-level `bob-moltbook-scout.timer` `loaded/inactive/disabled`; paired system Scout `service` `loaded/inactive/static`; R3 candidate publisher service/timer both `not-found/inactive/unknown`; current trusted HTTPS and R3 Off PASS, reviewed legacy publisher, migrated SQLite history verified, historical attempted 23 / uncertain 0, user linger yes. Only the excessively strict `_inert` gate rejected the static service.
+- [x] **G2.1 source fix:** recognize only the exact `system bob-moltbook-scout.service` as inert when `loaded/inactive/static` AND the paired **installed system timer** is `loaded/inactive/(disabled|masked|masked-runtime)`. No relaxation for R3 candidates, static timers, active services, enabled competing timers, unknown states or HTTPS/legacy journal requirements. Synthetic regression covers the owner's precise JSON and all unsafe timer variations.
+- [ ] **Owner after reviewed CI/merge:** `cd ~/bob-next && git pull --ff-only && python3 scripts/report_g2_recovery.py --baseline`. Expect `host gate: PASS`, with 23 attempted / 0 uncertain if background publisher remains quiet, no R3 real posting. This proves only current host read-only shape, not an observed reboot or no external duplicate posts.
+- [ ] **Next independent gates:** Windows login startup wrapper review, owner-scheduled WSL/Windows recovery, both separate trusted HTTPS Windows browser sessions, LAN-only exposure review, and cross-reboot ledger / external receipt comparison. No live service edits or public R3 sending rights.
+
+---
+
 ## CH-HTTPS4 manager-only restart PASS; G2 reboot readiness next (2026-10-31)
 
 - [x] **Owner-provided manager restart acceptance:** `systemctl --user restart bob-activity-manager.service` returned successfully; `systemctl --user is-active bob-activity-manager.service` output `active`. Before **and after** the restart, CH-HTTPS4 `--verify` returned `installed HTTPS, current login and R3 Off: PASS`, and CH-HTTPS3 `--installed` returned `acceptance: PASS`, verified installed release, correct CA SHA, authenticated TLS manager/R3, plaintext HTTP refused, and original Scout/publisher timers active. No additional R3 publishing rights. Prior rotation `--apply` separately proved old 401/new 200.
