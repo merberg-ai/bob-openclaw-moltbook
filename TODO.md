@@ -1,3 +1,12 @@
+## G2.5 effective WSL Hyper-V inbound policy PASS; code-server 8787 not listening (2026-10-31)
+
+- [x] **Owner-provided effective Hyper-V policy** for WSL VMCreatorId `{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}`: `Enabled=True`, `DefaultInboundAction=Block`, `AllowHostPolicyMerge=True`. The previously confirmed active `Bob Activity Manager - WSL LAN` rule allows `TCP 18790` only from `192.168.1.0/24`. **WSL-specific inbound firewall gate PASS** for expected default-block + scoped exception. This does not prove the total effective path is LAN-only because host policy can merge, other rules can exist, and router/WAN/IPv6/VPN paths need separate inspection.
+- [x] **Owner-provided 8787 socket probe:** `ss -lnt '( sport = :8787 )'` produced header only. No currently listening TCP 8787 socket was found *inside OpenClawLab* during the check. Separate installed Hyper-V `code-server WSL 8787` inbound rule remains `Allow/Any`, but this is not proof that a service is running or externally accessible; consider narrower rule/removal after independently assessing whether code-server is required.
+- [ ] **Complete network perimeter gate:** read-only Windows host firewall merged rules, router IPv4 forwarding/UPnP, IPv6 and VPN scope check. Do not add/delete firewall/portproxy rules to satisfy audits; LAN reachability and the WSL default-block gate are already functional.
+- [ ] **External legacy publisher no-duplicate gate:** independent reconciliation of attempted targets/receipts against actual Moltbook posts across reboot; local unchanged 23 attempted / 0 uncertain is insufficient proof. R3 remains compiled Off.
+
+---
+
 ## G2.5 WSL Hyper-V inbound rule review: Bob LAN scope confirmed, default action still needed (2026-10-31)
 
 - [x] **Owner supplied effective inbound rules:** `Bob Activity Manager - WSL LAN` was `Enabled=True`, `Action=Allow`, `Protocol=TCP`, `LocalPorts=18790`, `RemoteAddresses=192.168.1.0/255.255.255.0` (the user's `192.168.1.0/24` LAN). This is an appropriately scoped exception, even though the WSL process binds `0.0.0.0:18790` in mirrored mode. It does NOT by itself prove that traffic outside the LAN is blocked.
