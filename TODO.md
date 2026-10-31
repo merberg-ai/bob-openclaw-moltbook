@@ -1,3 +1,12 @@
+## R3.2 legacy compatibility checkpoint (source-only)
+
+- [x] Build isolated `r3_legacy_compat.py` preview against a private marked fixture of actual legacy queue tables. It reuses the real `bob_activity_limits.allowed()` implementation and checks manual-first/FIFO, exact draft+hash, manual approval, auto enabled/owner override, friend clearance, age, duplicate target, same-transaction `attempted_at`, final synthetic audit and irreversible uncertain status.
+- [x] Add `tests/test_r3_legacy_compat.py` and CI triggers for manual/auto boundaries, budget exhaustion, pause, altered model payload, malformed history, competing claims and SQLite failure rollback. **All outputs simulated, no live DB, publisher or Moltbook contact.**
+- [ ] **R3.3 next:** merge R3.1 reservation concepts with R3.2 v0.7 compatibility into a single publisher-owned cutover contract. Simulate an actual new Bob-authored draft as distinct from the old queued Scout text, real publisher intent-before-POST, expired/uncertain states, rechecking permission after simulated preflight, timer ownership and isolated forward-compatible migration/rollback. No v0.8 real publisher integration, service activation, credential changes or new permission by default.
+- [ ] **R2 still open:** a naturally timer-driven source-linked decision is not proven by the 17:30 no-event scheduled service. Keep Shadow4 running on verified Scout sources; do not force replay.
+
+---
+
 ## R3.1 engineering checkpoint: transactional reservation and simulated pre-send
 
 - [x] Implement source-only `src/bob_v08/r3_reservations.py`: private lab database with atomic source/target reservation, duplicate lock, conservative budget accounting, independent final recheck, simulated intent recording and irreversible unknown state. No real send/approval/worker integration, no v0.8 outbound permission.

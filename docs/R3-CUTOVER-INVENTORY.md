@@ -1,3 +1,19 @@
+## R3.2 legacy queue compatibility lab: source candidate (2026-10-30)
+
+Added **`src/bob_v08/r3_legacy_compat.py`** and **`tests/test_r3_legacy_compat.py`**. The module runs only against a deliberately named synthetic database `r3-compat-fixtures/r3-legacy-compat-lab.sqlite3` with a private-directory/0600-file check **and an in-database synthetic-only marker**; it **refuses live `activity-queue.sqlite3`**, unmarked fixtures, symlinks, or untrusted source/model payloads. No credential loading, network operations, service controls, new publish routes or v0.7 process changes.
+
+**Actual v0.7 contract exercised:** the existing `publish_jobs`/`decisions`/`publish_settings` schema, oldest manual-first/FIFO queue head, exact `approval_sha256` plus `draft_comment` equality, human-approved manual jobs, owner decision overrides on auto jobs, `auto_enabled`, and 3-hour auto/7-day manual age limits. Auto friend protection requires an *explicit simulated* verified-clear signal, never inferred from the local Friends directory. Existing `bob_activity_limits.allowed()` is imported and called against **the same transaction** to enforce stored total and automatic UTC budgets, spacing, malformed previous timestamps and invalid user settings. Existing attempted or uncertain same-target jobs block further claims.
+
+**Independent v0.8 condition:** the simulation rejects the current default `shadow=true` and Off/Propose dials. A positive test must supply a deliberately synthetic `shadow=false, comment=auto` policy, pass the current pure action check, and also pass the legacy queue and owner settings. This does **not** change installed Shadow4 permissions.
+
+**Atomicity:** `BEGIN IMMEDIATE` locks a fixture for queue-head selection, approval/settings evaluation, one compare-and-swap transition to `sending_simulated`, simulated `attempted_at`, and a sanitized audit row in one transaction. Failures roll back all fields; concurrency tests allow only one claimant; a deliberately simulated unknown outcome transitions to `uncertain` and never retries. No HTTP request exists in this module.
+
+**Critical semantic limit:** A new Bob shadow comment is **not** automatically the v0.7 Scout draft. A differing `action.text` is refused, even if the target and selection match. This compatibility harness demonstrates how to retain already-queued manually approved/auto-vetted jobs; a future R3 route for Bob-authored *new* comments needs independently reviewed source sealing, queue insertion, authorization, and publisher ownership. Do not replace a human-approved draft, create an auto-approved job, or silently reinterpret post IDs as outgoing comment IDs.
+
+**Not yet a deployable R3 cutover:** caller-supplied source validity, friend clearance and preflight confirmation are laboratory inputs. Real production will require authentic `read_observation` validation, live friend guard and GET preflight, actual pause state, a fresh v0.8 policy snapshot, atomic integration with current publisher's pre-POST handling, and timer ownership transition rehearsals. An external pause marker is not transactional with SQLite, so a final check is required immediately before the credentialed POST. No live cutover is authorized by these tests or docs.
+
+---
+
 ## R3.1 transaction and pre-send recheck laboratory (source-only, acceptance pending)
 
 Implementation candidate: `src/bob_v08/r3_reservations.py` and `tests/test_r3_reservations.py`. This is an **offline isolated simulation engine**, not a publisher, authority service or deployed file. `releases/current.json`, running Shadow4, v0.7 jobs, legacy database, user timers and credentials stay unchanged. The module deliberately has **no network/publisher/worker imports or functions**.

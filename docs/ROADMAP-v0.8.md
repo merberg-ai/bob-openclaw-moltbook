@@ -1,3 +1,11 @@
+## R3.2 compatibility experiment: legacy queue and owner approval in one simulated transaction
+
+The R3.2 code/review stage now includes a **synthetic-only legacy publisher queue harness**, separate from the R3.1 reservation experiment. It validates legacy v0.7 manual-first queued drafts, owner decisions, queue/source integrity, auto_enabled, friend preflight gating, existing budget module and unknown outcomes against an explicitly private fixture, plus an independent v0.8 policy check. Success produces only `sending_simulated` and `attempted_at` inside the disposable lab DB, never a credentialed POST. Synthetic SQL fault injection proves both intent and audit entry roll back.
+
+**Blockers before R3 cutover:** reconcile the two lab implementations into one authoritative, durable real publisher-side reservation mechanism; validate Bob-authored text as a **new** sealed draft rather than assuming an existing queued legacy draft is the same text; inspect real timing/approval, paused, friend, source and preflight state at the correct boundaries; retain original manual first and unknown delivery locks. No production queue mutation, service change, model tool permission or new Moltbook write authority is part of R3.2. R2 natural timer-driven model-decision evidence is still pending separately.
+
+---
+
 ## R3.1 isolated reservation lab (implementation under offline CI)
 
 The next R3 engineering slice is implemented on `next` as an **uninstalled, synthetic-only reservation engine**. It exercises `BEGIN IMMEDIATE` SQLite serialization, one-target idempotency, conservative simulated budget/spacing consumption, final source/content/policy recheck, owner disabling and changed budgets, UTC rollover, uncertainty locking and transactional rollback. Only metadata hashes and bounded state transitions live in the separate lab DB. No network write path or permission grant is added, and no existing v0.7 queue or production service is touched. The positive fixture uses an explicitly synthetic policy where `shadow=false`; installed Shadow4 remains shadow-only.
