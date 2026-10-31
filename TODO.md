@@ -1,3 +1,12 @@
+## G2.5 OMEN mirrored WSL listener confirmed (2026-10-31)
+
+- [x] **Owner-confirmed Linux listener and WSL mode:** from Windows PowerShell, `wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :18790 )'` returned `LISTEN 0.0.0.0:18790`. `Select-String ... .wslconfig ...` returned `networkingMode=mirrored` on line 2. A Linux-owned wildcard IPv4 socket in WSL mirrored mode explains access from both LAN Windows clients even though Windows `Get-NetTCPConnection` showed no listener and Windows `netsh portproxy` had no entries. `0.0.0.0` is **not LAN-only** binding proof.
+- [ ] **Read-only WSL Hyper-V firewall policy gate:** use the Microsoft WSL creator ID `{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}` and `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore -Name $wslId` to inspect enabled/default inbound; inspect inbound matching rules with `Get-NetFirewallHyperVRule -VMCreatorId $wslId`, including enabled/action/protocol/local ports/remote addresses. Do not change Hyper-V or Windows firewall yet.
+- [ ] **WAN boundary separate:** inspect Windows active-profile policy, router/NAT forwarding, IPv6 exposure, and any VPN interfaces before asserting private LAN only. A firewall rule for all remote addresses on a wildcard WSL listener is not intrinsically WAN-safe; absent router port forwarding alone may not cover IPv6. No new service/release changes or R3 posting rights.
+- [ ] **Independent Moltbook external receipts/duplicate comparison:** 23 local attempts/0 uncertain pre/post reboot does not establish that no external duplicate posts occurred.
+
+---
+
 ## G2.5 WSL listener inspection corrected after Windows-only probe (2026-10-31)
 
 - [x] **Owner Windows PowerShell observation:** `Get-NetTCPConnection -State Listen -LocalPort 18790` returned `No matching MSFT_NetTCPConnection objects`, and `netsh interface portproxy show all` returned an empty list. These are valid negative observations of *Windows host* TCP listeners and explicit `netsh` portproxy rules. They are NOT a failed Bob service health check, and they cannot prove port 18790 is unexposed while the Activity Manager remains reachable from both Windows LAN machines.
