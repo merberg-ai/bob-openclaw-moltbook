@@ -1,3 +1,13 @@
+## G2.5 owner-confirmed internet-side inaccessibility (2026-10-31)
+
+The owner reports that **nothing is reachable from the outside**. This statement adds observed outside-network inaccessibility to previously demonstrated WSL Hyper-V default-block (`Enabled=True`, `DefaultInboundAction=Block`), LAN-scope exception for Bob's TCP 18790 (`192.168.1.0/24`), no Windows netsh portproxy, and working TLS dashboard access from two Windows LAN clients after reboot. This is good operational evidence for keeping Activity Manager private.
+
+Because the owner did not specify testing methodology or whether IPv6, VPN and UPnP were covered, do not claim a comprehensive independent WAN scan, or assert that all possible public network paths are impossible. Revalidate after router, firewall, IPv6 or VPN changes. No need to modify the healthy rules. The separate `code-server` 8787 Hyper-V rule is source `Any`, but no 8787 listener was detected inside OpenClawLab when checked.
+
+Outstanding G2: independently reconcile persisted legacy publisher attempt/reply IDs with real Moltbook posts/receipts and possible duplicate submissions across the reboot. Historical count stayed 23 attempted/0 uncertain at both host snapshots, but this alone doesn't exclude remote duplicates. Do not invoke any publisher POST/oneshot or reset the existing SQLite. Previously reported access from both browsers does not explicitly establish a fresh certificate-warning-free rotated-password login.
+
+---
+
 ## G2.5 WSL firewall default-block confirmed, no active 8787 listener (2026-10-31)
 
 New owner-provided effective WSL Hyper-V policy result: `Enabled=True`, `DefaultInboundAction=Block`, `AllowHostPolicyMerge=True` for VMCreatorId `{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}`. Combined with previously verified `Bob Activity Manager - WSL LAN` `Enabled=True/Allow/TCP 18790/RemoteAddresses=192.168.1.0/24`, this supports the intended **default-deny inbound with one LAN-scoped dashboard exception**. This passes the WSL-specific Hyper-V firewall check, but host-policy merge is enabled, so other Windows firewall rules and router/WAN/IPv6/VPN paths are separate review gates.
