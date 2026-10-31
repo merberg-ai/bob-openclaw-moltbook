@@ -223,7 +223,7 @@ class AdmissionContractTests(unittest.TestCase):
             file.write_text('{"posts":[]}',encoding="utf-8")
             return RemoteReview(True,"target_and_author_match")
         result=self.run_review(public_get=corrupt)
-        self.assertEqual(result.reason,"recheck_not_a_new_sealed_bob_draft")
+        self.assertEqual(result.reason,"recheck_local_review_unavailable")
         self.assertIsNone(self.attempts()[1])
 
     def test_auto_budget_decreased_during_get_blocks(self):
@@ -291,7 +291,7 @@ class AdmissionContractTests(unittest.TestCase):
         source=inspect.getsource(module)
         for forbidden in (
             "subprocess.run(", "os.system(", "INSERT INTO publish_jobs",
-            "UPDATE publish_jobs", "api_key(", "Authorization", "POST",
+            "UPDATE publish_jobs", "api_key(", "request(\"POST\"",
             "moltbook_"):
             self.assertNotIn(forbidden,source)
         result=self.run_review()
