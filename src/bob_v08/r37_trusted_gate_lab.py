@@ -18,7 +18,7 @@ import sqlite3
 
 from .core import Action, Policy
 from .r3_cutover_rehearsal import verified_source, simulated_pause_state
-from .r3_unified import UnifiedLab, Proof
+from .r3_unified import UnifiedLab
 from .r36_admission_contract import classify_draft
 
 # Exact existing v0.7 policy reader, never a second approximation of rate limits.
@@ -213,7 +213,10 @@ def rehearse_trusted_gate(lab: UnifiedLab, source_dir: Path, action: Action, *,
             return GateResult("refused", "source_changed_before_get")
         response = get_post(action.target_id)
         after = _utc(clock())
-    except (OSError, ValueError, TypeError, KeyError, TimeoutError):
+    except Exception:
+        # In a future credentialed publisher, client/library failures can use
+        # exception subclasses beyond TimeoutError. Never fall through to an
+        # intent on an unclassified preflight failure.
         return GateResult("refused", "get_or_source_unverified")
     if after < before or after - before > timedelta(minutes=2):
         return GateResult("refused", "get_stale_or_clock_changed")
