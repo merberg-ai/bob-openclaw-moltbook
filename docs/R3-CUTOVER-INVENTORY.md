@@ -1,3 +1,13 @@
+## R3.0 source-only inventory implementation (CI candidate, no host install)
+
+Added `scripts/report_r3_cutover_inventory.py`: a **read-only, metadata-only** report of nine fixed Bob/OpenClaw user/system service units (including legacy scout and v0.8 shadow); safely classified systemd load/active/enabled/result values; count-only manual/auto comment queue state and attempted-at presence; persisted auto_enabled state; paused marker state; and the **actual** legacy `bob_activity_limits.read_limits()` policy applied to a SQLite `mode=ro` connection. Missing/corrupt/invalid data returns unavailable/invalid and cannot authorize cutover. No record IDs, raw model content, credential paths, unit environment or arbitrary systemctl parameters appear in output. No publishing, service control, DB migration or update code exists here.
+
+Offline synthetic tests `tests/test_r3_cutover_inventory.py` verify bounded allowlists, invalid values, symlinks and missing SQLite, unchanged source bytes, invalid persisted limits, no secret strings, and perpetual `cutover_authorized:false`. CI includes both new paths. **No host deployment requested**; this is one reviewable engineering increment toward the later exact ownership/rollback gate, not a live source-of-truth report yet.
+
+**Latest natural shadow evidence:** owner verified service `Result=success` at 17:30:05 PDT and then queried the shadow event DB for UTC 00:29–00:31, finding **zero events**. This means no new observation/decision/error was recorded for that tick, consistent with exhausted saved Scout selections. It does not prove why the service returned (its standard output was not available), nor does it prove a timer-driven model decision. Continue natural shadowing without forcing replay.
+
+---
+
 ## Scheduled shadow evidence update (2026-10-30, 17:30 PDT)
 
 The active Shadow4 timer executed its service automatically: systemd's `LAST` reported 17:30:05 PDT and the service's `Result=success`, with actual start/exit timestamps. The 17:30 run's **domain outcome** remains unclassified because the CLI uses exit code zero for no new verified sources and handled model rejections as well as valid shadow decisions. Keep that distinction in R3 event/health design: `service_executed` must not be conflated with `source_processed`, `model_decision_accepted`, or `externally_published`.
