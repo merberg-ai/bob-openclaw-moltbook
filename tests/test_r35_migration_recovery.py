@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 import os
 import sqlite3
 import sys
@@ -252,6 +253,37 @@ class RebootOwnershipTests(unittest.TestCase):
         self.assertEqual(r.verdict,"quiesced_requires_manual_recovery")
         self.assertFalse(r.safe_to_resume)
         self.assertFalse(r.changed_host)
+
+
+class DeploymentReportTests(unittest.TestCase):
+    def test_inert_cli_report_denies_production_authority(self):
+        sys.path.insert(0,str(ROOT/"scripts"))
+        from rehearse_r35_deployment import report
+        outcome=report()
+        self.assertTrue(outcome["legacy_schema_additive"])
+        self.assertTrue(outcome["legacy_history_preserved"])
+        self.assertTrue(outcome["migration_idempotent"])
+        self.assertTrue(outcome["crash_before_commit_rolled_back"])
+        self.assertEqual(outcome["inert_service_templates_checked"],4)
+        self.assertTrue(outcome["unapproved_cutover_denied"])
+        self.assertTrue(outcome["unverified_reboot_kept_paused"])
+        self.assertTrue(outcome["rollback_preserves_unknowns"])
+        self.assertFalse(outcome["cutover_authorized"])
+        self.assertEqual(outcome["external_requests"],0)
+        self.assertEqual(outcome["live_unit_changes"],0)
+
+    def test_altered_inert_publisher_timer_is_rejected(self):
+        sys.path.insert(0,str(ROOT/"scripts"))
+        import rehearse_r35_deployment as app
+        with tempfile.TemporaryDirectory() as root:
+            original=app.write_timer
+            def tampered(role):
+                value=original(role)
+                return (value.replace("Unit="+app.PREFIX+"publisher.service",
+                                      "Unit=bad-publisher.service")
+                        if role == "publisher" else value)
+            with patch.object(app,"write_timer",side_effect=tampered):
+                self.assertFalse(app.inert_template_gate(Path(root)))
 
 
 if __name__ == "__main__":
