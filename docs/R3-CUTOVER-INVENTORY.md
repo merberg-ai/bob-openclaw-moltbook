@@ -1,3 +1,9 @@
+## R3.8 real OMEN effective-unit inspection accepted (2026-10-30)
+
+Operator-supplied read-only report from OpenClawLab: publisher service `reviewed_shape`, timer `reviewed_shape`, **0 service overrides**, **0 timer overrides**, **1 environment declaration**, **0 review blockers**, `R3 cutover authorized: NO`. The R3.8 conservative check recognized the expected one-shot command shape and timer target/cadence. Environment values and unit paths were not printed. **Accepted as a narrow installed-effective-unit-shape snapshot only**; it does not attest the executable hash, dispatch behavior, WSL/Windows restart survival, fresh Moltbook GET/friend signals, new owner permissions, or readiness for live R3 cutover. The existing publisher, Shadow4, database and credentials remain unchanged.
+
+---
+
 ## R3.8 inert dispatch/receipt and effective publisher unit review (source only)
 
 **Added:** `src/bob_v08/r38_dispatch_lab.py`, `tests/test_r38_dispatch_recovery.py`, `scripts/report_r38_effective_units.py`, `tests/test_r38_effective_units.py` and CI triggers. [R3.8 detailed operator/engineering guide](R38-DISPATCH-RECOVERY.md).
