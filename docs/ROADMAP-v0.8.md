@@ -1,8 +1,18 @@
+## R3.13a OMEN operator acceptance PASS (2026-10-30)
+
+The operator ran the merged `next` `scripts/report_r313a_host.py` read-only check and its separately invoked `--private-copy` rehearsal in OpenClawLab. The host check observed: fixed Moltbook data root; queue file private; pause not paused; legacy schema match; additive schema absent; R3 owner settings absent/off; private-copy eligibility yes; effective legacy publisher service and timer both reviewed shape; boundary and unit blockers none. The private snapshot migration reported **PASS**, preservation of complete legacy history, simulated crash rollback, repeat-migration idempotence, 22 **historical send attempts** and zero uncertain delivery states; the temporary copy was deleted. These are operator-supplied point-in-time sanitized results, not independent continuous service or public-post confirmation.
+
+**Accepted gate:** R3.13a installed-root review and disposable real-queue copy migration rehearsal. **Not accepted:** actual live schema upgrade, installed publisher binary/source attestation, new R3 owner consent, authenticated real R3 send/GET, Windows/WSL reboot, canary, rollback, or R2 G1. Existing v0.7 real publication remains the only authorized dispatch path, and R3.12 Bob-authored dispatch stays hard Off. No `bobctl update` is required by this documentation checkpoint.
+
+**Next R3.13b:** design/test versioned additive migration and independent owner-control contract, source/unit integrity attestation and fail-closed upgrade/rollback model in isolation; separate owner approval remains mandatory before any production modification or new Moltbook post capability.
+
+---
+
 ## R3.13a trusted source-root review and real-queue private-copy migration rehearsal
 
 A new fixed-host R3.13a audit observes the current WSL account's existing Moltbook queue / Scout-data / pause roots, validates owner-only directory and file permissions, existing legacy schema and absent R3 tables, and categorizes independently controlled R3 settings without reading secret credentials or dumping raw content. It composes the pre-existing sanitized R3.8 effective-unit view. It reports that installed publisher binary attestation remains unverified and never grants send authority.
 
-The optional --private-copy rehearsal uses SQLite's online backup API to snapshot committed live queue/WAL records into a throwaway 0600 file in a 0700 temporary directory. It verifies the private copy and original five-table history, simulates rollback of an interrupted additive DDL transaction, then applies R3.5-compatible schema to the COPY ONLY and verifies idempotence and every prior attempted/uncertain row. There is no production schema change, credential/API request, publisher/service update or release. All execution flags for R3 comments remain Off. The source candidate is noninstallable, and owner OMEN read-only/private-copy acceptance is still pending. See [R3.13a guide](R313A-HOST-PRIVATE-MIGRATION.md).
+The optional --private-copy rehearsal uses SQLite's online backup API to snapshot committed live queue/WAL records into a throwaway 0600 file in a 0700 temporary directory. It verifies the private copy and original five-table history, simulates rollback of an interrupted additive DDL transaction, then applies R3.5-compatible schema to the COPY ONLY and verifies idempotence and every prior attempted/uncertain row. There is no production schema change, credential/API request, publisher/service update or release. All execution flags for R3 comments remain Off. The source candidate is noninstallable; owner OMEN read-only/private-copy acceptance was recorded above. See [R3.13a guide](R313A-HOST-PRIVATE-MIGRATION.md).
 
 **Next R3.13b:** independently review real installed-source integrity, owner approval UI, migration/rollback before any installation. Then R3.13c/d real final GET/consent/pause barrier and separately approved canary/reboot. R2 G1 remains independently pending.
 
