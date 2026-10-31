@@ -1,3 +1,14 @@
+## R3.13a source candidate: trusted host roots and private-copy additive migration (owner acceptance pending)
+
+- [x] Add a fixed-current-WSL-home trusted source-root reviewer with 0700 directories / 0600 queue checks, non-symlink ownership, R3 schema absence, owner R3 settings classification and sanitized R3.8 effective unit information. Never load tokens or arbitrary paths.
+- [x] Add opt-in `scripts/report_r313a_host.py --private-copy`: SQLite mode=ro online backup (including committed WAL) into disposable private temp file, additive R3.5 tables only on that file, simulated pre-commit crash/rollback, full five-table row digest and attempted/uncertain history preservation, idempotence, cleanup.
+- [x] Add synthetic `tests/test_r313a_host_private_copy.py`, CI triggers, [operator guide](docs/R313A-HOST-PRIVATE-MIGRATION.md) and explicitly noninstallable `releases/candidates/r313a-host-private-only.json`. Existing R3.12 real send remains hard Off; release manifest unchanged.
+- [ ] **Owner acceptance pending:** from `~/bob-next` after merge, run read-only report first; run `--private-copy` only if eligible. Share sanitized output, not database/credential files. No `bobctl update`.
+- [ ] **Next R3.13b:** production additive migration contract, explicit independent owner permission UI and installed executable/source attestation; then separately reviewed real publisher send branch, canary, reboot/drain/rollback. No new live posting authorization.
+- [ ] R2 G1 remains pending naturally scheduled source-linked decision.
+
+---
+
 ## R3.12 source checkpoint: disabled single-publisher queue adapter and fake-credentialed POST
 
 - [x] Add `src/lib/bob/bob_r312_adapter.py` into the **existing** `src/bin/bob-moltbook-publisher` queue selector. Recognize separately sealed R3 proposals so the old Scout-only validator does not falsely mark Bob-authored drafts as corrupt. Preserve the original legacy queue SQL when no additive R3 schema exists; old Scout jobs continue through existing single credentialed publisher path. Malformed R3 schema fails closed.

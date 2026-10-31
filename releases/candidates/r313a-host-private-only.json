@@ -1,0 +1,32 @@
+{
+  "format": "bob-source-candidate-v1",
+  "candidate": "r3.13a-trusted-host-private-copy",
+  "source_branch": "next",
+  "installable": false,
+  "auto_installable": false,
+  "cutover_authorized": false,
+  "real_r3_dispatch_compiled": false,
+  "live_schema_migration": false,
+  "default_new_r3_permission": "off",
+  "publisher_path": "unchanged hard-disabled R3.12",
+  "host_reader": "scripts/report_r313a_host.py",
+  "private_rehearsal_arg": "--private-copy",
+  "private_copy": "SQLite backup API from mode=ro fixed host queue to disposable 0600 DB in a 0700 directory",
+  "source_roots": "fixed host home-derived locations only; no user-supplied paths",
+  "owner_settings": "categorical read-only review; no consent changes",
+  "migration": "additive R3.5-compatible tables applied ONLY to private copy",
+  "tests": "tests/test_r313a_host_private_copy.py",
+  "no_creds": true,
+  "no_external_requests": true,
+  "no_systemd_changes": true,
+  "release_manifest_modified": false,
+  "production_attempt_history_preserved": true,
+  "unresolved": [
+    "installed publisher source attestation",
+    "live schema migration and rollback",
+    "independent owner manual/auto permission UI",
+    "real GET/friend/pause pre-POST binding",
+    "operator-approved canary and WSL reboot testing",
+    "R2 G1 natural timer decision"
+  ]
+}

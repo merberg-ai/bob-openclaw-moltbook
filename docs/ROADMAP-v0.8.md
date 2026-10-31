@@ -1,3 +1,13 @@
+## R3.13a trusted source-root review and real-queue private-copy migration rehearsal
+
+A new fixed-host R3.13a audit observes the current WSL account's existing Moltbook queue / Scout-data / pause roots, validates owner-only directory and file permissions, existing legacy schema and absent R3 tables, and categorizes independently controlled R3 settings without reading secret credentials or dumping raw content. It composes the pre-existing sanitized R3.8 effective-unit view. It reports that installed publisher binary attestation remains unverified and never grants send authority.
+
+The optional --private-copy rehearsal uses SQLite's online backup API to snapshot committed live queue/WAL records into a throwaway 0600 file in a 0700 temporary directory. It verifies the private copy and original five-table history, simulates rollback of an interrupted additive DDL transaction, then applies R3.5-compatible schema to the COPY ONLY and verifies idempotence and every prior attempted/uncertain row. There is no production schema change, credential/API request, publisher/service update or release. All execution flags for R3 comments remain Off. The source candidate is noninstallable, and owner OMEN read-only/private-copy acceptance is still pending. See [R3.13a guide](R313A-HOST-PRIVATE-MIGRATION.md).
+
+**Next R3.13b:** independently review real installed-source integrity, owner approval UI, migration/rollback before any installation. Then R3.13c/d real final GET/consent/pause barrier and separately approved canary/reboot. R2 G1 remains independently pending.
+
+---
+
 ## R3.12 actual publisher mixed-queue adapter, hard Off and isolated fake-credentialed POST
 
 The existing credentialed `src/bin/bob-moltbook-publisher` now imports `bob_r312_adapter.py` for **queue selection only**. With no R3 proposal table it executes the original legacy selection SQL; with a valid additive R3 table it excludes Bob-sealed rows from Scout-only validation and holds them untouched, while approved legacy jobs continue through the old `load_record`, budget, preflight, durable intent, credentialed POST and challenge/unknown handling. Malformed R3 schema fails closed. Real R3 send remains compiled Off (`R312_REAL_DISPATCH=False`), even if test owner flags claim Auto.
