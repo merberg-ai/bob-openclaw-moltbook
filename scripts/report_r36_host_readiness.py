@@ -26,6 +26,8 @@ REQUIRED = {
     "decisions": frozenset(("run_id", "draft_sha256", "status", "decided_at")),
     "publish_settings": frozenset(("name", "value")),
     "publish_events": frozenset(("id", "at", "kind", "details")),
+    "published_replies": frozenset((
+        "id", "post_id", "comment_id", "detected_at")),
 }
 # These candidate tables must NOT be assumed to exist in today's live queue.
 ADDITIVE = frozenset((
@@ -67,7 +69,7 @@ def queue_schema(path: Path = QUEUE) -> dict:
                 row[0] for row in con.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' "
                     "AND name IN ('publish_jobs','decisions','publish_settings',"
-                    "'publish_events','r3_proposals','r3_owner_approvals',"
+                    "'publish_events','published_replies','r3_proposals','r3_owner_approvals',"
                     "'r3_lab_audit','r35_schema_meta')")}
             failures = []
             for name, expected in REQUIRED.items():
@@ -80,7 +82,7 @@ def queue_schema(path: Path = QUEUE) -> dict:
                 if not expected.issubset(cols):
                     failures.append(name)
             counts = {}
-            for name in ("publish_jobs", "decisions", "publish_events"):
+            for name in ("publish_jobs", "decisions", "publish_events", "published_replies"):
                 if name in table_names:
                     counts[name] = int(con.execute(
                         'SELECT COUNT(*) FROM "' + name + '"').fetchone()[0])
