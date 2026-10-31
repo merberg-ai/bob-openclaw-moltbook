@@ -30,7 +30,7 @@ from test_r3_unified import fixture, consent_policy, RUN, ID, TEXT, NOW
 
 
 def make_saved_scout(root: Path, *, content="A source about safe ownership."):
-    root.mkdir(mode=0o700)
+    root.mkdir(mode=0o700,exist_ok=True)
     feed={"source":"Moltbook public API","fetched_at":"2026-10-30T23:00:00+00:00",
           "posts":[{"id":ID,"author":"SavedAgent","title":"Ownership and memory",
                     "content":content}]}
