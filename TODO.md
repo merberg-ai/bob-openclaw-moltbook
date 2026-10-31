@@ -1,10 +1,21 @@
+## R3.13d stage1 OMEN install accepted (operator-reported, 2026-10-31)
+
+- [x] **Guarded updater acceptance PASS:** owner ran `bobctl update --check`, verified exact `v0.8.0-r3stage1` seven-file manifest and Activity Manager restart, then ran `bobctl update` with typed `UPDATE`; result `BOB UPDATE: updated`.
+- [x] **Independent installed-host acceptance PASS:** `scripts/report_r313d_stage1_installed.py` returned `installed release: verified`, `R3 real-send source gates: verified_off`, `authenticated R3 Controls: authenticated_read_only_page`, `installation acceptance: PASS`; no changes from this report to database/services and **no new R3 posting rights or canary authorization**.
+- [x] **LAN visual acceptance:** owner screenshot shows authenticated `/r3` rendering on `192.168.1.24:18790`; manual owner control OFF, automatic publishing OFF/compiled locked, and no eligible R3 proposals. The read-only notice reflects the **not-yet-migrated live R3 schema**, not a failed stage1 code install.
+- [ ] **Small UI copy correction:** after stage1, replace “read-only until separately reviewed OFF-first install” with “read-only until separately authorized live R3 schema migration.” No need to roll a release for wording alone.
+- [ ] **R3 sensitive LAN controls security gate:** browser shows plain HTTP (`Not secure`) on LAN; Basic-auth credentials and future owner actions require an authenticated HTTPS endpoint (or equivalently protected private tunnel) before enabling R3 manual mutations. Keep LAN-only and do not open public access.
+- [ ] **NEXT independent owner-approved migration gate:** normal-account read-only `python3 scripts/r313d_live_off_migration.py` to identify pause/drain/readiness, then separately scheduled maintenance with exact typed authorization for an Off-only additive schema upgrade. Do **not** run `--apply-off` from this acceptance alone. Real publishing canary and WSL/Windows reboot G2 remain separately pending. R2 G1 natural scheduled source-linked decision remains open.
+
+---
+
 ## R3.13d Off-first stage1 release promotion (install acceptance pending)
 
 - [x] Promote the previously accepted `v0.8.0-r3stage1` **code-only** manifest to `releases/current.json` on `next`, chained exactly from installed `v0.8.0-shadow4`. Only seven R3 proposal/dashboard/navigation files are in the manifest; **the credentialed legacy Moltbook publisher and its timer are excluded**. This is not an automatic installation, live schema migration, or real R3 publication authorization.
 - [x] Fix trusted R3 ZIP namespace loading: the existing Shadow4 dashboard imports `bob_v08.inspect` first and caches the package path. The new loader now verifies BOTH installed archives against the private updater registry before exposing reviewed R3 submodules to the cached package. Add real LAN Basic/Host/Origin/CSRF localhost HTTP smoke and installed-runtime tests while retaining the production account boundary.
 - [x] Add `scripts/report_r313d_stage1_installed.py` as a **read-only** post-install check for exact updater registry SHA, installed binary hashes, three R3 source Off gates, reviewed publisher effective unit, independent R3 consent Off and authenticated `/r3` response. It never changes database, permissions, services or Moltbook state.
 - [x] **Stage1 release promotion CI accepted:** PR #93 squash-merged into `next` at `b9445464e67baae6b3469c1ae913b0bcb393bf67`; GitHub Actions run `41215807186` passed **946 Python tests** and Windows startup parsing. `releases/current.json` is now `v0.8.0-r3stage1` from Shadow4 with exactly seven R3 dashboard/proposal files, and no credentialed publisher update.
-- [ ] **OMEN install acceptance pending:** run `cd ~/bob-next && git pull --ff-only && bobctl update --check`, verify exact `v0.8.0-r3stage1` seven-file manifest, then run `bobctl update` and type `UPDATE`; finally `python3 scripts/report_r313d_stage1_installed.py` must report PASS and R3 posting rights NONE. No live schema migration or Moltbook canary yet.
+- [x] **OMEN stage1 code install accepted (2026-10-31):** guarded updater reported `updated`; installed report verified exact release, triple-Off source, authenticated read-only `/r3` and no R3 posting rights. See operator evidence above.
 - [ ] **Still separate R3.13d gates:** owner-approved paused/drained maintenance and live Off-only SQLite migration; safe service restart, WSL/Windows reboot; separate exact-post and exact-draft manual canary and G2 no-duplicate recovery. Auto R3 stays compiled Off. R2 G1 natural fresh timer decision remains open.
 
 ---

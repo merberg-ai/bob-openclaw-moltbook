@@ -1,3 +1,13 @@
+## R3.13d OMEN stage1 installed and accepted (2026-10-31)
+
+Owner report confirms `bobctl update --check` found the reviewed seven-file `v0.8.0-r3stage1` release from Shadow4. After explicitly typing `UPDATE`, the guarded updater returned `BOB UPDATE: updated`. A subsequent independent `scripts/report_r313d_stage1_installed.py` returned `installed release: verified`, `R3 real-send source gates: verified_off`, `authenticated R3 Controls: authenticated_read_only_page`, `installation acceptance: PASS`, and **no new R3 public posting rights or Moltbook canary authorization**. Owner screenshot shows `/r3` rendering via the private-LAN manager with independent manual OFF, automatic compiled OFF and no Bob drafts. These are owner-provided point-in-time reports, not independent host access.
+
+**Stage1 code installation accepted; live R3 schema is still absent.** The screenshot's “until ... OFF-first install” notice is outdated UI copy, not evidence of an install failure. Fix in a later reviewed release. The browser also shows ordinary HTTP; prior to allowing sensitive R3 mutations, require HTTPS (or a protected tunnel) while retaining authenticated LAN-only access. No public exposure or credential changes are authorized by this checkpoint.
+
+**Next:** separate maintenance authorization for the fixed-host additive **Off-only** live schema migration after normal-account read-only `scripts/r313d_live_off_migration.py` review, paused/drained sole publisher and manager, restore-tested backup and typed terminal confirmation. Do not issue `--apply-off` just because stage1 passed. Automatic real sends remain Off. Manual exact-draft canary and Windows/WSL reboot G2 remain distinct gates; R2 G1 is still pending.
+
+---
+
 ## R3.13d Off-first stage1 promotion CI accepted (2026-10-31)
 
 PR #93 squash-merged into `next` at `b9445464e67baae6b3469c1ae913b0bcb393bf67`. GitHub Actions run `41215807186` passed **946 Python tests** and Windows startup-script parsing, including authenticated LAN HTTP/CSRF/Host/Origin smoke of the generated Activity Manager with the existing Shadow4 ZIP and registry-verified R3 ZIP. The full release chain is explicitly constrained to `v0.8.0-shadow4` → `v0.8.0-r3stage1`, exactly seven files, **no publisher executable or timer**.

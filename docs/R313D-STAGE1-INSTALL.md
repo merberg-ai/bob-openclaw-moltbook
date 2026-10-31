@@ -1,3 +1,9 @@
+## Stage1 OMEN installation accepted (owner report, 2026-10-31)
+
+The owner verified the stage1 update prompt, typed `UPDATE`, and received `BOB UPDATE: updated`. The independent post-install audit returned `installed release: verified`, three real-send gates `verified_off`, authenticated `/r3` page `authenticated_read_only_page` and `installation acceptance: PASS`. The browser screenshot confirms the R3 Controls page is accessible from the existing LAN Activity Manager and remains manual OFF / automatic compiled OFF. The schema is not yet migrated, so controls correctly remain read-only. The UI's text referring to waiting for an “OFF-first install” is a wording defect to fix in a later release.
+
+**Do not rerun the updater for this checkpoint.** Stage1 source promotion and owner code installation are now accepted. The next gate is the separately approved live **Off-only schema migration**; do not run `--apply-off` or queue/approve R3 drafts from this acceptance alone. Before enabling future manual owner mutations, secure the LAN Basic-auth UI over HTTPS or an equivalently protected tunnel (current browser displays plain-HTTP “Not secure”).
+
 # R3.13d stage1 Off-first installation: owner-operated release
 
 **Promoted release:** `v0.8.0-r3stage1`, source branch `next`. **This is a code-only release, not R3 cutover, not live database migration, and not permission to send new Bob-authored Moltbook comments.** The existing credentialed v0.7 publisher is not in the manifest. Real R3 dispatch stays protected by three reviewed hardcoded Off gates; automatic R3 publication remains compiled Off.
