@@ -145,7 +145,7 @@ class SourceBoundary(unittest.TestCase):
             self.assertEqual(self.handoff().reason,"paused_or_unknown")
         self.assertEqual(self._attempts(),0)
         self.assertTrue(simulated_pause_state(Path("/tmp")/"paused"))
-        self.assertFalse(simulated_pause_state(self.root/"not-paused") is False)
+        self.assertTrue(simulated_pause_state(self.root/"not-paused"))
 
     def test_missing_or_fabricated_preflight_cannot_create_eligible_intent(self):
         # A caller-supplied Proof is SYNTHETIC; this bridge never contacts Moltbook.
@@ -257,6 +257,18 @@ class OwnershipRehearsal(unittest.TestCase):
                                 source_adapter_verified=True,
                                 backup_verified=True,rollback_rehearsed=True)
         self.assertFalse(refused.accepted)
+
+    def test_static_inert_cli_reports_denied_cutover_and_history_preservation(self):
+        sys.path.insert(0,str(ROOT/"scripts"))
+        from rehearse_r3_cutover import report
+        output=report()
+        self.assertFalse(output["cutover_authorized"])
+        self.assertEqual(output["owner_permission_absent"],"cutover_gate_not_met")
+        self.assertTrue(output["attempt_history_preserved"])
+        self.assertTrue(output["uncertain_history_preserved"])
+        self.assertTrue(output["shadow_timer_unchanged"])
+        self.assertEqual(output["network_attempts"],0)
+        self.assertEqual(output["systemd_changes"],0)
 
     def test_no_actual_unit_actions_or_credentials_in_code(self):
         import bob_v08.r3_cutover_rehearsal as m
