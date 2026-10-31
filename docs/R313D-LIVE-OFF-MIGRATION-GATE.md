@@ -2,7 +2,7 @@
 
 **Read-only by default. The live migration is not authorized or performed by merging this source.** The only supported writable operation is an explicit owner TTY-confirmed `--apply-off` once the *separately approved* Off-first release `v0.8.0-r3stage1` has been installed, the publisher timer and all relevant units drained, the global private pause marker present, and an independently restore-tested private SQLite backup created.
 
-This is not a Bob R3 publisher activation or Moltbook canary, and **the three source-level publisher Off gates remain Off**. `releases/current.json` is still `v0.8.0-shadow4`. Neither the updater nor the ordinary Bob dashboard is allowed to migrate the live database implicitly.
+This is not a Bob R3 publisher activation or Moltbook canary, and **the three source-level publisher Off gates remain Off**. `releases/current.json` on `next` is now promoted to code-only `v0.8.0-r3stage1`; the installed host stays at Shadow4 until separately confirmed by the owner. Promotion alone does not migrate live SQLite. Neither the updater nor the ordinary Bob dashboard is allowed to migrate the live database implicitly.
 
 ## Code and operator boundary
 
@@ -20,6 +20,10 @@ The explicit `--apply-off` operation requires ALL of the following:
 - An interactive owner confirmation typed exactly `MIGRATE R3 OFF` after the operation has been reviewed. No noninteractive, model-triggered or remote HTTP command can invoke the live migration without an interactive terminal.
 - An atomic `BEGIN IMMEDIATE` schema transaction that inserts only reviewed tables/settings; preserves all old published, attempted, uncertain, approval, reply and event history; verifies the completed additive schema and the four explicit Off settings; writes a durable journal `prepared` then `complete`. A `prepared` journal after a crash is a **manual-inspection blocker**, never a prompt for blind retry or stale backup restoration.
 
+## After stage1 source promotion
+
+Complete the [explicit code-only stage1 installation](R313D-STAGE1-INSTALL.md) first. The read-only `report_r313d_stage1_installed.py` output must PASS before any separate maintenance-window schema work. **Do not run `--apply-off`** after a mere `bobctl update --check` or unverified code installation.
+
 ## For review now (without installing)
 
 Run this **read-only** command as the regular OpenClawLab user after merging the source branch:
@@ -34,7 +38,7 @@ The later migration tool can also be inspected **read only**:
 python3 scripts/r313d_live_off_migration.py
 ```
 
-The second check should normally report `installed Off-first release: not_verified` and `eligible for explicit migration: no` while Shadow4 remains installed. **That is correct and expected.** Do not run `--apply-off` yet. No `bobctl update`, service stop, or database modification is part of this source-only review.
+The second check should report `installed Off-first release: not_verified` and `eligible for explicit migration: no` until the owner completes the separate stage1 code installation. **That is correct and expected.** Do not run `--apply-off` yet. No `bobctl update`, service stop, or database modification is part of this source-only review.
 
 ## Actual production sequence still requiring distinct owner decisions
 
