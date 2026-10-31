@@ -1,3 +1,24 @@
+## G2.5 confirmed Linux wildcard listener on WSL mirrored network (2026-10-31)
+
+The owner ran Linux `ss -lnt '( sport = :18790 )'` in OpenClawLab from Windows PowerShell and reported an IPv4 `LISTEN` socket at **`0.0.0.0:18790`**. The owner's `.wslconfig` explicitly sets **`networkingMode=mirrored`**. Combined with confirmed access on two LAN Windows machines and earlier absent Windows host socket/portproxy, this establishes the likely Linux-owned mirrored networking route. It does **not** prove LAN-only restrictions; an IPv4 wildcard socket is not interface-limited.
+
+**Next read-only Hyper-V firewall inspection in ordinary Windows PowerShell:**
+
+```powershell
+$wslId = '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
+Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore -Name $wslId |
+    Select-Object Name,Enabled,DefaultInboundAction,LoopbackEnabled,AllowHostPolicyMerge
+Get-NetFirewallHyperVRule -VMCreatorId $wslId |
+    Where-Object { $_.Direction -eq 'Inbound' } |
+    Select-Object DisplayName,Enabled,Action,Protocol,LocalPorts,RemoteAddresses
+```
+
+These `Get-` cmdlets do not change firewall policy. If PowerShell cannot read the Hyper-V policy without administrator permissions, rerun them from an elevated PowerShell session; do not substitute `Set-` or `New-` configuration operations. The above WSL creator GUID is documented by Microsoft: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/hyper-v-firewall. Empty rule output does not by itself mean blocked; compare against effective `DefaultInboundAction`.
+
+Windows firewall active profiles, IPv4 NAT/router port forwarding, IPv6 public routing, and VPN interfaces are separate acceptance gates. Don't disable a working firewall or expose the manager publicly just to prove reachability. R3 remains hard Off and publisher receipt/no-duplicate evidence remains open.
+
+---
+
 ## G2.5 diagnostic: Windows listener and portproxy absence with working WSL/LAN dashboard (2026-10-31)
 
 **Owner observed:** Windows PowerShell `Get-NetTCPConnection -State Listen -LocalPort 18790` produced no Windows listener result, while `netsh interface portproxy show all` had no entries. Both Windows LAN clients nevertheless continued to access Activity Manager after reboot, and OpenClawLab G2 postcheck had independently verified authenticated internal HTTPS and R3 hard Off. The Windows-only probes cannot enumerate all Linux-owned WSL sockets and do not establish absence of inbound LAN or WAN reachability. In mirrored WSL mode, a Linux service may be exposed directly through the host networking stack and relevant Hyper-V firewall policy. Microsoft documentation: https://learn.microsoft.com/en-us/windows/wsl/networking and https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/hyper-v-firewall .
