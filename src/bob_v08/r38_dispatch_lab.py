@@ -275,7 +275,7 @@ def recover_after_restart(lab: UnifiedLab, *, at: datetime) -> RecoveryResult:
                 continue
             stamp = _ts(at)
             db.execute(
-                "UPDATE publish_jobs SET state='uncertain_simulated',updated_at=? "
+                "UPDATE publish_jobs SET state='uncertain',updated_at=? "
                 "WHERE run_id=? AND state='sending_simulated' "
                 "AND attempted_at IS NOT NULL", (stamp, rid))
             db.execute(
