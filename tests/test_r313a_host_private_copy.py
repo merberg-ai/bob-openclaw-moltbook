@@ -171,6 +171,21 @@ class TrustedHostTests(unittest.TestCase):
             ).fetchone(), (SCHEMA,))
             copy.rollback()
 
+    def test_forged_home_environment_blocks_private_copy(self):
+        with patch.object(cli.pwd, "getpwuid") as lookup:
+            lookup.return_value.pw_dir = str(self.root / "different-login-home")
+            with patch.object(cli, "rehearse", side_effect=AssertionError(
+                    "private copy must not be invoked")):
+                with patch.object(cli, "unit_report", return_value={
+                        "effective_service": "unverified",
+                        "effective_timer": "unverified",
+                        "review_blockers": ["synthetic"]}):
+                    result = cli.collect(private_copy=True)
+        self.assertEqual(result["rehearsal"], "refused_account_home")
+        self.assertIn("account_home_mismatch", result["host"]["review_blockers"])
+        self.assertFalse(result["host"]["private_copy_eligible"])
+        self.assertFalse(result["cutover_authorized"])
+
     def test_default_script_readonly_and_no_arbitrary_paths(self):
         source = inspect.getsource(m)
         for forbidden in ("urllib.request", "requests.post", "systemctl",
