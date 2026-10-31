@@ -1,3 +1,60 @@
+## CH-HTTPS1 OMEN operator acceptance and CH-HTTPS2 local certificates (2026-10-31)
+
+The owner reported **CH-HTTPS1 installation acceptance PASS** on the OMEN: `installed release: verified`, R3 source Off verified, `r3 schema: ready`, migration journal complete, current manager authenticated HTTP healthy, future strict TLS transport recognized, authenticated `/r3` page accepted. No changes to services, database, publisher, or R3 permissions.
+
+### CH-HTTPS2 separate certificate gate (no service/release update)
+
+**Scope:** private certificate material only, generated on the actual OpenClawLab WSL instance. No new installed code release, dashboard restart, second LAN port, firewall change, Windows trust import or Bob/Moltbook send permission.
+
+After this source-only PR is reviewed, CI passes and merges into `next`, run under the normal `openclaw` account:
+
+```bash
+cd ~/bob-next && git pull --ff-only
+python3 scripts/prepare_ch_https2.py
+```
+
+Expected: `owner host: verified`, `ch https1 install: verified`, `certificate state: absent`, `eligible to prepare: True`. This is strictly read-only.
+
+Then the separately approved local certificate-creation operation:
+
+```bash
+python3 scripts/prepare_ch_https2.py --apply
+```
+
+It requires typing **`PREPARE BOB HTTPS`** in the interactive terminal. It creates private, owner-only, no-symlink, no-overwrite files inside **`/home/openclaw/.config/bob-system/manager-tls`**. The CA uses an ECDSA P-256 signing key and a five-year trust certificate, and issues a one-year ECDSA P-256 TLS server certificate with verified SANs `192.168.1.24`, `127.0.0.1`, and `localhost`. It checks CA and leaf roles, key/public certificate match, 30+ remaining days, OpenSSL chain verification for all three SANs and a **real disposable authenticated HTTPS loopback socket** (plus rejection of a wrong hostname). The live Activity Manager on 18790 is **not** restarted or modified. The CA private key `ca.key` and leaf private key `server.key` remain mode 0600 in WSL and must **never** be copied to Windows, the other laptop, Git, a chat or a web server.
+
+Recheck without writing files:
+
+```bash
+python3 scripts/prepare_ch_https2.py --verify
+```
+
+Expected: `CH-HTTPS2 CERTIFICATE ACCEPTANCE: PASS (READ ONLY)`, all three SANs and loopback TLS verified; public CA file and public CA SHA256 printed. After generation, a no-argument `prepare_ch_https2.py` intentionally says `existing_do_not_overwrite` and refuses to create a second CA. Use `--verify` instead. On failure, keep the original HTTP manager running and do not delete/recreate private material blindly.
+
+### Windows CA trust, *after* cert generation and fingerprint verification
+
+This is a deliberate **owner action**, never performed by the certificate script. The public CA file alone is safe to copy or inspect; the CA private signing key must remain in the WSL account. On the OMEN Windows machine, the file is reachable through the WSL share at:
+
+```text
+\\wsl.localhost\OpenClawLab\home\openclaw\.config\bob-system\manager-tls\ca.crt
+```
+
+In PowerShell, compute its SHA256 **before importing**:
+
+```powershell
+Get-FileHash '\\wsl.localhost\OpenClawLab\home\openclaw\.config\bob-system\manager-tls\ca.crt' -Algorithm SHA256
+```
+
+Compare against the full **public CA SHA256** from `--verify` (case-insensitive). **Do not import if the hashes disagree.** If verified, explicitly import the *public CA only* into **Current User → Trusted Root Certification Authorities** using Windows certificate import or the owner-approved `certutil -user -addstore Root <ca.crt>` command. Root trust grants that CA broad certificate-signing authority on the Windows user account. **Only do this for your own private CA and on systems you control.** Browsers using their own trust store (for example some Firefox configurations) may need separate trust settings. A second LAN laptop needs the verified public CA certificate securely copied to that computer and deliberately trusted there too; no access to the WSL private CA key.
+
+Windows trust cannot be considered proven until the later CH-HTTPS3 TLS-only listener is running and the browser opens `https://192.168.1.24:18790/r3` **without any bypass/warning**, validates the exact host and prompts for existing Bob authentication. Do not test browser HTTPS on the live HTTP port until CH-HTTPS3 has been installed.
+
+### Next boundary
+
+**CH-HTTPS2 generates certificate bytes only.** The Activity Manager, updater and `bobctl` stay on the accepted CH-HTTPS1 HTTP mode. CH-HTTPS3 must separately update the generated Manager to wrap its existing socket with a TLS server context (minimum TLS1.2, no HTTP fallback), change existing Origin/Referer checks to strict HTTPS, and pass authenticated read-only R3 and legacy routes with TLS. The guarded updater must prove the candidate HTTPS listener and roll back to the original verified HTTP release on failure. **Never restore old SQLite or enable Bob-R3 comment publishing as part of any TLS step.**
+
+---
+
 ## CH-HTTPS0 OMEN owner acceptance (2026-10-31)
 
 The owner ran the read-only CH-HTTPS0 report on the actual OMEN. It returned `installed release: v0.8.0-r3stage1`, `r3 schema: ready`, `migration journal: complete`, manager/publisher/Scout timers `active`, `current manager transport: authenticated_http_r3`, `listener: lan_or_wildcard`, `certificate state: not_prepared`, and `source preflight: pass`. No live services, database, certificate or publication settings were modified.
