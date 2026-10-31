@@ -135,13 +135,15 @@ class UpdaterTransportTests(unittest.TestCase):
             probe.assert_called_once_with("Basic synthetic",
                                           release="v0.8.0-chhttps3")
 
-    def test_release_is_exact_two_file_upgrade_without_manager_restart(self):
+    def test_promoted_https_cutover_reuses_prepared_transport_no_updater_change(self):
         plan=upd.manifest(ROOT)
-        self.assertEqual(plan["release"],"v0.8.0-chhttps1")
-        self.assertEqual(plan["from"],"v0.8.0-r3stage1")
-        self.assertFalse(plan["restart_manager"])
+        self.assertEqual(plan["release"],"v0.8.0-chhttps3")
+        self.assertEqual(plan["from"],"v0.8.0-chhttps1")
+        self.assertTrue(plan["restart_manager"])
         self.assertEqual({item["name"] for item in plan["files"]},
-                         {"bob-release-updater","bobctl"})
+                         {"bob_manager_tls.py","bob-activity-manager"})
+        self.assertNotIn("bob-release-updater",
+                         {item["name"] for item in plan["files"]})
         for item in plan["files"]:
             compile(upd.release_bytes(ROOT,item),item["name"],"exec")
 

@@ -1,17 +1,18 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-chhttps1",
-  "from": "v0.8.0-r3stage1",
-  "notes": "Transport-aware updater and bobctl only. HTTP manager remains unchanged. No TLS listener, keys, R3 publishing, publisher, service or SQLite changes.",
+  "release": "v0.8.0-chhttps3",
+  "from": "v0.8.0-chhttps1",
+  "notes": "HTTPS-only Activity Manager on same LAN port, private CA/three SANs, strict Host/Origin/CSRF, verified transport-aware code-only rollback. Requires owner-trusted public CA; no R3 posting rights or database changes.",
   "files": [
     {
-      "name": "bob-release-updater",
-      "source": "scripts/bob_release_updater.py"
+      "name": "bob_manager_tls.py",
+      "source": "src/lib/bob/bob_manager_tls.py"
     },
     {
-      "name": "bobctl",
-      "source": "src/bin/bobctl"
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_ch_https3_manager_candidate.py",
+      "index": 0
     }
   ],
-  "restart_manager": false
+  "restart_manager": true
 }
