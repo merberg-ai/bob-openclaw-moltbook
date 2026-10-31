@@ -117,8 +117,6 @@ ExecStart=/usr/bin/python3 /opt/bob/src/bin/bob-moltbook-publisher
         self.assertEqual(data["effective_timer"],"unverified")
         self.assertTrue(data["review_blockers"])
         self.assertFalse(data["cutover_authorized"])
-        self.assertEqual(_cat("bob-arbitrary-timer.timer",run=missing) if False else
-                         "not_called", "not_called")
         with self.assertRaisesRegex(ValueError,"unapproved_unit"):
             _cat("bob-arbitrary-timer.timer",run=missing)
 
