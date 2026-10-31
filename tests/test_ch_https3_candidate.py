@@ -142,7 +142,7 @@ class HTTPS3CandidateTests(unittest.TestCase):
         self.assertIn(b"HTTPSOnlyHandlerMixin",manager)
         self.assertNotIn(
             b"ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()",manager)
-        self.assertIn(b"R3 automatic publishing",manager)
+        self.assertIn(b"from bob_r313d_web import R3HandlerMixin",manager)
         self.assertGreater(len(manager),len(old))
 
     def test_generated_manager_real_synthetic_tls_and_browser_protections(self):
@@ -184,9 +184,10 @@ class HTTPS3CandidateTests(unittest.TestCase):
                     "bob_r3_package.pyz":hashlib.sha256(z3).hexdigest(),
                 }}))
             registry.chmod(0o600)
-            manager,_=builder.build()
+            manager,nav=builder.build()
             manager_path=bin_dir/"bob-activity-manager"
             manager_path.write_bytes(manager)
+            (bin_dir/"navigation_shell.py").write_bytes(nav)
             env={**os.environ,
                  "HOME":str(home),
                  "PYTHONPATH":os.pathsep.join([
