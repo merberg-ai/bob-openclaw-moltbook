@@ -1,3 +1,11 @@
+## G2.4 observed Activity Manager reachability from both Windows clients (2026-10-31)
+
+After G2.3 verified OMEN Windows-logon WSL recovery, an active OpenClaw Gateway and passing local installed HTTPS/R3 Off checks, the owner reported that **both Windows computers successfully access the dashboard**. This completes the two-LAN-client reachability check. The report does not explicitly confirm fresh rotated-password login, a warning-free certificate indicator, or the absence of browser bypass; do not attribute those unreported observations.
+
+Outstanding G2 acceptance: (1) independently reconcile original legacy publisher queue/attempted receipts with external Moltbook replies and any recorded target IDs; unchanged 23 attempted/0 uncertain counts are not comprehensive external duplicate proof, and (2) inspect Windows/WSL listener exposure, firewall and portproxy settings plus router forwarding to substantiate the private-LAN-only access requirement. Do not enable, stop or restart publishing services or alter Windows/WSL configuration as a test. Preserve R3 hard-Off.
+
+---
+
 ## G2.3 supervised Windows reboot recovered core Bob services (2026-10-31)
 
 **Actual owner-observed G2.3 recovery:** The OMEN Windows reboot was performed after a clean G2 preflight. Pre-reboot host gate passed with 23 historically attempted and 0 uncertain legacy publication jobs, user linger yes, reviewed publisher and current TLS/R3 Off state. After Windows sign-in, Windows PowerShell `wsl.exe --list --verbose` showed **OpenClawLab Running**, while Ubuntu and Ubuntu-24.04 were Stopped and docker-desktop Running. In the recovered OpenClawLab distro, `python3 scripts/report_g2_recovery.py --postcheck` returned `host gate: PASS`, installed HTTPS/R3 Off PASS, expected user service/timer and inert competing scope checks PASS, reviewed publisher, migrated SQLite journal/history verified, 23 attempted / 0 uncertain and linger=yes. `systemctl --user is-active openclaw-gateway.service` returned **active**. These findings verify the core Windows-interactive-logon to WSL/service recovery path at this time; they don't independently prove which exact Windows shortcut fired, pre-login unattended boot, remote browser trust, WAN isolation, or any external no-duplicate posts.

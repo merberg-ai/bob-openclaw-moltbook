@@ -1,3 +1,12 @@
+## G2.4 post-reboot dashboard reachable from BOTH Windows LAN clients (2026-10-31)
+
+- [x] **Owner-reported two-client post-reboot access:** both the OMEN and the second LAN Windows machine can access the Bob Activity Manager dashboard following the successful Windows reboot/logon and G2.3 WSL postcheck. This establishes remote LAN reachability to the dashboard in addition to prior fixed-host verified HTTPS and R3 Off checks.
+- [ ] **Browser warning/credential detail not independently reported in this confirmation:** verify neither Windows browser presents a certificate warning or bypass and that fresh authentication uses the rotated password. Do not infer those specific observations solely from “both systems are able to access.”
+- [ ] **G2 external publishing receipt/ledger review:** pre/post Linux report shows 23 historically attempted and 0 uncertain jobs without a new *recorded* attempt; independently reconcile real Moltbook replies/receipts/target IDs before saying no duplicates. No replays, manual publisher unit starts, or R3 send authority.
+- [ ] **G2 LAN/WAN perimeter review:** read-only inventory of listener interfaces, Windows firewall and portproxy rules, and external router forwarding; working LAN access alone is not proof that WAN cannot reach the port. Keep services/settings unchanged.
+
+---
+
 ## G2.3 OMEN Windows reboot/logon and core service recovery accepted (2026-10-31)
 
 - [x] **Owner witnessed Windows reboot + WSL running after sign-in:** before the reboot, `python3 scripts/report_g2_recovery.py --baseline` returned `host gate: PASS` with trusted HTTPS/R3 Off, expected original units/inert competitors, reviewed legacy publisher, migration/history verified, attempted 23, uncertain 0, linger=yes. After Windows reboot and user sign-in, a Windows PowerShell `wsl.exe --list --verbose` listed **OpenClawLab Running** without an operator-reported manual distro launch; Ubuntu/Ubuntu-24.04 Stopped; docker-desktop Running. This supports successful Windows-user-logon WSL startup, not unattended pre-login boot.
