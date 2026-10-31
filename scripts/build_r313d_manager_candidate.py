@@ -8,7 +8,7 @@ a subclass intercepts only /r3 and delegates everything else to super().
 This candidate additionally preserves R2 Shadow Now/Inbox routes.
 """
 from __future__ import annotations
-import build_v076_oc4_candidate as prior
+import build_v08_shadow_dashboard as prior
 
 
 def once(code: str, old: str, new: str) -> str:
@@ -21,29 +21,8 @@ def build() -> tuple[bytes,bytes]:
     mgr, nav = prior.build()
     code = mgr.decode("utf-8")
     menu = nav.decode("utf-8")
-    # Overlay the R2 authenticated shadow route bridge on the current OC4
-    # baseline, rather than replacing newer OC4 diagnostics with an old build.
-    code = once(code,
-        "from bob_social_memory import page as social_memory_page",
-        "from bob_social_memory import page as social_memory_page\n"
-        "from bob_v08_bridge import now_page as v08_now_page, inbox_page as v08_inbox_page")
-    code = once(code,
-        '        elif urlsplit(self.path).path == "/moltbook/social-memory":',
-        '        elif urlsplit(self.path).path == "/v08/now":\n'
-        '            self._send(200,v08_now_page(wrap),"text/html; charset=utf-8")\n'
-        '        elif urlsplit(self.path).path == "/v08/inbox":\n'
-        '            self._send(200,v08_inbox_page(wrap),"text/html; charset=utf-8")\n'
-        '        elif urlsplit(self.path).path == "/moltbook/social-memory":')
-    shadow_anchor=(
-        '    ("/moltbook/social-memory", "Moltbook · Social Memory", '
-        '"Source-linked private encounters and evolving interests"),'
-    )
-    menu=once(menu,shadow_anchor,
-        shadow_anchor+'\n'
-        '    ("/v08/now", "Bob v0.8 · Shadow Now", '
-        '"Hypothetical decisions, no external actions"),\n'
-        '    ("/v08/inbox", "Bob v0.8 · Shadow Inbox", '
-        '"Read-only preview and anomalies"),')
+    # The pinned R2 bridge ALREADY builds FM4.1 on OC4 and preserves all
+    # old dashboard handlers. Never add its GET routes twice.
     # Only new /r3 paths are intercepted; original class is NEVER edited.
     entry='\nif __name__ == "__main__":'
     class_extension=(
