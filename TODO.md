@@ -1,10 +1,19 @@
-## R3.13d source stage accepted (2026-10-30); OMEN private-copy gate pending
+## R3.13d OMEN private staging acceptance PASS (2026-10-31)
+
+- [x] **Owner-reported read-only host audit PASS:** trusted queue boundary `yes`, legacy schema `match`, installed R3 consent `absent_off`, effective publisher unit `reviewed_shape`, installed executable `owner_controlled_regular`, updater registry hash `verified_registry_hash`, all three source-level R3 gates `verified_three`, staging eligible `yes`; boundary blockers `none`, source blockers `none`.
+- [x] **Owner-reported disposable migration PASS:** `r313c_action_envelopes` / schema version `match`, newly introduced controls `explicit_off`, crash rollback and idempotence `True`, historical data preserved `True`, historical send attempts `22`, historical uncertain states `0`, new synthetic uncertain attempt survived code-only rollback `True`, private snapshot deleted. No live database, installed files, services or consent changed. Real R3 sends and cutover authorization remained `NO`.
+- [x] Record the operator-supplied sanitized results as **point-in-time staging acceptance**, not proof of production migration or independent live-service verification; no credentials, database records, unit bodies or absolute paths reproduced.
+- [ ] **R3.13d production work still pending:** authenticated independent R3 Controls UI (manual and automatic Off by default) and exact-seal proposal authorization/writer; versioned installable release, journaled service drain and verified live additive migration, separate explicit authorization for one-publisher Moltbook canary, WSL/Windows reboot, uncertain/no-retry acceptance and code-only rollback. R2 G1 natural timer-driven new source-linked model decision remains open.
+
+---
+
+## R3.13d source and OMEN private-stage gate accepted (2026-10-31)
 
 - [x] Add marked-copy-only versioned `r313c_action_envelopes` and `r313c_schema_meta` migration after R3.13b's explicit default-Off controls. Verify exact legacy rows, atomic crash rollback, idempotence, future/partial/drifted schema rejection, and zero live schema or permission changes.
 - [x] Rehearse a **sealed Bob action producer** only inside the trusted private fixture: reconstruct source-linked original decision, validate canonical envelope/seal/fingerprint, insert draft proposal atomically without `publish_jobs` queueing, owner approval or any public network request.
 - [x] Add fixed-host read-only report and explicit `--private-copy` SQLite online backup (including committed WAL), installed publisher registry and effective-unit checks, three source-level Off gate checks, post-upgrade synthetic uncertain attempt and code-only no-history-rewind check. Add synthetic regressions, CI triggers, [operator guide](docs/R313D-STAGING-OFF.md) and expressly noninstallable candidate. `releases/current.json` remains Shadow4.
 - [x] **Source CI accepted:** PR #86 merged to `next` at `776ad1eac51a8b0f631fc543856a0d34ab4765ad`; GitHub Actions run `41174232285` passed **922 Python tests** plus Windows startup-script validation. Existing legacy publisher imported and remained unmodified.
-- [ ] **OMEN operator read-only and private-copy acceptance pending:** `python3 scripts/report_r313d_host.py`, then `--private-copy` only if eligible. No `bobctl update`, live SQLite migration or R3 posting right for this source-only stage.
+- [x] **OMEN operator acceptance PASS (2026-10-31):** read-only audit and explicit disposable private-copy staging migration both passed; no production changes or R3 posting authority. See the recorded results above.
 - [ ] **R3.13d production completion remains:** audited authenticated Activity Manager manual/auto R3 Controls and source-linked proposal writer, separately reviewed installable `v0.8.0-cutover1` transaction, authorized maintenance/drain/backup/live additive migration and one-publisher canary, WSL/Windows reboot and code-only rollback. No real R3 send/automatic consent without express owner authorization. R2 G1 remains independently open.
 
 ---

@@ -1,3 +1,13 @@
+## R3.13d OMEN operator private-stage acceptance PASS (2026-10-31)
+
+The owner executed the merged `next` fixed-host R3.13d source audit and separately invoked `--private-copy` on the OMEN/OpenClawLab WSL account. The source audit reported trusted queue boundary, matching legacy schema, absent/Off R3 owner consent, reviewed installed publisher service shape, owner-controlled regular executable and matching private updater registry hash; the **three source-level publication gates remained Off**, with no boundary/source blockers and staging eligible.
+
+The disposable SQLite online-backup migration reported **PASS** for the versioned action-envelope schema, explicit default-Off controls, pre-commit crash rollback, idempotence and preservation of old records. The snapshot contained **22 historical send attempts** and **0 historical uncertain states**; a new synthetic uncertain attempt persisted through the code-only rollback check. The copied DB was deleted. The output states live database, installed files, units, consent, R3 dispatch and cutover authorization **unchanged/Off**. This is an **owner-supplied point-in-time private-stage acceptance**, not a production migration, live send verification or installed release attestation of new R3 binaries.
+
+**R3.13d staging gate accepted. Production gates remain open:** independently authenticated owner R3 Controls and trusted proposal producer, reviewed versioned release/maintenance/drain/live migration, explicit owner-authorized real one-publisher canary, reboot, no-duplicate uncertainty recovery and code-only rollback. `releases/current.json` remains `v0.8.0-shadow4`, and R2 G1 is still open.
+
+---
+
 ## R3.13d source-stage CI accepted (2026-10-30)
 
 PR #86 squash-merged into `next` at `776ad1eac51a8b0f631fc543856a0d34ab4765ad`. GitHub Actions run `41174232285` passed **922 offline Python tests** and Windows startup-script parsing. The versioned envelope migration/proposal writer can modify only a marker-locked disposable SQLite fixture, the host script only reads installed state unless `--private-copy` is explicitly invoked, and all three source-level R3 dispatch gates remain hard Off. `releases/current.json` stays `v0.8.0-shadow4`; the installed legacy publisher, units, owners and live database remain unchanged.
