@@ -1,3 +1,13 @@
+## R3.13d Off-first production release and controlled live-schema gate (source acceptance pending)
+
+- [x] Implement isolated production-compatible `BEGIN IMMEDIATE` additive **R3 Off** schema transaction: exact R3.5 and versioned R3.13c tables, four default-Off independent owner keys, historical record/attempt digest, idempotence, future/partial schema and non-Off consent rejection, crash-before-commit rollback. No network or R3 publishing authority.
+- [x] Implement `scripts/r313d_live_off_migration.py` as a **read-only by default**, fixed-user/host command; `--apply-off` demands owner TTY phrase `MIGRATE R3 OFF`, installed registry-attested `v0.8.0-r3stage1`, reviewed effective publisher, three hard-Off source gates, private global pause marker, disabled and inactive publisher timer, inactive publisher/manager services, serialized updater lock, restore-tested private SQLite backup and fsync `prepared/complete` journal. No arbitrary source path, unit action, credential or Moltbook request. Code-only rollback only.
+- [x] Add offline synthetic database crash/history/unknown-schema/unit-drain/unauthorized-action regressions, CI paths and [operator guide](docs/R313D-LIVE-OFF-MIGRATION-GATE.md).
+- [ ] **CI/source merge pending**; no live schema altered by this branch.
+- [ ] **Owner host acceptance and installation remain separate:** merged Off-first candidate report on the OMEN, explicit release promotion/install, explicit drained maintenance and live Off schema migration; **real Bob-authored manual canary requires distinct exact owner approval**, and publisher remains hard Off. Reboot, challenge and no-duplicate production G2 still open. R2 G1 independently open.
+
+---
+
 ## R3.13d production owner Controls and sealed OpenClaw proposal path (Off-first CI review)
 
 - [x] Preserve hash-pinned v0.6 manager source and full legacy generated UI chain; add **separate R3 Controls** page via additive subclass over R2 Shadow + FM4.1/OC4 manager. Inherit existing LAN Basic/Host/Origin/CSRF. Publish settings still independent of Scout v0.7 auto and approvals.
