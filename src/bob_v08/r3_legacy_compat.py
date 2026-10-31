@@ -30,8 +30,8 @@ LOCKING_STATES = ("sending", "uncertain", "published", "verified_unconfirmed",
 RUN_ID = re.compile(r"[0-9]{8}T[0-9]{6}Z\Z")
 HASH = re.compile(r"[a-f0-9]{64}\Z")
 
-# These imports only expose the shared policy evaluator. Never call
-# bob_publish_common.connect(), whose default path is the real legacy DB.
+# These imports only expose the shared policy evaluator. Never invoke
+# the legacy shared DB-opening context manager; its default is the live queue.
 LIB = str(Path(__file__).resolve().parents[1] / "lib" / "bob")
 if LIB not in sys.path:
     sys.path.insert(0, LIB)
@@ -208,7 +208,7 @@ class LegacyCompatLab:
             "EXISTS(SELECT 1 FROM decisions d WHERE d.run_id=publish_jobs.run_id "
             "AND d.draft_sha256=publish_jobs.approval_sha256 "
             "AND d.status='approved')" if mode == "manual" else
-            "NOT EXISTS(SELECT 1 FROM decisions d WHERE d.run_id=publish_jobs.run_id)")
+            "NOT EXISTS(SELECT 1 FROM decisions d WHERE d.run_id=publish_jobs.run_id)"
         )
         changed = db.execute(
             "UPDATE publish_jobs SET state='sending_simulated',"
