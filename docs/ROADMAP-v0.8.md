@@ -1,3 +1,11 @@
+## R3.13d OMEN Off-first candidate review PASS (2026-10-31)
+
+The owner ran `python3 scripts/report_r313d_off_first.py` on the OMEN/OpenClawLab WSL host. The **read-only** report returned `candidate build: PASS`, `existing release: v0.8.0-shadow4`, `three R3 real-send gates: OFF`, `installed host boundary: eligible`, and `eligible for separate owner install review: yes`. No live database, installed file, service, R3 posting right or Moltbook canary authorization changed. This is **operator-supplied, point-in-time pre-install acceptance**, not evidence of successful installation or live migration.
+
+**Next gate:** distinct owner-approved promotion of candidate `v0.8.0-r3stage1`, with a safe code-update rollback and verified installed release. The existing publisher must remain the only credentialed sender. Subsequent *separate* owner-approved paused/drained SQLite Off migration and manual exact-draft canary, challenge/no-retry, reboot and G2 remain open. No `bobctl update` or `--apply-off` is authorized by this read-only PASS. R2 G1 remains open.
+
+---
+
 ## R3.13d production SOURCE checkpoints accepted (2026-10-31)
 
 PR #89 merged the **Off-first owner-controls and real OpenClaw sealed-proposal source**, with 932 Python tests green and Windows startup validation. The original pinned Activity Manager remains untouched, the generated dashboard extends existing R2/OC4/FM4.1 routes, and automatic Bob-authored publishing remains compiled Off. The new `v0.8.0-r3stage1` file manifest is **noncurrent** under `releases/candidates/`; no installed executable or live database changed.

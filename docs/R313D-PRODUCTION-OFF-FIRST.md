@@ -11,6 +11,12 @@
 - An **Off-first release candidate** at `releases/candidates/r313d-off-first-owner-controls.json`, upgrade chain `v0.8.0-shadow4` to `v0.8.0-r3stage1`. The reviewed manifest installs *only* the new R3 package, proposal launcher, R3 owner modules, generated manager and navigation. It **does not replace the installed credentialed publisher**. The existing guarded updater's rollback changes only code, never rewinds SQLite history.
 - A read-only report `scripts/report_r313d_off_first.py` which builds both candidate bundles in memory, requires the current active manifest to remain Shadow4, verifies all three hard-Off publisher source gates, and reuses the previously accepted OMEN trusted-host/publisher registry attestation. It has no install, DDL, service or network option.
 
+## OMEN pre-install review accepted (2026-10-31)
+
+Owner-reported output of the recommended **read-only** `report_r313d_off_first.py`: candidate built **PASS**; installed manifest still `v0.8.0-shadow4`; three R3 send gates **Off**; installed host boundary **eligible**; eligible for a *separate* owner install review **yes**; no changes to installed files, live SQLite, services or permissions; no real Bob-authored publication rights or Moltbook canary authorization. No private data was captured. The installed release and database are **not** migrated by this checkpoint.
+
+Passing the pre-install review does **not** authorize promotion of `releases/current.json`, running `bobctl update`, running `r313d_live_off_migration.py --apply-off`, or publishing a new Bob comment. Release approval, backup/rollback window, schema migration and exact-draft canary are distinct gates.
+
 ## Operator check on OMEN after source merge
 
 Run as the normal OpenClawLab user, not with sudo:
