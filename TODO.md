@@ -1,3 +1,12 @@
+## R3.13d OMEN post-migration acceptance PASS (operator-reported, 2026-10-31)
+
+- [x] Owner fast-forwarded `next` to `3b0cd9b` (PR #97) and reran read-only post-migration reports. The fixed-host schema report now verifies `installed_off_first_release_verified: true`, `r3_schema: ready`, `journal: complete`, **23** historical attempts, **0** uncertain attempts, private global pause `true`, and real R3 dispatch `false`.
+- [x] Independent installed-stage report: `installed release: verified`, `R3 real-send source gates: verified_off`, `authenticated R3 Controls: authenticated_read_only_page`, `installation acceptance: PASS`, no live changes from check, and no Moltbook canary authorization. Manager running makes `publisher_and_manager_drained: false` expected; completed migration makes `eligible_for_off_migration: false` expected.
+- [ ] **Service restoration NEXT:** original owner snapshot confirms publisher and Scout user timers both `enabled/active`, publisher worker `inactive` after its prior successful completion, Scout worker `inactive`, and Activity Manager `enabled/active`. With the existing private pause still present, enable/start only these two timers, check both timers `enabled/active` and manager healthy, then remove the **same maintenance-created pause marker LAST**. Do not restart the Gateway, manually fire publisher/scout services, restore old SQLite or rerun `--apply-off`. After unpause, legacy v0.7 schedules resume their original behavior; R3 real dispatch remains compiled Off.
+- [ ] **Post-restoration acceptance:** verify timer states, pause removed, manager and installed R3 reports healthy, R3 auto Off, and no duplicate/uncertain outcomes. Future HTTPS owner-controls hardening, direct Bob-authored manual canary with distinct explicit approval, G2 reboot/recovery, R2 G1 remain open.
+
+---
+
 ## R3.13d live OFF-schema migration applied on OMEN (owner-reported, 2026-10-31)
 
 - [x] Owner drained publisher and manager, disabled publisher/Scout user timers and established private pause; final fixed-host read-only report showed installed stage1 verified, eligible schema, paused+drained yes, journal absent and explicit migration eligible.
