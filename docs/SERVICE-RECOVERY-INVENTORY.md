@@ -1,3 +1,25 @@
+## G2.1 host-state PASS and G2.2 Windows startup read-only gate (2026-10-31)
+
+Latest operator-supplied G2 `python3 scripts/report_g2_recovery.py --baseline`: `host gate: PASS`; installed HTTPS/R3 compiled Off PASS; required user services and competing installed scope states PASS; original effective publisher reviewed; SQLite schema/migration journal verified; historical attempted jobs **23**, uncertain **0**; Linux user linger yes. The G2.1 correction only treats the system Scout's `loaded/inactive/static` service as inert when its paired installed **system timer is disabled and inactive**; no host service was modified. This is a baseline snapshot, not proof that Windows was rebooted or that external posts are non-duplicated.
+
+**Next G2.2 Windows task (read-only startup inspection, before any planned reboot):** In ordinary **Windows PowerShell** on the OMEN, run the existing checked-in script via Windows-local temp file. It will generate one PRIVATE report under `%LOCALAPPDATA%\BobBaseline`, but not change Windows startup configuration.
+
+```powershell
+$script = Join-Path $env:TEMP 'bob-g2-windows-startup-review.ps1'
+wsl.exe -d OpenClawLab -u openclaw -- cat /home/openclaw/bob-next/scripts/inventory_windows_startup.ps1 | Set-Content -Encoding UTF8 -Path $script
+if ($LASTEXITCODE -ne 0) { throw 'Windows startup collector transfer failed' }
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
+if ($LASTEXITCODE -ne 0) { throw 'Windows startup collector refused or failed' }
+```
+
+Review only the sanitized **console** categories (number and trigger types of relevant tasks, Run keys, and user/machine Startup folder shortcuts; whether the known PowerShell wrapper mentions WSL/OpenClawLab/systemd; query warnings). Do not paste raw launcher arguments, underlying shortcut targets, credentials, or the private report into a public GitHub issue. The script doesn't inspect every possible Windows startup mechanism and does not prove execution, network reachability, or boot before logon.
+
+Earlier observation: 0 matching scheduled tasks, 0 Run entries, 2 **user Startup-folder** shortcuts; `Bob OpenClaw Startup` references a PowerShell wrapper containing WSL/OpenClawLab/systemd markers; `OpenClaw Companion` launches an OpenClaw-named executable. Windows Startup-folder shortcuts normally run on **interactive logon**, not on power-on before someone signs in. Therefore G2 must explicitly test recovery **after signing in**, separately from any intended unattended boot behavior. A running WSL user systemd manager with linger=yes cannot boot WSL on its own.
+
+**Do not reboot yet.** Once the new Windows audit is reviewed, decide separately whether to perform an owner-controlled Windows reboot/logon test and collect a postcheck. Keep current user/system Scout scope inertness, publisher attempt/uncertain history, two LAN HTTPS clients, LAN-only exposure evidence and external ledger receipts as independent acceptance gates.
+
+---
+
 # v0.7.0: Service topology, startup discovery and local checkout reconciliation
 
 The verified nine-source baseline was published through the connected GitHub integration as remote commit `f3db4b445f379f997f950976576c6a5289e11774`. The operator's clean local checkout instead has commit `28073f1` on the same parent. Both commits contain identical application code, but different commit IDs. Never `git pull` these divergent commits blindly.
