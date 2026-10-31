@@ -1,3 +1,11 @@
+## R3.13d source-stage CI accepted (2026-10-30)
+
+PR #86 squash-merged into `next` at `776ad1eac51a8b0f631fc543856a0d34ab4765ad`. GitHub Actions run `41174232285` passed **922 offline Python tests** and Windows startup-script parsing. The versioned envelope migration/proposal writer can modify only a marker-locked disposable SQLite fixture, the host script only reads installed state unless `--private-copy` is explicitly invoked, and all three source-level R3 dispatch gates remain hard Off. `releases/current.json` stays `v0.8.0-shadow4`; the installed legacy publisher, units, owners and live database remain unchanged.
+
+**Next acceptance:** normal OMEN WSL account runs the read-only `scripts/report_r313d_host.py` and, if eligible, the private-copy versioned migration rehearsal. This is staging verification only; full R3.13d production cutover, R3 owner-controls page and writer, real canary, WSL reboot and code-only rollback still need a separate versioned owner-controlled rollout.
+
+---
+
 ## R3.13d staging-first engineering candidate (source-only, no cutover)
 
 R3.13d begins by rehearsing the full **versioned additive migration** on a marker-locked disposable copy of the existing SQLite queue. It applies the accepted R3.13b default-Off R3 controls and the new R3.13c action-envelope/schema-version tables, verifies legacy attempts/history, simulates crash rollback and repeated migration, and confirms code-only rollback cannot erase a newer synthetic uncertain attempt. A private fixture-only source-linked proposal writer demonstrates the complete independently sealed original Bob action/WHY while refusing to create a live publication job. The host audit verifies reviewed effective publisher service/timer, installed owner-controlled executable, updater registry hash and all three reviewed hard-Off source switches.

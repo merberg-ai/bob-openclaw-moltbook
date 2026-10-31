@@ -1,9 +1,10 @@
-## R3.13d staged rollout engineering: private schema/proposal and safe rollback (host acceptance pending)
+## R3.13d source stage accepted (2026-10-30); OMEN private-copy gate pending
 
 - [x] Add marked-copy-only versioned `r313c_action_envelopes` and `r313c_schema_meta` migration after R3.13b's explicit default-Off controls. Verify exact legacy rows, atomic crash rollback, idempotence, future/partial/drifted schema rejection, and zero live schema or permission changes.
 - [x] Rehearse a **sealed Bob action producer** only inside the trusted private fixture: reconstruct source-linked original decision, validate canonical envelope/seal/fingerprint, insert draft proposal atomically without `publish_jobs` queueing, owner approval or any public network request.
 - [x] Add fixed-host read-only report and explicit `--private-copy` SQLite online backup (including committed WAL), installed publisher registry and effective-unit checks, three source-level Off gate checks, post-upgrade synthetic uncertain attempt and code-only no-history-rewind check. Add synthetic regressions, CI triggers, [operator guide](docs/R313D-STAGING-OFF.md) and expressly noninstallable candidate. `releases/current.json` remains Shadow4.
-- [ ] **OMEN operator read-only and private-copy acceptance pending after source CI/merge.** No `bobctl update` or production DDL for this source-only stage.
+- [x] **Source CI accepted:** PR #86 merged to `next` at `776ad1eac51a8b0f631fc543856a0d34ab4765ad`; GitHub Actions run `41174232285` passed **922 Python tests** plus Windows startup-script validation. Existing legacy publisher imported and remained unmodified.
+- [ ] **OMEN operator read-only and private-copy acceptance pending:** `python3 scripts/report_r313d_host.py`, then `--private-copy` only if eligible. No `bobctl update`, live SQLite migration or R3 posting right for this source-only stage.
 - [ ] **R3.13d production completion remains:** audited authenticated Activity Manager manual/auto R3 Controls and source-linked proposal writer, separately reviewed installable `v0.8.0-cutover1` transaction, authorized maintenance/drain/backup/live additive migration and one-publisher canary, WSL/Windows reboot and code-only rollback. No real R3 send/automatic consent without express owner authorization. R2 G1 remains independently open.
 
 ---
