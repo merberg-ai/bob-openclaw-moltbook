@@ -1,3 +1,11 @@
+## R3.13d Off-first stage1 promotion CI accepted (2026-10-31)
+
+PR #93 squash-merged into `next` at `b9445464e67baae6b3469c1ae913b0bcb393bf67`. GitHub Actions run `41215807186` passed **946 Python tests** and Windows startup-script parsing, including authenticated LAN HTTP/CSRF/Host/Origin smoke of the generated Activity Manager with the existing Shadow4 ZIP and registry-verified R3 ZIP. The full release chain is explicitly constrained to `v0.8.0-shadow4` → `v0.8.0-r3stage1`, exactly seven files, **no publisher executable or timer**.
+
+**Source release promotion complete; actual OMEN installation NOT yet complete.** The operator must separately confirm `bobctl update` and then pass the read-only `scripts/report_r313d_stage1_installed.py`. No live SQLite migration, new R3 publication permission, one-publisher canary or Windows/WSL reboot acceptance is implied. [Installation SOP](R313D-STAGE1-INSTALL.md). Source triple-Off publishing gates unchanged.
+
+---
+
 ## R3.13d Off-first stage1 release promotion (owner installation still pending)
 
 After the owner-reported OMEN `report_r313d_off_first.py` PASS, the `v0.8.0-r3stage1` owner-code manifest is promoted from `releases/candidates/` to `releases/current.json` on `next` for a separately confirmed code-only install. It upgrades `v0.8.0-shadow4` and installs exactly seven R3 dashboard/proposal/runtime/navigation files, **no legacy publisher binary, timer, Moltbook credential or automatic-send switch**. The generated Activity Manager keeps the established R2 Shadow/OC4/FM4.1 routes, LAN Basic auth, strict Host/Origin/CSRF. Two reviewed ZIP archives are verified against updater hashes before the new R3 modules are added to Python's cached `bob_v08` package path; installed-style authenticated localhost HTTP smoke covers this integration.
