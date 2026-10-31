@@ -28,9 +28,9 @@ import r313d_live_off_migration as migration
 BEFORE="v0.8.0-chhttps1"
 AFTER="v0.8.0-chhttps3"
 CA_FINGERPRINT="af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196"
-EXPECTED_FILES=frozenset(("bob_manager_tls.py","bob-activity-manager",
-                          "bob-release-updater","bob_r3_package.pyz",
-                          "bob_r313d_web.py","bob_r313d_owner.py"))
+EXPECTED_FILES=frozenset(("bob-activity-manager","bob-release-updater",
+                          "bob_r3_package.pyz","bob_r313d_web.py",
+                          "bob_r313d_owner.py"))
 ROUTES=("/r3",)
 ADDRESS="127.0.0.1"
 PORT=18790
@@ -56,6 +56,7 @@ def _release_verified(release: str) -> bool:
         r=updater.registry()
         return (r["release"]==release
                 and EXPECTED_FILES.issubset(r["files"])
+                and (release!=AFTER or "bob_manager_tls.py" in r["files"])
                 and updater.live_ok(r))
     except (OSError,TypeError,ValueError,KeyError):
         return False
