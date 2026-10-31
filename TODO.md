@@ -1,3 +1,13 @@
+## G2.5 owner reports no external reachability; network scope accepted by observation (2026-10-31)
+
+- [x] **Owner-reported internet-side observation:** “nothing is reachable from the outside.” Record this as the owner's statement that their network is not externally reachable, not a verified independent WAN/IPv6/UPnP port scan or exhaustive audit of all exposure paths. Do not infer the testing method, router model or precise external address.
+- [x] **Existing independent local controls:** in WSL2 `mirrored` mode, Bob TLS binds `0.0.0.0:18790` and serves two Windows LAN clients; WSL Hyper-V firewall `Enabled=True`, `DefaultInboundAction=Block`, `AllowHostPolicyMerge=True`; the enabled TCP 18790 allow exception is source-limited to `192.168.1.0/24`. Windows `netsh portproxy` empty. No active `OpenClawLab` TCP 8787 listener although a separate code-server allow rule permits `Any`. These facts plus owner-reported outside inaccessibility strongly support the intended **LAN-only operational behavior** without service changes.
+- [ ] **No global WAN-proof claim:** detailed host merged firewall, router forwarding/UPnP, public IPv6 and VPN audits weren't furnished; if LAN/WAN topology changes or public IPv6 is enabled later, recheck exposure. Preserve default block and scoped allow. No new firewall rules or publishing rights.
+- [ ] **Last G2 external receipt/replay reconciliation:** local legacy publisher attempted count **23** and uncertain **0** both before/after reboot. Verify any actual Moltbook remote comments/receipts and recent activity against ledger without manually restarting publisher, replaying jobs, using POST, or enabling R3. Count parity by itself is not proof of no external duplicates.
+- [ ] **Post-reboot TLS UI detail:** both LAN clients reached dashboard; absence of certificate warnings and fresh rotated-password sign-in were not explicitly reconfirmed in the latest report.
+
+---
+
 ## G2.5 effective WSL Hyper-V inbound policy PASS; code-server 8787 not listening (2026-10-31)
 
 - [x] **Owner-provided effective Hyper-V policy** for WSL VMCreatorId `{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}`: `Enabled=True`, `DefaultInboundAction=Block`, `AllowHostPolicyMerge=True`. The previously confirmed active `Bob Activity Manager - WSL LAN` rule allows `TCP 18790` only from `192.168.1.0/24`. **WSL-specific inbound firewall gate PASS** for expected default-block + scoped exception. This does not prove the total effective path is LAN-only because host policy can merge, other rules can exist, and router/WAN/IPv6/VPN paths need separate inspection.
