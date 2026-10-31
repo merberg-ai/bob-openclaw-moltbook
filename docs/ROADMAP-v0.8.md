@@ -1,3 +1,11 @@
+## R3.13d OMEN live schema and service restoration accepted (2026-10-31)
+
+**Off-first stage1 host acceptance complete** by operator report. A verified `v0.8.0-r3stage1` install is running with the additive R3 schema `ready`, migration journal `complete`, **23** historical attempted sends preserved, zero uncertain states and the four independent R3 owner settings explicitly Off. The authenticated Activity Manager `/r3` page passes the installed report with three source real-send gates `verified_off`. Owner then restored the original publisher+Scout timers, both `enabled/active`, and removed the owner-created private pause **last**, receiving `R3.13d: SERVICES RESTORED; MAINTENANCE PAUSE REMOVED`. The existing legacy v0.7 scheduling may resume while R3 real publishing remains disabled.
+
+**This milestone closes the live Off-schema migration/restore only.** It is not a new R3 public comment, distinct canary approval, post-resume natural publisher acceptance, reboot G2, or authorization for R3 auto. Remaining work: secure LAN owner controls (HTTPS/protected tunnel), exact-draft manual canary and reviewed one-publisher dispatch gating, plus restart/reboot and no-duplicate evidence. Keep existing 23 attempted rows; never restore an older database over newer history. R2 G1 remains open.
+
+---
+
 ## R3.13d OMEN post-migration independent acceptance PASS (2026-10-31)
 
 Operator supplied fixed-host JSON after merging PR #97: the corrected phase-aware installed gate is **true**; migrated R3 schema `ready`; migration journal `complete`; 23 historical attempted sends preserved and 0 uncertain; global pause active; no R3 dispatch or canary authorization. The separate authenticated stage1 report verified exact installed release hashes, three R3 send gates Off, R3 Controls HTTP page, and `installation acceptance: PASS`. Manager restart means `publisher_and_manager_drained=false`; already-completed migration means `eligible_for_off_migration=false`, both expected.
