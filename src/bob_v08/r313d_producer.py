@@ -155,7 +155,7 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
             return ProposalResult("none","no_fresh_unseen_source")
         try:
             output = model(
-                decision_prompt(chosen), "moltbook-v08-r3-propose-"+chosen.run_id)
+                decision_prompt(chosen), "moltbook-v08-shadow-r3-propose-"+chosen.run_id)
             action = parse_decision(output,chosen)
         except (OSError,RuntimeError,ValueError,TypeError):
             return ProposalResult("refused","openclaw_decision_invalid_or_unavailable")
