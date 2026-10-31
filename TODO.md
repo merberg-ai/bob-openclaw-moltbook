@@ -1,3 +1,13 @@
+## R3.5 engineering checkpoint: additive migration and reboot rehearsal
+
+- [x] Implement `r35_migration_lab.py` for **private marked synthetic SQLite** only: verify essential legacy queue schema, create R3 proposal/owner/audit metadata tables atomically, preserve all decisions/attempts/uncertain jobs, reject schema drift and unknown versions, prove idempotent retry and rollback on simulated power loss.
+- [x] Add a pure reboot ownership evaluator: reject overlapping legacy/candidate timers and workers, unknown startup reconciliation, candidate auto-resume after boot, and silent re-enable from a quiesced state. Keep history intact on code-only rollback, including new simulated uncertain attempts.
+- [x] Add `scripts/rehearse_r35_deployment.py` for one-command disposable template-shape and migration report, plus `tests/test_r35_migration_recovery.py` and CI triggers. No systemctl, credentialed Moltbook client, actual publication, release manifest change or OMEN install.
+- [ ] **R3.6 next:** compare a sanitized, read-only installed unit/queue topology with the rehearsal model, design and test trusted publisher-side Bob-draft admission and permissions against one credentialed writer, and rehearse genuine versioned service ownership without touching live state. Any real schema migration and cutover require explicit approval, backup integrity and safe unknown-send recovery.
+- [ ] **R2 remains independently open:** natural timer-driven source-linked model decision; prior scheduled no-event execution and manual OpenClaw decision both remain valid evidence.
+
+---
+
 ## R3.4 completed source increment: pinned Scout evidence and dry-run service ownership
 
 - [x] Add `r3_cutover_rehearsal.py`: source-bound `read_observation()` verification before propose, queue and simulated intent; pin snapshot, post and legacy Scout approval hashes; terminally hold changed saved evidence without consuming a synthetic attempt.

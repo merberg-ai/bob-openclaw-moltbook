@@ -1,3 +1,11 @@
+## R3.5 private schema migration, reboot and code-only rollback lab (source-only)
+
+The next cutover rehearsal includes an additive transactional synthetic migration from v0.7-shaped queue tables to the R3 proposal/owner-approval schema, under a strict private fixture marker. Tests cover existing history preservation, idempotence, unrecognized schema, SQL crash mid-DDL and rollback without reverting subsequent uncertain publication attempts. A separate pure reboot evaluator rejects two active publisher owners, split timers/workers, unverified startup reconciliation and candidate auto-resume; the stage systemd templates are reviewed in-memory for timer-to-service linkage only. `scripts/rehearse_r35_deployment.py` reports an expected denied unauthorized activation and rollback with no actual systemd or HTTP action.
+
+**Not a production readiness signal:** we have not checked the current installed OMEN unit definitions or actual database bytes; no trusted live GET/friend adapter, versioned migration installer, worker drain/restart, or production publisher support for Bob-authored seals exists. The developer branch remains `next`, installed release `v0.8.0-shadow4`; natural timer-driven R2 model decision remains pending.
+
+---
+
 ## R3.4 offline source trust and cutover ownership rehearsal (CI candidate)
 
 A source-only rehearsal now verifies **authentic locally saved Scout feed/result bytes** with the reviewed R2 `read_observation()` at proposal, queue and final simulated intent, rejecting source and action drift, missing/changed hashes and symlink files. R3.3 rechecks a **separate persisted owner comment dial** in the same synthetic SQLite transaction, preventing model input from silently upgrading Propose to Auto or ignoring revocation after queueing. The inert cutover state machine refuses dual publishers, active legacy worker cutover, unknown owner authorization and unproven backup/rollback; a simulated code-only rollback keeps historical attempts and uncertain state intact. `scripts/rehearse_r3_cutover.py` provides a small deterministic deny-and-rollback report, with no systemd access.
