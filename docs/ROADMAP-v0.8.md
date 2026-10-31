@@ -1,3 +1,11 @@
+## G2.5 external reachability owner observation recorded (2026-10-31)
+
+After WSL Hyper-V firewall `Enabled=True` / `DefaultInboundAction=Block`, a source-limited TCP 18790 allow rule for `192.168.1.0/24`, zero Windows portproxy entries, mirrored WSL binding, and successful two-client LAN HTTPS, the owner reports **nothing is reachable from outside the network**. Treat this as **owner-observed external inaccessibility**, supportive of Bob's LAN-only design, *not* an independently verified comprehensive public IPv4/IPv6/router/UPnP/VPN audit; method, vantage point and exact exposure checks were not described. The unrelated `code-server WSL 8787` rule remains broad but no active 8787 socket was found in OpenClawLab.
+
+The remaining G2 completeness condition is comparing original legacy publisher remote Moltbook receipts/posts and target IDs with the preserved local attempt ledger across reboot. Unchanged **23 attempted / 0 uncertain** confirms no new recorded legacy attempts in the observed interval, not that no remote duplicate exists. Both LAN browsers are reachable; warning-free reauthentication details remain independently unconfirmed. No service/release/systemd, SQLite, network firewall or publishing-rights modifications made to record this result. R3 hard Off.
+
+---
+
 ## G2.5 WSL Hyper-V firewall default deny and scoped 18790 rule accepted (2026-10-31)
 
 Owner reported `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore` for WSL with `Enabled=True`, `DefaultInboundAction=Block` and `AllowHostPolicyMerge=True`. The separately observed active `Bob Activity Manager - WSL LAN` rule restricts TCP port **18790** to **192.168.1.0/24**. With WSL `networkingMode=mirrored`, a Linux listener at `0.0.0.0:18790` and working two-client LAN HTTPS, this **passes the WSL Hyper-V inbound default-block/scoped-rule check**. It is not a comprehensive WAN isolation proof because Windows host policy merges and router forwarding/IPv6/VPN or other effective rules have not been independently reviewed.
