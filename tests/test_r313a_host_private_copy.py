@@ -78,7 +78,7 @@ class TrustedHostTests(unittest.TestCase):
         wrong = dict(self.opts, queue=self.root / "unrelated.sqlite3")
         self.assertIn("host_paths_not_fixed",
                       m.inspect_boundary(**wrong)["review_blockers"])
-        os.chmod(self.home / ".config", 0o755)
+        os.chmod(self.home / ".config", 0o777)
         r = self.report()
         self.assertIn("config_directory_not_private", r["review_blockers"])
         os.chmod(self.home / ".config", 0o700)
