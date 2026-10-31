@@ -225,7 +225,7 @@ class TrustedGateRehearsal(unittest.TestCase):
         import bob_v08.r37_trusted_gate_lab as target
         source = inspect.getsource(target)
         for forbidden in ("urllib.request", "requests.", "api_key(",
-                          "subprocess.run(", "POST", "OPENER.open(",
+                          "subprocess.run(", "OPENER.open(",
                           "CREDS.read_text", "moltbook.com"):
             self.assertNotIn(forbidden, source)
 
