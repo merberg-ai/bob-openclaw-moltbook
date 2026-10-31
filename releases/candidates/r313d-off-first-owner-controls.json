@@ -1,0 +1,31 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r3stage1",
+  "from": "v0.8.0-shadow4",
+  "notes": "Owner-reviewed Off-first Bob R3 Controls and separate OpenClaw proposal-only CLI. No live DB migration, no R3 dispatch or new publisher service; separately gated schema upgrade/owner canary required.",
+  "files": [
+    {
+      "name": "bob_r3_package.pyz",
+      "builder": "scripts/build_r313d_off_package.py",
+      "index": 0
+    },
+    {
+      "name": "bob-r3-propose",
+      "builder": "scripts/build_r313d_off_package.py",
+      "index": 1
+    },
+    {
+      "name": "bob_r313d_package.py",
+      "source": "src/lib/bob/bob_r313d_package.py"
+    },
+    {
+      "name": "bob_r313d_owner.py",
+      "source": "src/lib/bob/bob_r313d_owner.py"
+    },
+    {
+      "name": "bob-activity-manager",
+      "source": "src/bin/bob-activity-manager"
+    }
+  ],
+  "restart_manager": true
+}
