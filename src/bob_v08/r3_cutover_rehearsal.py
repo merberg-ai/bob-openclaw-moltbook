@@ -11,8 +11,6 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 import json
-import sqlite3
-from typing import Literal
 
 from .core import Action, Observation, RUN_ID, Policy, parse_decision
 from .evidence import read_observation
@@ -120,6 +118,14 @@ def _invariants(state: CutoverState) -> bool:
         return False
     if state.phase not in ("baseline", "staged", "quiesced", "candidate"):
         return False
+    expected = {
+        "baseline": (True, False),
+        "staged": (True, False),
+        "quiesced": (False, False),
+        "candidate": (False, True),
+    }
+    if (state.legacy_publisher_timer, state.candidate_publisher_timer) != expected[state.phase]:
+        return False
     if (not isinstance(state.attempted, tuple) or not isinstance(state.uncertain, tuple)
             or any(not isinstance(v, str) or len(v) > 64 for v in (
                 *state.attempted, *state.uncertain))):
@@ -164,6 +170,8 @@ def rehearse_cutover(state: CutoverState, step: str, *,
     else:
         if state.phase not in ("staged", "quiesced", "candidate"):
             return CutoverResult(state, "nothing_to_roll_back", False)
+        if state.legacy_publisher_running and not legacy_drained:
+            return CutoverResult(state, "legacy_not_drained", False)
         if state.candidate_publisher_running or (
                 state.phase == "candidate" and not candidate_drained):
             return CutoverResult(state, "candidate_not_drained", False)
@@ -214,7 +222,7 @@ def simulated_source_handoff(lab, source_dir: Path, action: Action, *, at: datet
     try:
         obs, _ = verified_source(source_dir, action, pinned=pin)
     except ValueError:
-        return Outcome("refused", "source_changed_before_pre_send")
+        return lab.simulated_hold_source(action.source_run, at=at)
     return lab.simulated_pre_send(
         action, obs, mode=mode, at=at, policy=policy, proof=proof,
         paused=simulated_pause_state(pause_marker))
