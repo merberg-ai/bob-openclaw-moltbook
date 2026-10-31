@@ -110,14 +110,13 @@ class PrivateStagingTests(unittest.TestCase):
                 migrate_marked_copy(db)
             os.chmod(self.marker,0o600)
         # No accidental production DB name gets a writer.
-        live = self.root/"activity-queue.sqlite3"
+        live = self.root/"unmarked"/"activity-queue.sqlite3"
         create_legacy_fixture(live)
         with closing(sqlite3.connect(live)) as db:
             with self.assertRaisesRegex(ValueError,"untrusted_private_upgrade_fixture"):
                 migrate_marked_copy(db)
-        self.assertNotIn("r313c_action_envelopes",
-                         sqlite3.connect(live).execute(
-                             "SELECT name FROM sqlite_master").fetchall().__repr__())
+        with closing(sqlite3.connect(live)) as db:
+            self.assertNotIn("r313c_action_envelopes", _tables(db))
 
     def test_partial_unknown_or_drifted_schema_refused(self):
         with closing(self.connect()) as db:
