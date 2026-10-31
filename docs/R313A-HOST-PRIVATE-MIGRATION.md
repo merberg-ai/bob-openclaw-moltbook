@@ -4,6 +4,16 @@
 existing v0.7 credentialed publisher remains installed, R3.12 real dispatch
 stays hard Off, and no new R3 manual or automatic posting permission is granted.
 
+## OMEN acceptance result (2026-10-30)
+
+The owner ran both documented commands in `~/bob-next` after the R3.13a merge:
+
+- Read-only fixed source and publisher unit review: **PASS**. Private queue, legacy schema match, R3 additive tables absent, owner R3 settings absent/off, no pause, no review blockers, effective publisher service/timer both reviewed shape, private-copy eligible.
+- Explicit `--private-copy` rehearsal: **PASS**. Full legacy history preserved; simulated crash rollback and repeated migration passed; 22 historical send attempts and 0 uncertain delivery states; disposable copy deleted.
+- The reports state **live database changed: NO**, **publisher changes: NONE**, **new R3 send permissions: NONE**, **R3 cutover authorized: NO**.
+
+This records an operator-supplied, point-in-time sanitized acceptance for R3.13a only. It does **not** prove 22 externally confirmed Moltbook comments, sustained service behavior, installed publisher binary integrity, or a production schema migration. R3.13b is the next separate engineering gate.
+
 ## Fixed installed-host boundary
 
 The R3.13a CLI checks that HOME matches the local account's passwd home
