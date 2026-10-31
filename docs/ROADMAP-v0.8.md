@@ -1,3 +1,13 @@
+## R3.13d Off-first production controls and proposal-writer candidate (source review)
+
+The next production-side implementation builds the authenticated Owner R3 Controls on top of the **full** R2 Shadow/FM4.1/OC4 manager **without modifying its pinned v0.6 source or older handlers**. R3 manual permission and exact per-Bob-draft approval are independent of legacy Scout. The dashboard requires typed confirmation for manual enablement and queueing an exact draft; disabling cancels only unattempted R3 jobs. R3 automatic publishing remains **compiled Off**. A fixed local proposal-only worker invokes the original OpenClaw Bob agent on saved Scout evidence, validates a strict action contract, and writes only an independently sealed envelope plus proposal. It never creates a publish job or network request.
+
+The new R3 package uses a deterministic versioned archive independently hash-verified against the private updater registry, without altering the Shadow4 zip. The candidate `v0.8.0-r3stage1` manifest is kept **in `releases/candidates/` only**, installs the owner UI/runtime and navigation through the existing code-rollback updater, and excludes the credentialed legacy publisher. A source+host read-only audit is available at `scripts/report_r313d_off_first.py`. See [operator guide](R313D-PRODUCTION-OFF-FIRST.md).
+
+**Not yet production cutover or installation:** `releases/current.json` remains `v0.8.0-shadow4`. A later separately reviewed owner promotion, verified live schema migration in a service maintenance window, explicit real manual canary, WSL/Windows reboot and code-only rollback are required. Automatic Bob-authored publishing is still Off. R2 G1 independently remains pending.
+
+---
+
 ## R3.13d OMEN operator private-stage acceptance PASS (2026-10-31)
 
 The owner executed the merged `next` fixed-host R3.13d source audit and separately invoked `--private-copy` on the OMEN/OpenClawLab WSL account. The source audit reported trusted queue boundary, matching legacy schema, absent/Off R3 owner consent, reviewed installed publisher service shape, owner-controlled regular executable and matching private updater registry hash; the **three source-level publication gates remained Off**, with no boundary/source blockers and staging eligible.
