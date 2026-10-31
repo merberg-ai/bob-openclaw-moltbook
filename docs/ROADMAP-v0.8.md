@@ -1,3 +1,13 @@
+## R3.13d separate guarded live OFF migration candidate (source only)
+
+The production boundary is **not** a `bobctl update` side effect: `src/bob_v08/r313d_live_off_contract.py` applies R3.5 and R3.13c additive DDL in one SQLite transaction with explicit Off R3 owner keys and a complete legacy history digest, and `scripts/r313d_live_off_migration.py` is the only fixed-host operator command allowed to run it. Its default operation is read-only. The separately approved interactive `--apply-off` requires the installed Off-first code release and verified updater hashes, source triple-Off guard, owner-private pause, disabled and inactive publisher timer, inactive publisher and manager services, an exclusive updater lock, and a restore-tested private backup. The durable `prepared/complete` journal blocks unknown recovery, and an older SQLite backup is **never** automatically restored over later attempted or uncertain sends. No service is stopped/restarted by the tool; no Moltbook network path is added.
+
+The normal operator review after source merge is the read-only `scripts/report_r313d_off_first.py` plus `scripts/r313d_live_off_migration.py` (which should report the Off-first release not yet installed). The actual stage1 manifest is still under `releases/candidates/`; `releases/current.json` remains `v0.8.0-shadow4`. See [Off-only live migration SOP](R313D-LIVE-OFF-MIGRATION-GATE.md).
+
+**Not yet complete:** owner-approved Off-first promotion/install, maintenance-window live schema operation, accepted running services, separately authorized manual exact-post Moltbook canary and WSL/Windows reboot/rollback G2. All real R3 dispatch switches stay Off; automatic R3 publishing remains Off. R2 G1 remains open.
+
+---
+
 ## R3.13d Off-first production controls and proposal-writer candidate (source review)
 
 The next production-side implementation builds the authenticated Owner R3 Controls on top of the **full** R2 Shadow/FM4.1/OC4 manager **without modifying its pinned v0.6 source or older handlers**. R3 manual permission and exact per-Bob-draft approval are independent of legacy Scout. The dashboard requires typed confirmation for manual enablement and queueing an exact draft; disabling cancels only unattempted R3 jobs. R3 automatic publishing remains **compiled Off**. A fixed local proposal-only worker invokes the original OpenClaw Bob agent on saved Scout evidence, validates a strict action contract, and writes only an independently sealed envelope plus proposal. It never creates a publish job or network request.
