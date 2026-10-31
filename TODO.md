@@ -1,3 +1,14 @@
+## CH-HTTPS2: OMEN certificate provisioning awaiting owner acceptance (2026-10-31)
+
+- [x] **CH-HTTPS1 owner acceptance PASS:** installed release `v0.8.0-chhttps1` verified, R3 schema `ready`, journal `complete`, authenticated existing HTTP manager and R3 owner page pass, no new R3 send rights. HTTP LAN remains unencrypted pending reviewed TLS-only switch.
+- [x] Add exact fixed-host `scripts/prepare_ch_https2.py` with read-only default and `--verify`, separately TTY-confirmed `--apply`. ECDSA P-256 root/server private keys created only under owner-private `~/.config/bob-system/manager-tls/`, never overwritten, no existing unit, cert trust or database change.
+- [x] Verification requires three SANs `192.168.1.24`, `127.0.0.1`, `localhost`, CA/server roles, key match, 30-day validity margin, real disposable TLS loopback and negative hostname check. CI uses disposable private fixtures and checks symlink/weak permissions/overwrite/refusal.
+- [ ] **OMEN owner CH-HTTPS2:** after reviewed PR merge, `cd ~/bob-next && git pull --ff-only && python3 scripts/prepare_ch_https2.py` must show eligible; then the owner separately types `PREPARE BOB HTTPS` under `python3 scripts/prepare_ch_https2.py --apply`, then `--verify` read-only PASS. This is NOT a code release install and does NOT start TLS on port 18790.
+- [ ] **Windows trust explicit owner action:** compare the full public `ca.crt` SHA256 printed by WSL against the file seen via Windows WSL share; explicitly import *public CA only* into the Windows Current User trusted root store. Never export `ca.key` or `server.key`. Confirm browser trust only after CH-HTTPS3.
+- [ ] **CH-HTTPS3** independently code-review TLS-only manager, secure HTTPS Origin/CSRF, updater postflight+rollback health; **CH-HTTPS4** browser and plaintext refusal tests, legacy LAN password rotation, later restart/Windows reboot G2. No R3 real posting rights.
+
+---
+
 ## CH-HTTPS1 OMEN transport-aware updater candidate (2026-10-31)
 
 - [x] **CH-HTTPS0 host acceptance PASS (owner-reported):** `v0.8.0-r3stage1` installed, R3 schema ready and completed journal, manager/publisher timer/Scout timer active, authenticated HTTP /r3, listener LAN/wildcard, no preexisting TLS material. Read-only source preflight PASS; no R3 real-send rights.
