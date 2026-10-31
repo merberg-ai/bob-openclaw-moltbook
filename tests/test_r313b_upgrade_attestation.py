@@ -87,7 +87,7 @@ class PrivateUpgradeTests(unittest.TestCase):
         # SQLite canonicalizes a symlink alias in PRAGMA database_list.
         # Test a symlink to a distinct unmarked legacy queue instead; the
         # marker-locked target contract, not alias spelling, is the boundary.
-        outside = self.root / "activity-queue.sqlite3"
+        outside = self.root / "unmarked" / "activity-queue.sqlite3"
         create_legacy_fixture(outside)
         alias = self.root / "activity-queue-alias.sqlite3"
         alias.symlink_to(outside)
