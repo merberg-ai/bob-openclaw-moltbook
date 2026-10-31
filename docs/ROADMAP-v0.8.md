@@ -1,3 +1,11 @@
+## G2.2 Windows startup inventory accepted; G2.3 supervised owner reboot acceptance (2026-10-31)
+
+Owner ran the reviewed Windows PowerShell startup collector on OMEN. Report: **0** matching scheduled tasks, **0** Run entries, **2** user Startup shortcuts, **0** warnings. The `Bob OpenClaw Startup` PowerShell shortcut's script was inspected and references **WSL/OpenClawLab/systemd**; an independent `OpenClaw Companion` OpenClaw-named executable startup shortcut also exists. No startup settings or WSL services were changed. Combined with G2.1 local host `PASS`, this supports **Windows interactive-user-logon** recovery architecture, but **not** unattended machine boot recovery or any actual post-reboot operation.
+
+G2.3 is an owner-planned Windows restart + logon experiment. Capture a fresh G2 pre-reboot baseline and both trusted browser states, then use a normal Windows restart rather than WSL-specific restart shortcuts. **After Windows login but before manually launching WSL**, observe `wsl.exe --list --verbose` and external LAN HTTPS at `https://192.168.1.24:18790/r3`. Only then, if `OpenClawLab` is already Running, enter WSL to run existing `report_g2_recovery.py --postcheck` and verify OpenClaw Gateway. A Stopped distro or inaccessible TLS listener before manual access is valuable failed-recovery evidence; do not mask it by starting WSL first. G2 `--postcheck` does not set its Windows reboot observed field True; separate manual operator evidence is required. Legacy scheduled publisher/Scout remain enabled unchanged, R3 real publishing Off; audit attempted/uncertain history and external receipts before claiming no duplicates. WAN isolation and two-browser certificate trust are independent.
+
+---
+
 ## G2.1 read-only host baseline accepted; Windows startup mechanism review next (2026-10-31)
 
 Owner ran the corrected G2 report on the OMEN and reported `host gate: PASS`. Installed trusted TLS and R3 compiled Off, expected current units and inactive competitors, reviewed original publisher, and SQLite schema/migration journal all passed. Legacy attempted count remains **23**, uncertain **0**, and `Linger=yes`. The audit did not observe a Windows reboot, actual no-duplicate Moltbook receipts, WAN isolation or Windows client browser trust. No service, database, credential or publishing state was modified.
