@@ -1,3 +1,45 @@
+## CH-HTTPS3 versioned production TLS-only cutover (owner-host prerequisite: Windows public CA trust imported)
+
+The OMEN owner reports that the public `ca.crt` was imported successfully into the Windows trust store on the OMEN and the other primary LAN Windows computer. The public file's independently verified SHA256 is `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. Importing a certificate is **not** proof of a valid browser handshake; that will be tested only after CH-HTTPS3.
+
+**Versioned code-only release:** `v0.8.0-chhttps1` → `v0.8.0-chhttps3`; exact listed files `bob_manager_tls.py` and `bob-activity-manager`; `restart_manager: true`. No database/schema operation, credential rotation, gateway/Scout/publisher service action or new port. Existing `192.168.1.24:18790` remains the only private-LAN web endpoint. The updater has an explicit reviewed transport mapping: existing CH1 HTTP before restart, candidate CH3 with verified CA/hostname HTTPS after restart, or old CH1 HTTP upon code-only rollback. The server refuses bad CA, wrong SAN, world-readable/symlinked key/cert, wrong account or TLS failure. No plaintext fallback.
+
+### Owner preflight and deliberate versioned switch
+
+Run from the `openclaw` WSL user (not `sudo`):
+
+```bash
+cd ~/bob-next && git pull --ff-only
+python3 scripts/report_ch_https3_cutover.py --preflight
+bobctl update --check
+```
+
+Require `acceptance: PASS` on preflight, and updater preview showing exactly `v0.8.0-chhttps3`, from `v0.8.0-chhttps1`, only two files `bob_manager_tls.py, bob-activity-manager`, with `Restart Activity Manager: True`. Do not proceed on any unexpected output. **There is no self-activating TLS switch.**
+
+Then:
+
+```bash
+bobctl update
+```
+
+Type exactly `UPDATE` in the updater's interactive confirmation. The guarded updater makes a verified SQLite backup but must **never restore** that old DB as an update rollback. It replaces the two code files, restarts the *manager only*, validates all existing authenticated manager routes over CA-verified HTTPS, and commits the new installed registry only on success. If post-restart TLS health fails, the updater must code-rollback the prior files and revalidate HTTP over the old CH1 release. Review rollback output/journal before any retry; no manual publisher call. A successful install produces `BOB UPDATE: updated`.
+
+Next, from the OMEN WSL user:
+
+```bash
+python3 scripts/report_ch_https3_cutover.py --installed
+```
+
+Require `acceptance: PASS`, installed exact hashes verified, R3 schema complete/Off, private CA SHA256 match, authenticated HTTPS manager health and authenticated R3 page, unauthenticated R3 returns 401 and **plain HTTP on port 18790 is refused**. This is read-only (it creates a temporary synthetic local TLS verifier socket for checking the certificate, not the live server). Confirm `https://192.168.1.24:18790/r3` loads without a certificate warning in Edge/Chrome on both OMEN and remote LAN computer. Check that normal R3 features remain displayed and do not click owner-mode enable controls. HTTP `http://192.168.1.24:18790/` must fail.
+
+If WSL passes but the other LAN machine fails, treat it as a separate LAN/Windows portproxy/firewall/browser trust issue; do not weaken TLS, enable HTTP fallback or disable certificate checks. Keep the current code-only installation healthy and investigate.
+
+### Remaining gates
+
+CH-HTTPS4 is the final browser and LAN-only acceptance on both machines, Basic credential rotation after HTTPS, service/WSL/Windows reboot recovery, and later R3 canary review. **R3 real-send is still compiled Off**, even on a fully HTTPS Activity Manager. Any abnormal updater journal must be inspected before retries. Never reset live SQLite or historical send attempts to repair TLS.
+
+---
+
 ## CH-HTTPS2 OMEN live owner acceptance (2026-10-31)
 
 Owner preflight: `owner host: verified`, `ch https1 install: verified`, `certificate state: absent`, `eligible to prepare: True`. Owner typed `PREPARE BOB HTTPS`; local private certificate setup returned SANs for `192.168.1.24`, `127.0.0.1`, `localhost`, local TLS handshake and wrong-hostname rejection PASS. Subsequent `--verify` independently verified the CA/server chain, private key match, SANs and synthetic loopback TLS. The public `ca.crt` SHA256 is `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. The installed manager still listens in cleartext HTTP on its existing private LAN port; no send authorization occurred.
