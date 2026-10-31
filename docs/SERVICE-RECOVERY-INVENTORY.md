@@ -1,3 +1,34 @@
+## G2.2 Windows logon startup inventory accepted; G2.3 recovery runbook (2026-10-31)
+
+**Owner-reported exact G2.2 Windows PowerShell output:** 0 relevant Scheduled Tasks, 0 Run registry matches, 2 **user** Startup-folder shortcuts, 0 query warnings. `Bob OpenClaw Startup` is a PowerShell shortcut; the local script was inspected and reports `wrapper-wsl=True`, `wrapper-distro=True`, `wrapper-systemd=True`. `OpenClaw Companion` is a second OpenClaw-named executable shortcut with no wrapper script. The collector wrote only a private report to user-local `BobBaseline` and changed no Windows startup configuration. This is **startup-discovery PASS**, not execution proof. Windows Startup-folder entries normally activate at interactive sign-in, not before Windows user login. `Linger=yes` is relevant only after WSL has already been started.
+
+**Next G2.3: owner-supervised full Windows restart and same-user sign-in.** Do not run this test on a machine needed for active work. No new scripts, privileges, timers, services or startup triggers are necessary.
+
+1. **Before restarting**, run from the existing `openclaw` WSL shell:
+   ```bash
+   cd ~/bob-next
+   python3 scripts/report_g2_recovery.py --baseline
+   ```
+   Confirm host gate `PASS`; record attempted and uncertain job counts and R3 Off. Check new-password trusted HTTPS from both Windows computers. No credentials in logs.
+2. **Owner manually restarts Windows** using the normal Windows Restart UI. Sign in to the same Windows account containing the two user Startup shortcuts. Do not open an OpenClawLab shell, start an OpenClaw service, or execute a WSL command that launches a distro until the next observation.
+3. **Before manually launching WSL**, attempt Activity Manager login from the second LAN Windows computer at `https://192.168.1.24:18790/r3`, with the new Basic-auth credential and no browser trust warning. On the OMEN, use ordinary Windows PowerShell:
+   ```powershell
+   wsl.exe --list --verbose
+   ```
+   Observe whether OpenClawLab is **Running**. This is a list-only query and should not launch the distro. If **Stopped** or remote HTTPS is unavailable, save that observation; starting WSL to "fix" it would defeat the spontaneous-startup test. Do not edit Windows shortcuts until the finding is reviewed.
+4. **Only if OpenClawLab was already Running**, enter the normal user `openclaw` WSL shell and run:
+   ```bash
+   cd ~/bob-next
+   python3 scripts/report_g2_recovery.py --postcheck
+   systemctl --user is-active openclaw-gateway.service
+   ```
+   Confirm G2 host gate `PASS`, Gateway `active`, all expected legacy user units/timers, competing system Scout and R3 candidate publisher inert, installed HTTPS and R3 hard Off. Confirm both Windows browsers reconnect to HTTPS without certificate warning or old-password acceptance. The G2 script's `Windows reboot observed: NO` and `External duplicate posting ruled out: NO` lines remain **intentional** even after a real restart: it cannot witness Windows reboot or external Moltbook state.
+5. **Separate post-reboot interpretation:** compare old and new attempted/uncertain job counts with the installed legacy publisher's *actual timed activity* and external receipt/post history. Expected normal timer activity may legitimately advance the counters; unchanged counts alone cannot exclude external duplicates. Check the Windows LAN perimeter/WAN forwarding independently before claiming network isolation. No manually triggered publisher service, changes to source-Off R3, or SQLite restoration to investigate an inconsistent result.
+
+**Current accepted milestones:** G2.1 read-only Linux baseline PASS; G2.2 Windows startup discovery PASS; actual owner reboot, remote TLS restoration, Gateway status and external no-duplicate verification remain OPEN.
+
+---
+
 ## G2.1 host-state PASS and G2.2 Windows startup read-only gate (2026-10-31)
 
 Latest operator-supplied G2 `python3 scripts/report_g2_recovery.py --baseline`: `host gate: PASS`; installed HTTPS/R3 compiled Off PASS; required user services and competing installed scope states PASS; original effective publisher reviewed; SQLite schema/migration journal verified; historical attempted jobs **23**, uncertain **0**; Linux user linger yes. The G2.1 correction only treats the system Scout's `loaded/inactive/static` service as inert when its paired installed **system timer is disabled and inactive**; no host service was modified. This is a baseline snapshot, not proof that Windows was rebooted or that external posts are non-duplicated.
