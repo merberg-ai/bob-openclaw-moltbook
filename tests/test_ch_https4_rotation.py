@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import contextlib
 from io import StringIO
+from types import SimpleNamespace
 import json
 from pathlib import Path
 import sys
@@ -125,7 +126,7 @@ class CHHTTPS4RotationTests(unittest.TestCase):
             self.assertEqual(rotation.main(["--verify"]),0)
             self.assertEqual(rotation.main(["--preflight"]),0)
             self.assertEqual(rotation.main(["--apply","--unsafe"]),2)
-            with patch.object(sys.stdin,"isatty",return_value=False):
+            with patch.object(rotation.sys,"stdin",SimpleNamespace(isatty=lambda: False)):
                 self.assertEqual(rotation.main(["--apply"]),1)
             change.assert_not_called()
             get.assert_not_called()
@@ -133,8 +134,8 @@ class CHHTTPS4RotationTests(unittest.TestCase):
     def test_apply_requires_explicit_phrase(self):
         with patch.object(rotation,"_operator_account",return_value=True), \
              patch.object(rotation,"_ready",return_value=True), \
-             patch.object(sys.stdin,"isatty",return_value=True), \
-             patch.object(sys.stderr,"isatty",return_value=True), \
+             patch.object(rotation.sys,"stdin",SimpleNamespace(isatty=lambda: True)), \
+             patch.object(rotation.sys,"stderr",SimpleNamespace(isatty=lambda: True)), \
              patch("builtins.input",return_value="no"), \
              patch.object(rotation.getpass,"getpass") as secret, \
              patch.object(rotation.auth,"rotate") as change, \
@@ -147,8 +148,8 @@ class CHHTTPS4RotationTests(unittest.TestCase):
         output = StringIO()
         with patch.object(rotation,"_operator_account",return_value=True), \
              patch.object(rotation,"_ready",return_value=True), \
-             patch.object(sys.stdin,"isatty",return_value=True), \
-             patch.object(sys.stderr,"isatty",return_value=True), \
+             patch.object(rotation.sys,"stdin",SimpleNamespace(isatty=lambda: True)), \
+             patch.object(rotation.sys,"stderr",SimpleNamespace(isatty=lambda: True)), \
              patch("builtins.input",return_value=rotation.CONFIRMATION), \
              patch.object(rotation.getpass,"getpass",
                           side_effect=[self.old,self.new,self.new]), \
