@@ -1,3 +1,9 @@
+## G2.1 inactive static system Scout service classification repair (2026-10-31)
+
+The owner's first live G2 baseline reported `host_gate: NOT_VERIFIED` while current trusted HTTPS/R3 Off, legacy publisher shape, private migration journal/history and 23 attempted/zero uncertain all passed. Exact read-only unit JSON showed the system-scope Scout timer **inactive and disabled**, its paired system Scout service **inactive and static**, all required user units active/enabled, and R3 candidate publisher units absent. Our first G2 code incorrectly treated every static service as a live/reboot duplicate risk. A systemd static service is not directly enableable by itself, but can still be activated by other units or manually. The G2.1 correction accepts only this exact inactive/static service when the paired installed system Scout timer is inactive and disabled or masked. All other duplicate-writer and enabled-timer blockers remain strict, and there is **no claim** of reboot/no-external-duplicates. Rerun the G2 `--baseline` after source-only CI/merge; never disable the static service just to satisfy the checker.
+
+---
+
 ## CH-HTTPS4 manager restart accepted; G2 Windows/WSL recovery preflight (2026-10-31)
 
 Owner reported successful restart of **only** `bob-activity-manager.service`, which remained `active`. Both pre- and post-restart CH-HTTPS4 credential/current HTTPS/R3 Off gate and installed CH-HTTPS3 TLS integrity/rejected HTTP checks passed, with original publisher/Scout timers active. The separate previously accepted password rotation proved old password denied and new accepted. This is manager-only recovery, NOT full Windows/WSL reboot, fresh independent two-client browser trust, independent startup persistence, LAN-only firewall inspection, or publisher no-duplicate proof.
