@@ -36,16 +36,16 @@ startup, or complete service ownership.
 
 After merging into next, use the normal OpenClawLab WSL account, no sudo:
 
-\`\`\`bash
+```bash
 cd ~/bob-next && git pull --ff-only && python3 scripts/report_r313a_host.py
-\`\`\`
+```
 
 This is strictly a read-only source/host metadata review. Only after the
 report says "private copy eligible: yes" should the owner run:
 
-\`\`\`bash
+```bash
 cd ~/bob-next && python3 scripts/report_r313a_host.py --private-copy
-\`\`\`
+```
 
 Either accepts --json for metadata-only output. Do not run bobctl update,
 enable R3 units, alter owner settings or touch the installed schema.
@@ -76,9 +76,9 @@ A historical send attempt is NOT a verified public Moltbook comment.
 
 ## Offline tests
 
-\`\`\`bash
+```bash
 python3 -m unittest discover -s tests -p 'test_r313a_host_private_copy.py' -v
-\`\`\`
+```
 
 The suite covers fixed roots, owner permissions, symlinks, pause state,
 explicit Off/independent owner settings, an actively committed WAL entry,
