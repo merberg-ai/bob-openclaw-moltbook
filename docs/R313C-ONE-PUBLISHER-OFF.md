@@ -4,8 +4,9 @@
 The current installed credentialed v0.7 publisher and `v0.8.0-shadow4` release
 manifest remain untouched. No database migration, owner-control UI, credential
 read, real GET or POST, systemd service or new publisher is installed or
-activated. Both `R312_REAL_DISPATCH=False` and
-`R313C_REAL_DISPATCH=False` must be separately reviewed and replaced as part
+activated. `src/bin/bob-moltbook-publisher.R313C_INTEGRATION_COMPILED_OFF=True`, 
+`R312_REAL_DISPATCH=False` and `R313C_REAL_DISPATCH=False` are independent
+source-level gates that must all be separately reviewed and replaced as part
 of a future owner-authorized versioned release. No setting, environment
 variable, model decision or CLI flag turns them on.
 
@@ -37,11 +38,12 @@ R3 proposals with no exact envelope remain held, not guessed into existence.
 
 ## Actual existing-publisher integration
 
-`src/bin/bob-moltbook-publisher.publisher_step()` now calls the tiny
-`bob_r313c_adapter.maybe_r3_publisher_step()` after the original Scout
-auto-candidate housekeeping and commit. Its first action is a hardcoded
-source-level Off check, which returns `None` without reading R3 schema or
-calling HTTP/credentials. The old v0.7 Scout selection and POST path therefore
+`src/bin/bob-moltbook-publisher.publisher_step()` contains a future guarded
+call to `bob_r313c_adapter.maybe_r3_publisher_step()` after Scout housekeeping
+and commit. The top-level integration gate is hard Off, so it DOES NOT import
+the uninstalled adapter, inspect R3 schema or load R3 credentials/HTTP.
+The candidate adapter has two additional source-level Off checks. This keeps
+the currently installable legacy publisher independent of the new file. The old v0.7 Scout selection and POST path therefore
 remains the same as R3.12.
 
 The prospective branch, in `src/bob_v08/r313c_candidate.py`, is bound to
