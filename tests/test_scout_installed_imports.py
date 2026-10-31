@@ -26,6 +26,7 @@ MODULES=(
     "bob_publish_common.py",
     "bob_originals.py",
     "bob_activity_limits.py",
+    "bob_r312_adapter.py",  # required in any FUTURE R3.12 source candidate
     "bob_moltbook_api.py",
 )
 ENTRYPOINTS=(
@@ -88,6 +89,19 @@ class InstalledScoutImports(unittest.TestCase):
         self.assertNotIn("api_key",source)
         self.assertIn("def connect()",source)
         self.assertIn("def load_record(",source)
+
+    def test_r312_adapter_dependency_is_explicit_and_fail_closed_when_missing(self):
+        # R3.12 source candidate changes the publisher import graph. A future
+        # installer MUST copy this library with the executable. Today's
+        # unchanged installed v0.7 does not require this module.
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)
+            prepare(path)
+            (path/"bob_r312_adapter.py").unlink()
+            result=check(path,"bob-moltbook-publisher")
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn("No module named 'bob_r312_adapter'",result.stderr)
+            self.assertNotIn("IMPORT_OK",result.stdout)
 
     def test_fixed_clean_installed_directory_imports_three_workers(self):
         with tempfile.TemporaryDirectory() as tmp:

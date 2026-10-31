@@ -1,3 +1,13 @@
+## R3.12 actual publisher mixed-queue adapter, hard Off and isolated fake-credentialed POST
+
+The existing credentialed `src/bin/bob-moltbook-publisher` now imports `bob_r312_adapter.py` for **queue selection only**. With no R3 proposal table it executes the original legacy selection SQL; with a valid additive R3 table it excludes Bob-sealed rows from Scout-only validation and holds them untouched, while approved legacy jobs continue through the old `load_record`, budget, preflight, durable intent, credentialed POST and challenge/unknown handling. Malformed R3 schema fails closed. Real R3 send remains compiled Off (`R312_REAL_DISPATCH=False`), even if test owner flags claim Auto.
+
+An explicit `--r312-fake-credentialed` CLI option on the same executable uses a marker/private-fixture-only R3.9/R3.10 preflight and atomic claim, R3.8 final safety barrier and a strictly in-memory fake authenticated POST-shaped transport. Tests exercise the real publisher selector and executable under mocked credentials/GET/POST, double-worker claims, verified source/consent, successful fake ACK, challenge, timeout and no replay on unknown outcome. There is **no actual Moltbook request, API key read, second publisher or installable release**. `releases/candidates/r312-adapter-off.json` is noninstallable source metadata and `releases/current.json` remains Shadow4. [R3.12 design/acceptance](docs/R312-DISABLED-PUBLISHER-ADAPTER.md).
+
+**Next R3.13:** installed-host authenticated data boundaries, additive schema in verified private copy, independently authorized new R3 permission and reviewed production send adapter; only then a versioned owner-approved canary/cutover and reboot/rollback test. R2's naturally timed source-linked model decision remains separate open evidence.
+
+---
+
 ## R3.11 actual publisher executable inert rehearsal (source-only)
 
 This phase connects R3.10's atomic claim to the **same existing executable** as the real v0.7 credentialed publisher, but only through explicit inert test subcommands accepting a fixed, marker-verified private synthetic queue and sealed action descriptor. Tests run the real `src/bin/bob-moltbook-publisher` entrypoint as a subprocess, run the R3.9 source/owner/friend/GET reviews with synthetic fake GET, commit one counted `sending_simulated` send intent, perform the last R3.8 synthetic source/pause barrier and call an **in-memory fake sink**. A separate inert recovery subcommand marks interrupted possible sends uncertain, never automatically retrying. Two concurrent entrypoint processes cannot both dispatch the fake sink. The normal `publisher_step()` was compared to its pre-R3.11 `next` baseline and found byte-for-byte identical.
