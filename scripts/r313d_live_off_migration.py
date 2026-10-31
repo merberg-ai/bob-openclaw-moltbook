@@ -73,23 +73,62 @@ def _paused() -> bool:
         return False
 
 
+def _host_phase_accepted(evidence: dict, schema: dict, journal: str) -> bool:
+    """Accept fixed private host in ONE of two exact, non-publishing phases.
+
+    Private-copy eligibility is a *pre*-migration property, so demanding it
+    after the additive R3 schema exists creates a false failure. Post-migrate
+    trust requires schema=ready, journal=complete, explicit Off owner settings
+    and exactly the additive-schema blocker, NO other boundary blockers.
+    """
+    try:
+        host = evidence["host"]
+        publisher = evidence["publisher"]
+        if not (
+            evidence["reviewed_off_gates"]["production_off_source"]
+            and host["legacy_schema"] == "match"
+            and publisher["effective_unit_shape"] == "reviewed_shape"
+            and publisher["installed_file"] == "owner_controlled_regular"
+            and publisher["updater_registry"] == "verified_registry_hash"
+            and not publisher["review_blockers"]
+        ):
+            return False
+        if schema["state"] == "eligible" and journal == "absent":
+            return (
+                host["private_copy_eligible"] is True
+                and host["additive_schema"] == "absent"
+                and host["r3_settings"] in ("absent_off", "explicit_off")
+                and host["review_blockers"] == []
+            )
+        if schema["state"] == "ready" and journal == "complete":
+            return (
+                host["private_copy_eligible"] is False
+                and host["additive_schema"] == "existing_needs_review"
+                and host["r3_settings"] == "explicit_off"
+                and host["review_blockers"] == ["additive_schema_not_empty"]
+            )
+    except (KeyError, TypeError, ValueError):
+        pass
+    return False
+
+
 def _owner_installed_gate() -> bool:
-    """No installed source or owner authority inferred from checkout only."""
-    if os.geteuid()==0 or pwd.getpwuid(os.geteuid()).pw_dir!=str(HOME):
+    """Trust both verified pre-upgrade and committed post-upgrade Off states."""
+    if os.geteuid() == 0 or pwd.getpwuid(os.geteuid()).pw_dir != str(HOME):
         return False
-    evidence=stage_host.collect(private_copy=False)
-    if not (evidence["eligible_for_private_stage"]
-            and evidence["publisher"]["updater_registry"]=="verified_registry_hash"
-            and evidence["reviewed_off_gates"]["production_off_source"]):
+    evidence = stage_host.collect(private_copy=False)
+    if not _host_phase_accepted(evidence, _db_review(), _journal_state()):
         return False
     try:
-        record=updater.registry()
-        return (record["release"]==STAGE_RELEASE and
-                updater.live_ok(record) and
-                "bob_r3_package.pyz" in record["files"] and
-                "bob_r313d_owner.py" in record["files"] and
-                "bob_r313d_web.py" in record["files"])
-    except (OSError,ValueError,TypeError,KeyError):
+        record = updater.registry()
+        return (
+            record["release"] == STAGE_RELEASE
+            and updater.live_ok(record)
+            and "bob_r3_package.pyz" in record["files"]
+            and "bob_r313d_owner.py" in record["files"]
+            and "bob_r313d_web.py" in record["files"]
+        )
+    except (OSError, ValueError, TypeError, KeyError):
         return False
 
 

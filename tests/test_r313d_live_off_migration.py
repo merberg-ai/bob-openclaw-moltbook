@@ -124,6 +124,61 @@ class LiveOffCoreTests(unittest.TestCase):
 
 
 class OperatorGatesTests(unittest.TestCase):
+    @staticmethod
+    def phase_evidence(*, migrated=False, extra_blocker=False):
+        blockers=(["additive_schema_not_empty"] if migrated else [])
+        if extra_blocker:
+            blockers.append("queue_file_not_private")
+        return {
+            "reviewed_off_gates":{"production_off_source":True},
+            "publisher":{
+                "effective_unit_shape":"reviewed_shape",
+                "installed_file":"owner_controlled_regular",
+                "updater_registry":"verified_registry_hash",
+                "review_blockers":[],
+            },
+            "host":{
+                "legacy_schema":"match",
+                "private_copy_eligible":not migrated and not extra_blocker,
+                "additive_schema":("existing_needs_review" if migrated
+                                   else "absent"),
+                "r3_settings":"explicit_off" if migrated else "absent_off",
+                "review_blockers":blockers,
+            },
+        }
+
+    def test_post_migration_attestation_only_accepts_exact_completed_off_state(self):
+        good=self.phase_evidence(migrated=True)
+        ready={"state":"ready","attempts":23,"uncertain":0}
+        self.assertTrue(runner._host_phase_accepted(good,ready,"complete"))
+        self.assertFalse(runner._host_phase_accepted(good,ready,"prepared"))
+        self.assertFalse(runner._host_phase_accepted(good,ready,"absent"))
+        self.assertFalse(runner._host_phase_accepted(
+            good,{"state":"refused"},"complete"))
+        wrong=self.phase_evidence(migrated=True)
+        wrong["host"]["r3_settings"]="present_requires_owner_review"
+        self.assertFalse(runner._host_phase_accepted(wrong,ready,"complete"))
+        wrong=self.phase_evidence(migrated=True)
+        wrong["publisher"]["updater_registry"]="registry_hash_mismatch"
+        self.assertFalse(runner._host_phase_accepted(wrong,ready,"complete"))
+        wrong=self.phase_evidence(migrated=True,extra_blocker=True)
+        self.assertFalse(runner._host_phase_accepted(wrong,ready,"complete"))
+        wrong=self.phase_evidence(migrated=True)
+        wrong["reviewed_off_gates"]["production_off_source"]=False
+        self.assertFalse(runner._host_phase_accepted(wrong,ready,"complete"))
+
+    def test_pre_migration_private_stage_still_requires_exact_absent_schema(self):
+        old=self.phase_evidence(migrated=False)
+        self.assertTrue(runner._host_phase_accepted(
+            old,{"state":"eligible"},"absent"))
+        self.assertFalse(runner._host_phase_accepted(
+            old,{"state":"ready"},"complete"))
+        self.assertFalse(runner._host_phase_accepted(
+            old,{"state":"eligible"},"complete"))
+        wrong=self.phase_evidence(migrated=False,extra_blocker=True)
+        self.assertFalse(runner._host_phase_accepted(
+            wrong,{"state":"eligible"},"absent"))
+
     def test_fixed_systemd_drain_requires_all_inactive_and_timer_disabled(self):
         expected={
             ("bob-moltbook-publisher.timer","is-active"):"inactive",
