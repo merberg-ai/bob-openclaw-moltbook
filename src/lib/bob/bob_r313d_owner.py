@@ -224,7 +224,8 @@ def recent_proposals(db: sqlite3.Connection, source: Path, limit=20) -> list[dic
 
 
 def decide_exact(db: sqlite3.Connection, source: Path,
-                 run: str, seal: str, operation: str) -> str:
+                 run: str, seal: str, operation: str, *,
+                 clock=None) -> str:
     """Manual owner decision, exact sealed Bob draft, never legacy Scout."""
     if operation not in ("approve","reject","queue"):
         raise ValueError("invalid_r3_decision")
@@ -271,7 +272,10 @@ def decide_exact(db: sqlite3.Connection, source: Path,
             from datetime import datetime
             created = datetime.strptime(run,"%Y%m%dT%H%M%SZ").replace(
                 tzinfo=timezone.utc)
-            at = datetime.now(timezone.utc)
+            at = datetime.now(timezone.utc) if clock is None else clock()
+            if not isinstance(at,datetime) or at.tzinfo is None:
+                raise ValueError("invalid_owner_clock")
+            at = at.astimezone(timezone.utc)
             if created > at or at - created > timedelta(days=7):
                 raise ValueError("manual_source_expired")
             # Publisher redoes source, queue priority, pause and rate checks
