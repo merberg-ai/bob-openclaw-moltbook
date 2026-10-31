@@ -1,3 +1,24 @@
+## CH-HTTPS4.1: ambiguous rotation refusal and read-only recovery audit (2026-10-31)
+
+After CH-HTTPS3 PASS, the owner ran the reviewed CH-HTTPS4 `--preflight` (PASS), then `--apply` and received `CH-HTTPS4 REFUSED OR INDETERMINATE: CredentialError`. The owner's report of successful new-password logins from both Windows machines is encouraging but does not, by itself, prove the historical password was rejected or identify why `--apply` refused. **Do not repeat `--apply` blindly.** Original CH4 deliberately concealed all `CredentialError` descriptions; they can arise from the current password not matching the stored secret, a replacement policy/confirmation failure, or unsafe private credential store/lock. The browser's Basic-auth cache may also mislead if not started fresh.
+
+After CH-HTTPS4.1 source passes offline CI and is merged to `next`, the owner can safely investigate without changing anything:
+
+```bash
+cd ~/bob-next && git pull --ff-only
+python3 scripts/ch_https4_rotate_dashboard.py --audit
+```
+
+The audit uses the trusted local `openclaw` terminal to request the **historical password** and **candidate new password**, both hidden. No credential is passed on the command line, saved to a log, printed, placed into Git, or sent outside the local verified HTTPS endpoint. The audit compares the existing secure credential file with an exact authenticated live CA/IP-SAN validated HTTPS `/r3` check, plus anonymous 401. It returns only:
+
+- `ROTATED_OLD_REJECTED_NEW_ACCEPTED`: old rejects and new works in both local and actual HTTPS server checks. No rotation retry needed.
+- `UNCHANGED_OLD_ACCEPTED_NEW_REJECTED`: prior credential still active, new candidate rejected. Review new-password length/ASCII/confirmation and whether the current password was entered correctly. For a subsequent deliberate retry, new CH4.1 refusal output provides safe reasons such as `CURRENT_PASSWORD_REJECTED` or `NEW_PASSWORD_POLICY_OR_CONFIRMATION`, never the password.
+- `NOT_VERIFIED`: inconclusive (including unexpected server results, unknown old/new credential, or network failure). Do not make new credential changes; use trusted recovery console only when necessary.
+
+Audit return code is zero only for `ROTATED_OLD_REJECTED_NEW_ACCEPTED`; unchanged/inconclusive returns nonzero. Run `python3 scripts/ch_https4_rotate_dashboard.py --verify` and `python3 scripts/report_ch_https3_cutover.py --installed` afterward; both are read-only checks of the *current* stored credential and TLS/R3 safeguards. Do not expose password values in any report/chat. `--audit` never writes a new credential, restarts a service, touches SQLite or changes Bob/Moltbook permissions. When rotated status is confirmed and both Windows browsers have independently logged in without warnings (not a cached session), proceed to a separate manager-restart readiness acceptance. Full Windows/WSL/G2 no-duplicate verification remains independent.
+
+---
+
 ## CH-HTTPS4: post-cutover password rotation and recovery (source-only, 2026-10-31)
 
 **CH-HTTPS3 installed acceptance: PASS.** The owner ran `python3 scripts/report_ch_https3_cutover.py --installed` on the OMEN and supplied an all-green report: installed files and CA fingerprint verified, R3 schema/journal/send-source Off verified, manager and existing timers active, authenticated HTTPS and R3 pass, plaintext HTTP on 18790 refused. Both Windows LAN browsers were independently reported to reach the HTTPS page after CA imports. The report does not itself examine the browser security UI or verify absence of WAN port forwarding.
