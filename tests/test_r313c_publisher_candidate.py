@@ -65,7 +65,7 @@ class R313COfflineTests(unittest.TestCase):
         self.path = self.root/"r3-unified-fixtures"/"r3-unified-lab.sqlite3"
         fixture(self.path)
         self.lab = UnifiedLab(self.path)
-        with closing(sqlite3.connect(self.path)) as db:
+        with closing(sqlite3.connect(self.path, isolation_level=None)) as db:
             db.execute("CREATE TABLE bob_friends(handle_key TEXT PRIMARY KEY)")
             db.execute(ENVELOPE_DDL)
             db.execute("CREATE TABLE r313c_schema_meta("
@@ -84,7 +84,7 @@ class R313COfflineTests(unittest.TestCase):
     def seed_envelope(self):
         action_json = canonical_action(self.action)
         seal, _ = _validated(self.action, self.obs)
-        with closing(sqlite3.connect(self.path)) as db:
+        with closing(sqlite3.connect(self.path, isolation_level=None)) as db:
             db.execute("INSERT OR REPLACE INTO r313c_action_envelopes "
                        "(source_run,action_json,action_sha256,seal_sha256,created_at)"
                        " VALUES(?,?,?,?,?)",
