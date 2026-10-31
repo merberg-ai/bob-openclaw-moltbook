@@ -1,3 +1,18 @@
+## G2.5 diagnostic: Windows listener and portproxy absence with working WSL/LAN dashboard (2026-10-31)
+
+**Owner observed:** Windows PowerShell `Get-NetTCPConnection -State Listen -LocalPort 18790` produced no Windows listener result, while `netsh interface portproxy show all` had no entries. Both Windows LAN clients nevertheless continued to access Activity Manager after reboot, and OpenClawLab G2 postcheck had independently verified authenticated internal HTTPS and R3 hard Off. The Windows-only probes cannot enumerate all Linux-owned WSL sockets and do not establish absence of inbound LAN or WAN reachability. In mirrored WSL mode, a Linux service may be exposed directly through the host networking stack and relevant Hyper-V firewall policy. Microsoft documentation: https://learn.microsoft.com/en-us/windows/wsl/networking and https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/hyper-v-firewall .
+
+**Corrected read-only commands from normal Windows PowerShell (do not add proxy or firewall entries):**
+
+```powershell
+wsl.exe -d OpenClawLab -u openclaw -- ss -lnt '( sport = :18790 )'
+Select-String -Path "$env:USERPROFILE\.wslconfig" -Pattern '^\s*networkingMode\s*=' -ErrorAction SilentlyContinue
+```
+
+The first probes Linux listening addresses. The second reveals only an explicitly configured networking mode; no match is an inconclusive configuration hint, not proof the runtime uses NAT/mirrored. After those results, review **read-only** Hyper-V firewall WSL VM settings/rules, ordinary Windows firewall and router forwarding/WAN reachability. Avoid displaying full networking config or credentials. LAN reachability is already confirmed; no source/service/Windows changes are needed to fix this initial diagnostic mismatch. Separate external Moltbook receipt reconciliation remains open.
+
+---
+
 ## G2.4 observed Activity Manager reachability from both Windows clients (2026-10-31)
 
 After G2.3 verified OMEN Windows-logon WSL recovery, an active OpenClaw Gateway and passing local installed HTTPS/R3 Off checks, the owner reported that **both Windows computers successfully access the dashboard**. This completes the two-LAN-client reachability check. The report does not explicitly confirm fresh rotated-password login, a warning-free certificate indicator, or the absence of browser bypass; do not attribute those unreported observations.
