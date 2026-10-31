@@ -1,3 +1,13 @@
+## CH-HTTPS4 credential rotation accepted on OMEN; restart recovery pending (2026-10-31)
+
+- [x] **Live owner CH-HTTPS4 password rotation PASS:** after the deliberate first attempt to reuse the original password (safely refused), the owner ran `python3 scripts/ch_https4_rotate_dashboard.py --apply` with a distinct replacement and received `credential change: APPLIED`, `old password rejected + new password accepted over verified HTTPS: PASS`, and `installed TLS/R3 safeguard recheck: PASS`. The command stated no systemd, SQLite, publisher, or Moltbook action was performed. This proves local/private credential and verified HTTPS new/old checks at rotation time.
+- [x] Previous CH-HTTPS4.1 audit `UNCHANGED_OLD_ACCEPTED_NEW_REJECTED` matched the owner's explanation that the initial attempted replacement equaled the old password. No actual password values were shared.
+- [ ] **Windows browser acceptance after the successful change:** freshly reauthenticate on both OMEN and second LAN Windows client with the *distinct new* password and without certificate warnings; verify cached old login is rejected. Previously reported successful logins occurred before the accepted change and do not satisfy this gate.
+- [ ] **CH-HTTPS4 manager-only restart and recovery:** once both clients pass, run read-only preflight `python3 scripts/ch_https4_rotate_dashboard.py --verify && python3 scripts/report_ch_https3_cutover.py --installed`; require PASS. Separately restart only `bob-activity-manager.service` with `systemctl --user restart bob-activity-manager.service`, then repeat both read-only checks, confirm active systemd unit and HTTPS/new login from both clients. No publisher/Scout/Gateway restart or R3 permission changes.
+- [ ] **Distinct G2 Windows/WSL reboot gate:** inspect systemd startup/recovery, LAN-only exposure, independent timers, and no duplicate historical sends. Do not equate manager-only restart with full reboot or authorized R3 posting.
+
+---
+
 ## CH-HTTPS4.1: owner hit an ambiguous credential rotation refusal (2026-10-31)
 
 - [x] Owner ran original CH-HTTPS4 `--preflight` with `installed HTTPS, current login and R3 Off: PASS`. A subsequent terminal `--apply` completed hidden prompts but printed `CH-HTTPS4 REFUSED OR INDETERMINATE: CredentialError` rather than an accepted rotation proof. Owner additionally reports both LAN Windows browser logins successful using what they identify as the new password. The sanitized script did not identify where the credential check failed; do **not** assume it wrote, failed to write, or proved rejection of historical login solely from that output.

@@ -1,3 +1,11 @@
+## CH-HTTPS4 live password rotation accepted, manager restart next (2026-10-31)
+
+The owner confirmed the original CH-HTTPS4 refusal was caused by attempting to replace the password with an identical value, as intended by the fail-closed rule. A read-only audit correctly reported that the historical credential remained active and the alternate candidate was rejected. On a subsequent **distinct** replacement, the interactive CH-HTTPS4 tool reported `credential change: APPLIED`, verified the old password's 401, the new password's authenticated HTTPS 200, and the postflight CH-HTTPS3/R3 safeguards `PASS`. No service, database, publisher or Moltbook action occurred. This is accepted server-side credential rotation, **not yet** two-client post-change browser acceptance or restart recovery.
+
+Next: validate fresh trusted HTTPS logins on BOTH Windows clients, run baseline read-only CH4 `--verify` and CH3 `--installed`, then deliberately restart *only* the Activity Manager user service and repeat those checks and client logins. Full Windows/WSL reboot, startup, LAN-only exposure, and ledger-based publisher/no-duplicate evidence remain distinct G2. Installed release remains `v0.8.0-chhttps3`; no R3 posting authorization.
+
+---
+
 ## CH-HTTPS4.1 rotation refusal recovery gate (2026-10-31)
 
 The owner reports original CH-HTTPS4 interactive rotation returned `REFUSED OR INDETERMINATE: CredentialError` despite `--preflight` PASS and successful new-password browser access reported on two Windows computers. There is no accepted old-password rejection proof from that command. Stage CH-HTTPS4.1 to diagnose with non-mutating, hidden-prompt `--audit` comparing exact private local credentials and real CA-verified HTTPS statuses, and replace unhelpfully generic future refusal errors with fixed-safe categories. Keep all live services, installed `v0.8.0-chhttps3` release, SQLite, certs and R3 permissions unchanged. Do not blindly repeat rotation; require audited old 401/new 200/anonymous 401, then independent restart and G2 evidence.
