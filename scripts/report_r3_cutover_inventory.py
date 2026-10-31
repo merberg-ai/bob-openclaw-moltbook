@@ -23,13 +23,20 @@ PAUSED = HOME / ".config/bob-system/paused"
 UNITS = (
     ("user", "bob-moltbook-scout.timer"),
     ("user", "bob-moltbook-publisher.timer"),
+    ("user", "bob-moltbook-publisher.service"),
+    ("user", "bob-moltbook-scout.service"),
     ("user", "bob-original-worker.timer"),
+    ("user", "bob-original-worker.service"),
     ("user", "bob-startup-reconcile.timer"),
+    ("user", "bob-startup-reconcile.service"),
+    ("user", "bob-r3-candidate-publisher.timer"),
+    ("user", "bob-r3-candidate-publisher.service"),
     ("user", "bob-v08-shadow.timer"),
     ("user", "bob-v08-shadow.service"),
     ("user", "bob-activity-manager.service"),
     ("user", "openclaw-gateway.service"),
     ("system", "bob-moltbook-scout.timer"),
+    ("system", "bob-moltbook-scout.service"),
 )
 SAFE_LOAD = {"loaded", "not-found", "masked", "error", "bad-setting", "stub", "merged"}
 SAFE_ACTIVE = {"active", "inactive", "activating", "deactivating", "failed", "reloading"}

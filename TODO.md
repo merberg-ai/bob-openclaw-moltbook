@@ -1,3 +1,14 @@
+## R3.6 implementation: read-only real-host readiness audit and draft-origin contract
+
+- [x] Add `scripts/report_r36_host_readiness.py`: a single compact owner-run report that reads only fixed allowlisted systemd **unit states** and existing SQLite queue schema/metadata in `mode=ro`. Includes publisher service/timer, startup reconcile, shadow and inert candidate, system legacy Scout, exact legacy table shape, validated policy, pause, attempted and uncertain counts. Every report explicitly says **cutover_authorized: false**. Expanded `--json` remains sanitized.
+- [x] Add `src/bob_v08/r36_admission_contract.py`: verify saved Scout bytes using the reviewed R3.4 source pin, distinguish unmodified v0.7 Scout draft from an independently sealed Bob-authored comment linked to R3 proposal rows. Any unknown/different/attempted job refuses, and **both classifications forbid dispatch**. Existing publisher and deployed release remain unchanged.
+- [x] Add isolated tests `tests/test_r36_host_readiness.py` and CI triggers for malformed/missing queue schema, symlinks, uncertain history counts, fake active candidate, secret-text sanitization, tampered feed, unknown seal, and no new writes.
+- [ ] **R3.6 operator acceptance pending:** execute the **one** safe command in [R3.6 host review](docs/R36-HOST-READINESS.md) from `~/bob-next` and examine the short sanitized report. A green synthetic test or zero blocker snapshot alone **does not authorize cutover**.
+- [ ] **Next R3.7:** integrate authenticated owner settings, source roots and fresh friend/GET/pause evidence in one publisher-owned pre-send gate; inspect effective installed unit/drop-ins and restart behavior, rehearse exact publisher compatibility and maintain code-only rollback. No live installs, Moltbook sends, or new automatic permissions without explicit review.
+- [ ] **R2 G1 still open:** naturally timer-driven source-linked OpenClaw decision against a new verified Scout selection.
+
+---
+
 ## R3.5 engineering checkpoint: additive migration and reboot rehearsal
 
 - [x] Implement `r35_migration_lab.py` for **private marked synthetic SQLite** only: verify essential legacy queue schema, create R3 proposal/owner/audit metadata tables atomically, preserve all decisions/attempts/uncertain jobs, reject schema drift and unknown versions, prove idempotent retry and rollback on simulated power loss.
