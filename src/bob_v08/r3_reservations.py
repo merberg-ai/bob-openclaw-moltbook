@@ -23,6 +23,7 @@ from .core import Action, Observation, Policy, PolicyState, check, parse_decisio
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 TOKEN = re.compile(r"[a-f0-9]{32}\Z")
 STATES = frozenset(("reserved", "held", "intent_simulated", "uncertain_simulated"))
+LAB_FILENAME = "r3-reservation-lab.sqlite3"
 # Never add a network/client/publisher import here. Simulated intent is terminal
 # and is not a dispatch request or an approved real publication.
 FORMAT = "bob-r3-reservation-lab-v1"
@@ -88,6 +89,9 @@ def _simulate_gate(action: Action, policy: Policy, state: PolicyState, *,
         return "legacy_auto_disabled"
     if policy.shadow:
         return "shadow_only"
+    spacing = policy.minimum_spacing.get("comment", -1)
+    if type(spacing) is not int or spacing < 0:
+        return "invalid_spacing"
     if policy.dials.get("comment") != "auto":
         return "comment_not_auto"
     try:
@@ -138,6 +142,10 @@ class SimulationLedger:
 
     def _open(self) -> sqlite3.Connection:
         parent = self.path.parent
+        # Deliberately refuse arbitrary or legacy SQLite basenames. R3
+        # production schema and dispatch will require an independent review.
+        if self.path.name != LAB_FILENAME:
+            raise ValueError("untrusted_simulation_path")
         if (parent.is_symlink() or not parent.is_dir()
                 or parent.stat().st_mode & 0o077):
             raise ValueError("unsafe_simulation_directory")
@@ -233,12 +241,13 @@ class SimulationLedger:
         digest = _canonical_action(action, observed)
         db = self._open()
         try:
-            row = db.execute("SELECT kind,source_run,target_id,action_digest,state "
-                             "FROM reservations WHERE token=?", (token,)).fetchone()
+            row = db.execute("SELECT kind,source_run,target_id,action_digest,state,"
+                             "created_utc FROM reservations WHERE token=?",
+                             (token,)).fetchone()
             if row is None:
                 db.commit()
                 return Result("refused", "reservation_missing")
-            kind, run, target, stored, status = row
+            kind, run, target, stored, status, original_utc = row
             if status != "reserved":
                 db.commit()
                 return Result("refused", "reservation_not_pending")
@@ -249,9 +258,18 @@ class SimulationLedger:
                 reason = "reservation_source_changed"
                 transition = "held"
             else:
-                reason = _simulate_gate(action, policy, state,
-                                        auto_enabled=auto_enabled, db=db,
-                                        exclude_token=token)
+                # A stale/backdated pre-send clock must never authorize an
+                # intent just because this reservation is excluded from counts.
+                try:
+                    earlier = (_utc(state.at) <
+                               _utc(datetime.fromisoformat(
+                                   original_utc.replace("Z", "+00:00"))))
+                except (ValueError, AttributeError, TypeError):
+                    earlier = True
+                reason = ("invalid_reservation_clock" if earlier else
+                          _simulate_gate(action, policy, state,
+                                         auto_enabled=auto_enabled, db=db,
+                                         exclude_token=token))
                 transition = "intent_simulated" if reason == "within_policy" else "held"
                 db.execute("UPDATE reservations SET state=? WHERE token=?",
                            (transition, token))
