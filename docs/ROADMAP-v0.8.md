@@ -1,3 +1,13 @@
+## R3.13d Off-first stage1 release promotion (owner installation still pending)
+
+After the owner-reported OMEN `report_r313d_off_first.py` PASS, the `v0.8.0-r3stage1` owner-code manifest is promoted from `releases/candidates/` to `releases/current.json` on `next` for a separately confirmed code-only install. It upgrades `v0.8.0-shadow4` and installs exactly seven R3 dashboard/proposal/runtime/navigation files, **no legacy publisher binary, timer, Moltbook credential or automatic-send switch**. The generated Activity Manager keeps the established R2 Shadow/OC4/FM4.1 routes, LAN Basic auth, strict Host/Origin/CSRF. Two reviewed ZIP archives are verified against updater hashes before the new R3 modules are added to Python's cached `bob_v08` package path; installed-style authenticated localhost HTTP smoke covers this integration.
+
+The guarded updater still requires a clean trusted `next` checkout, exact release chain, verified SQLite backup, typed `UPDATE`, service restart/health and automatic **code-only** rollback on failure. It **does not** apply live database DDL. After actual host installation, `scripts/report_r313d_stage1_installed.py` verifies registry hashes, installed publisher, three hard-Off R3 source gates and authenticated `/r3` page without any write. Operator instructions: [R3.13d stage1 install](R313D-STAGE1-INSTALL.md).
+
+**Stage1 still needs explicit OMEN installation acceptance.** Do not run the separate `r313d_live_off_migration.py --apply-off` yet. It requires a distinct paused/drained owner-approved maintenance window and restore-tested backup, and only adds Off schema. A real manual Moltbook canary requires a further exact-draft owner authorization, publisher cutover gate and reboot/no-duplicate G2 acceptance. R3 auto remains Off. R2 G1 remains open.
+
+---
+
 ## R3.13d OMEN Off-first candidate review PASS (2026-10-31)
 
 The owner ran `python3 scripts/report_r313d_off_first.py` on the OMEN/OpenClawLab WSL host. The **read-only** report returned `candidate build: PASS`, `existing release: v0.8.0-shadow4`, `three R3 real-send gates: OFF`, `installed host boundary: eligible`, and `eligible for separate owner install review: yes`. No live database, installed file, service, R3 posting right or Moltbook canary authorization changed. This is **operator-supplied, point-in-time pre-install acceptance**, not evidence of successful installation or live migration.
