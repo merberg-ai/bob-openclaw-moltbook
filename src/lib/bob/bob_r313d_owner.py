@@ -27,6 +27,41 @@ SHA = re.compile(r"[a-f0-9]{64}\Z")
 SCHEMA_VERSION = "r313c-action-v1"
 
 
+def trusted_manager_boundary(db: sqlite3.Connection) -> bool:
+    """Require original fixed user-private queue; never accept attached DB.
+
+    This is only for the real Activity Manager route, NOT for synthetic
+    unit-test entrypoints that supply explicitly marked private fixtures.
+    """
+    import os
+    import pwd
+    import stat
+    from bob_publish_common import DATA, DB
+    try:
+        uid = os.geteuid()
+        home = Path.home()
+        if uid == 0 or pwd.getpwuid(uid).pw_dir != str(home):
+            return False
+        for path, strict in (
+            (home, False), (home/".config", False),
+            (DATA, True), (DB, True),
+        ):
+            info = path.lstat()
+            kind = stat.S_ISDIR if path != DB else stat.S_ISREG
+            if (not kind(info.st_mode) or info.st_uid != uid
+                    or info.st_mode & (0o077 if strict else 0o022)):
+                return False
+            if path == DB and info.st_nlink != 1:
+                return False
+        listed = db.execute("PRAGMA database_list").fetchall()
+        main = [r for r in listed if r[1] == "main"]
+        others = [r for r in listed if r[1] not in ("main","temp")
+                  or r[1] == "temp" and bool(r[2])]
+        return len(main) == 1 and not others and Path(main[0][2]) == DB
+    except (OSError, ValueError, TypeError, sqlite3.Error, KeyError):
+        return False
+
+
 def schema_ready(db: sqlite3.Connection) -> bool:
     """Read-only additive schema validation; partial/future schema is not safe."""
     try:
