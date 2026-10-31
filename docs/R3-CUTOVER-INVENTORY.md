@@ -1,3 +1,11 @@
+## R3.11 actual legacy publisher executable, inert-only source candidate
+
+`src/bin/bob-moltbook-publisher` now recognizes explicit `--r311-inert-rehearsal`/`--r311-inert-recover` commands for a **private marked synthetic** SQLite fixture only. These paths run source/owner/queue integrity checks via R3.9/R3.10 and simulated receipt/crash recovery via R3.8. Tests execute the original executable under an isolated HOME, showing no token reads, no external requests, no production writes, one fake send at most, and failure-closed second attempts. The existing `publisher_step()`, `verification_step()` and `main()` live pathways remain unmodified; prior to merge, the full legacy `publisher_step()` body was byte-for-byte identical to `next`. No new service is installed.
+
+`releases/candidates/r311-inert-only.json` is **not** `releases/current.json` and declares itself noninstallable, not authorized and without R3 live dispatch. The healthy R3.6/R3.8 OMEN host snapshots remain evidence about the existing publisher, not permission for new R3 comments. A true production publisher adapter, independent owner opt-in, live authenticated GET and final pre-POST check, process/reboot/rollback rehearsal and an owner-approved versioned installation remain future work. [Detailed R3.11 guide](R311-INERT-PUBLISHER-ENTRYPOINT.md).
+
+---
+
 ## R3.10 source-only atomic publisher claim and crash/revocation tests
 
 **New:** `src/bob_v08/r310_atomic_claim_lab.py`, `tests/test_r310_atomic_claim.py`, and offline CI trigger. The code accepts only a preverified `UnifiedLab` with a private marked `r3-unified-fixtures/r3-unified-lab.sqlite3`; it uses its fixed sibling `scout` and `paused` paths, not caller-specified source/permission roots. The inherited R3.9 GET and clock are **test-owned callbacks**, never agent-supplied authority.
