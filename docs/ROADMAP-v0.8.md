@@ -1,3 +1,11 @@
+## R3.13d OMEN post-migration independent acceptance PASS (2026-10-31)
+
+Operator supplied fixed-host JSON after merging PR #97: the corrected phase-aware installed gate is **true**; migrated R3 schema `ready`; migration journal `complete`; 23 historical attempted sends preserved and 0 uncertain; global pause active; no R3 dispatch or canary authorization. The separate authenticated stage1 report verified exact installed release hashes, three R3 send gates Off, R3 Controls HTTP page, and `installation acceptance: PASS`. Manager restart means `publisher_and_manager_drained=false`; already-completed migration means `eligible_for_off_migration=false`, both expected.
+
+**Next:** restore only the two pre-maintenance `enabled/active` owner timers while preserving pause, recheck them and the manager, then remove the owner-created pause **last**. The legacy publisher resumes its original behavior, but no new R3 comment can be sent. Do not rerun DDL or restore a stale database. Future R3 owner HTTPS, manual exact-draft canary, safe reboot G2 and R2 G1 remain distinct open gates.
+
+---
+
 ## R3.13d OMEN live Off-schema migration applied; service restore pending (2026-10-31)
 
 Owner supplied read-only fixed-host readiness showing `v0.8.0-r3stage1` verified, schema eligible, publisher/manager drained, private global pause active, migration journal absent and explicit Off migration eligible. The operator then ran the separately reviewed terminal-confirmed `--apply-off` command, typed `MIGRATE R3 OFF`, and reported the successful `APPLIED` result. Legacy attempted count **23** preserved, uncertain count **0**, new Bob R3 publication rights **NONE**, and publisher/manager still stopped. **This is an owner-reported successful live schema operation, not a post-restart service/canary acceptance.**
