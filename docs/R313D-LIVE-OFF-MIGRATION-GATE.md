@@ -24,25 +24,25 @@ The explicit `--apply-off` operation requires ALL of the following:
 
 Complete the [explicit code-only stage1 installation](R313D-STAGE1-INSTALL.md) first. The read-only `report_r313d_stage1_installed.py` output must PASS before any separate maintenance-window schema work. **Do not run `--apply-off`** after a mere `bobctl update --check` or unverified code installation.
 
-## For review now (without installing)
+## Read-only verification after source promotion
 
-Run this **read-only** command as the regular OpenClawLab user after merging the source branch:
+The pre-promotion `report_r313d_off_first.py` report is a historical acceptance record and expects Shadow4 as the current manifest. After promotion, the supported read-only check is:
 
 ```bash
-cd ~/bob-next && git pull --ff-only && python3 scripts/report_r313d_off_first.py
+cd ~/bob-next && git pull --ff-only && bobctl update --check
 ```
 
-The later migration tool can also be inspected **read only**:
+Verify the expected stage1 release and seven code files before typed installation. The separate schema tool can also be inspected safely, without any writes:
 
 ```bash
 python3 scripts/r313d_live_off_migration.py
 ```
 
-The second check should report `installed Off-first release: not_verified` and `eligible for explicit migration: no` until the owner completes the separate stage1 code installation. **That is correct and expected.** Do not run `--apply-off` yet. No `bobctl update`, service stop, or database modification is part of this source-only review.
+Until stage1 installation, its output should report `installed Off-first release: not_verified` and `eligible for explicit migration: no`. **Do not run `--apply-off`** here. See the stage1 install SOP for the owner-confirmed code update.
 
 ## Actual production sequence still requiring distinct owner decisions
 
-1. Review the Off-first build and host report. In a separate approved release change, promote the exact reviewed candidate in `releases/current.json` and install via the established guarded updater. The release **must not replace the existing credentialed publisher**, must have rollback-safe manager startup, and must retain the R2 Shadow4 features.
+1. The reviewed stage1 manifest is now promoted on `next`. The owner must separately confirm and install the exact seven-file release using the established guarded updater, then pass the read-only installed acceptance report. The release **must not replace the existing credentialed publisher**, must have rollback-safe manager startup, and must retain the R2 Shadow4 features.
 2. Enter a separately approved maintenance window, put Bob's publication workers on pause, drain/disable the existing publisher timer, stop publisher and manager services, and confirm the live Off migration preflight. Only then may the owner explicitly run the interactive `--apply-off`.
 3. Independently verify the live migrated schema and default-Off settings, then restart the exact previous services and test UI/worker operation. **Rollback code and units only. Never restore an older SQLite database over later attempted/uncertain work.**
 4. A *different* release would then need a separate owner-approved exact Bob draft and post-target canary, verified public target/author, final friend/owner/pause/budget checks, one credentialed publisher, no retry of unknown outcomes, and Windows/WSL reboot acceptance. This stage does not turn any real R3 dispatch switch On. R3 automatic publishing remains Off.
