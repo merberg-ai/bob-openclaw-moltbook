@@ -1,3 +1,13 @@
+## R3.9 independent Bob-draft publisher review, still not enabled for live sends
+
+`src/bob_v08/r39_publisher_review.py` adds a **read-only** publisher-side contract using the already reviewed R3.4 saved-source validator, R3.6 Bob-origin classifier and real v0.7 activity-limit evaluator. It requires the **new Bob seal/proposal** to match the existing unattempted queued legacy job, current separate stored owner R3 opt-in/dial (or matching Bob-specific manual approval), safe source age, friend protection, no attempted/uncertain target collision, manual-first queue order and non-paused state. A fixed-host public HTTPS GET (no API credentials, no redirects, strict UUID target/author/deleted checks) is bracketed by two full local source/policy checks with bounded elapsed time. All tests mock the GET transport; no real network activity occurs.
+
+A positive review **does not authorize dispatch**, claim an intent or update any SQLite row. It explicitly returns `dispatch_authorized=False`, `acted=False`. The actual v0.7 publisher currently only knows Scout-approved text, and this source module is not wired into its live path. The owner has **not** created R3 auto permission or approved an R3 cutover; the existing `auto_enabled=1` remains a v0.7-only control.
+
+**Next R3.10** must integrate an independent Bob-draft schema/owner consent with the **one existing credentialed publisher**, reconcile two-pass GET checks with the atomic pre-POST `attempted_at` CAS, retain no-blind-retry and manual priority, and rehearse an explicit rollback/versioned owner acceptance before any live change. Do not infer a green light from an isolated unit test or from R3.8's healthy effective service shape.
+
+---
+
 ## R3.8 real OMEN effective-unit inspection accepted (2026-10-30)
 
 Operator-supplied read-only report from OpenClawLab: publisher service `reviewed_shape`, timer `reviewed_shape`, **0 service overrides**, **0 timer overrides**, **1 environment declaration**, **0 review blockers**, `R3 cutover authorized: NO`. The R3.8 conservative check recognized the expected one-shot command shape and timer target/cadence. Environment values and unit paths were not printed. **Accepted as a narrow installed-effective-unit-shape snapshot only**; it does not attest the executable hash, dispatch behavior, WSL/Windows restart survival, fresh Moltbook GET/friend signals, new owner permissions, or readiness for live R3 cutover. The existing publisher, Shadow4, database and credentials remain unchanged.
