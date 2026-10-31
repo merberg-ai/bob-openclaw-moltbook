@@ -1,3 +1,11 @@
+## R3.13c source-only merge accepted (2026-10-30)
+
+PR #84 merged into `next` at `1b13dd7f12c597adffd282f4dc9757df463eb1f6` after passing **911 offline Python tests** and Windows startup-script parsing in CI run `41169512190`. The existing legacy publisher's default R3 hold path and clean installed import remain compatible. The source candidate introduces the prospective same-publisher R3 action path and persistent envelope contract but **three hardcoded source-level Off gates** block production R3 import/dispatch. The installed `v0.8.0-shadow4` release, credentialed v0.7 publisher, owner consent and live SQLite schema have not changed.
+
+**Next: R3.13d** must separately review the versioned additive action-envelope migration, authenticated proposal writer and owner R3 controls, installed-unit/credential boundary, explicit owner-authorized canary and WSL reboot/code-only rollback before any new Bob-authored Moltbook comment. R2 G1 remains independently open. No on-host command is required for this source-only acceptance.
+
+---
+
 ## R3.13c prospective single-publisher send branch, hard Off
 
 The existing publisher executable contains a prospective Bob-authored R3 branch behind **three source-level production-Off gates** (including a lazy import guard), preserving the v0.7 Scout queue path and v0.8 Shadow4 installation. Source review found a missing provenance datum: R3.5 proposals store Bob draft seal/fingerprint but not the original action **reason**; older R3 tests used a marked private descriptor, which must never supply live authority. R3.13c adds a versioned canonical action-envelope contract independently validated against the saved Scout source and original seal.
