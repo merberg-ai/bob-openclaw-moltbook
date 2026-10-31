@@ -1,6 +1,6 @@
 ## R3.8 inert dispatch/receipt and effective publisher unit review (source only)
 
-**Added:** `src/bob_v08/r38_dispatch_lab.py`, `tests/test_r38_dispatch_recovery.py`, `scripts/report_r38_effective_units.py`, `tests/test_r38_effective_units.py` and CI triggers. [R3.8 detailed operator/engineering guide](docs/R38-DISPATCH-RECOVERY.md).
+**Added:** `src/bob_v08/r38_dispatch_lab.py`, `tests/test_r38_dispatch_recovery.py`, `scripts/report_r38_effective_units.py`, `tests/test_r38_effective_units.py` and CI triggers. [R3.8 detailed operator/engineering guide](R38-DISPATCH-RECOVERY.md).
 
 The existing R3.3 marked private fixture is still the **only** transactional ledger. R3.7 trust gates an unattempted Bob-authored draft; the atomic synthetic intent marks one `publish_jobs.attempted_at` before any fake external event. R3.8 provides only a tightly typed `InertSink` that records a SHA of the target/text in memory, with no network imports or credentials. A bounded follow-up barrier rereads current owner dial/auto consent, source/proposal content, friend table and flags, global pause and reduced budgets. Every terminal state is suffixed `_simulated`. Acknowledgment requires a valid fake UUID; fake challenge requires human intervention; ambiguous results and crashes require manual review. A new worker or process restart cannot retry an already attempted target. `recover_after_restart` handles only synthetic in-flight intents, leaving all original v0.7 `sending`, `uncertain` and verification history unchanged.
 
