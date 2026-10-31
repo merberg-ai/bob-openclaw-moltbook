@@ -13,6 +13,7 @@ from bob_publish_common import DATA, connect, now, setting, set_setting, event, 
 from bob_friend_scout import guarded_auto_candidates as auto_candidates, allow_auto_candidate
 from bob_job_tracking import checkpoint
 from bob_activity_limits import allowed as activity_allowed
+from bob_r312_adapter import legacy_queue_head, held_r3_count
 
 API='https://www.moltbook.com/api/v1'
 CREDS=DATA/'credentials.json'
@@ -102,8 +103,13 @@ def publisher_step(db):
     db.commit()
     # Manual approvals outrank auto drafts. A held/disabled auto item must not
     # starve a newer human-approved reply; rate limits and checks still apply.
-    row=db.execute("SELECT run_id,approval_sha256,post_id,draft_comment,mode,created_at FROM publish_jobs WHERE state='queued' ORDER BY CASE WHEN mode='manual' THEN 0 ELSE 1 END, created_at ASC, run_id ASC LIMIT 1").fetchone()
+    # R3.12: preserve original Scout validation and single credentialed
+    # publisher, but exclude separately sealed R3 drafts from legacy admission.
+    # This is a HARD-DISABLED source candidate. No R3 path can reach api(POST).
+    row=legacy_queue_head(db)
     if not row:
+        if held_r3_count(db):
+            return 'R3 Bob-authored queued drafts held; no R3 production dispatcher'
         record_publisher_skip(db,'NO_QUEUE')
         return 'no queued publications'
     rid,digest,pid,draft,mode,created=row
@@ -381,7 +387,42 @@ def r311_inert_cli(argv):
     return 0 if result.state in ('acknowledged_simulated','recovered_simulated') else 3
 
 
+def r312_fake_cli(argv):
+    """Explicit R3.12 private fake-credentialed POST rehearsal only.
+
+    No normal timer/user dashboard path reaches this function. The runner
+    requires a marked 0600 synthetic fixture and uses no Moltbook client.
+    """
+    if len(argv)!=2 or argv[0]!='--r312-fake-credentialed':
+        print('R3.12 requires explicit private lab fixture mode')
+        return 2
+    from bob_v08.r312_fake_credentialed import run_fake_credentialed
+    from bob_v08.r38_dispatch_lab import SimulatedPowerLoss
+    try:
+        result=run_fake_credentialed(Path(argv[1]))
+    except SimulatedPowerLoss:
+        print('R3.12 synthetic interruption; attempted send locked')
+        return 3
+    print(json.dumps({
+        'format':'bob-r312-fake-credentialed-v1',
+        'state':result.state,
+        'reason':result.reason,
+        'simulated':result.simulated,
+        'acted':False,
+        'dispatch_authorized':False,
+        'attempt_recorded':result.attempted,
+        'fake_post_calls':result.post_calls,
+        'external_requests':0,
+        'production_credential_reads':0,
+        'installed_changes':0,
+        'cutover_authorized':False,
+    },sort_keys=True))
+    return 0 if result.state=='acknowledged_simulated' else 3
+
+
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1].startswith('--r311-'):
         raise SystemExit(r311_inert_cli(sys.argv[1:]))
+    if len(sys.argv)>1 and sys.argv[1].startswith('--r312-'):
+        raise SystemExit(r312_fake_cli(sys.argv[1:]))
     raise SystemExit(main())
