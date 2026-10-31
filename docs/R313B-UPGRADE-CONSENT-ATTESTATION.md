@@ -4,6 +4,16 @@
 publisher code, unit, release or Moltbook request changes. R3.12 real dispatch
 remains hard Off; the installed legacy v0.7 publisher is still sole real sender.
 
+## OMEN operator acceptance (2026-10-30)
+
+The operator ran both R3.13b commands in `~/bob-next` on the OMEN/OpenClawLab WSL account.
+
+**Read-only source/host result: PASS.** Queue trusted, legacy schema matched, installed R3 controls absent/Off, effective publisher unit reviewed, installed publisher owner-controlled regular, private updater registry hash verified, and zero boundary/source blockers. `different_legacy_release_expected` is the correct informative comparison to the unreleased `next` candidate, not a hash failure or deployment instruction.
+
+**Explicit private-copy upgrade result: PASS.** Crash rollback, second-run idempotence and original history preservation all passed; there were 22 historical send attempts and zero uncertain outcomes in the copied production snapshot. A newly simulated uncertain attempt remained after the code-only rollback review; the temporary copy was deleted. The operator's output states live database and installed publisher unchanged, no new Bob R3 manual/automatic posting rights and no cutover authority.
+
+This is a point-in-time **operator-supplied** acceptance of the source-only rehearsal. It does not certify ongoing process health, a live R3 migration, real post confirmation, or any grant of Bob-authored publishing capability. Do not run `bobctl update` to activate these uninstalled source changes.
+
 ## Migration and independent owner controls
 
 The R3.13b upgrade contract only permits changes to a marked, owner-private
