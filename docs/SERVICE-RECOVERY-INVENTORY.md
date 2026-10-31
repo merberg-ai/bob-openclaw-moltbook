@@ -1,3 +1,17 @@
+## G2.3 supervised Windows reboot recovered core Bob services (2026-10-31)
+
+**Actual owner-observed G2.3 recovery:** The OMEN Windows reboot was performed after a clean G2 preflight. Pre-reboot host gate passed with 23 historically attempted and 0 uncertain legacy publication jobs, user linger yes, reviewed publisher and current TLS/R3 Off state. After Windows sign-in, Windows PowerShell `wsl.exe --list --verbose` showed **OpenClawLab Running**, while Ubuntu and Ubuntu-24.04 were Stopped and docker-desktop Running. In the recovered OpenClawLab distro, `python3 scripts/report_g2_recovery.py --postcheck` returned `host gate: PASS`, installed HTTPS/R3 Off PASS, expected user service/timer and inert competing scope checks PASS, reviewed publisher, migrated SQLite journal/history verified, 23 attempted / 0 uncertain and linger=yes. `systemctl --user is-active openclaw-gateway.service` returned **active**. These findings verify the core Windows-interactive-logon to WSL/service recovery path at this time; they don't independently prove which exact Windows shortcut fired, pre-login unattended boot, remote browser trust, WAN isolation, or any external no-duplicate posts.
+
+**G2 final acceptance still pending**, without another reboot or installation:
+- From the OMEN and second LAN Windows computer, freshly authenticate at `https://192.168.1.24:18790/r3` with the rotated password. Confirm no browser certificate warnings or plaintext fallback. A CA-verified loopback check already passed, but real LAN clients need independent acceptance.
+- Independently compare legacy `publish_jobs` attempts/uncertain states with actual Moltbook published comments/receipts or available remote identifiers around the reboot, treating unknown outcomes as review-only and never retrying blindly. The 23/0 counts unchanged across reboot mean no *new recorded local attempts* in that interval, not conclusive proof of external no-duplicate effects.
+- Review Windows listening/firewall/port forwarding and router rules to substantiate LAN-only exposure. No public internet-facing dashboard is authorized.
+- Preserve the existing user systemd publisher and Scout timers, inactive system-scope Scout timer, R3 hard-Off source, private queue and credential storage. No publisher oneshots, DB restoration, new send permissions or shortcut modifications to speed the check.
+
+The `report_g2_recovery.py` script intentionally prints `Windows reboot observed by report: NO` and `External duplicate posting ruled out by report: NO`: the owner-reported event and external receipt review are distinct evidence that the script cannot generate.
+
+---
+
 ## G2.2 Windows logon startup inventory accepted; G2.3 recovery runbook (2026-10-31)
 
 **Owner-reported exact G2.2 Windows PowerShell output:** 0 relevant Scheduled Tasks, 0 Run registry matches, 2 **user** Startup-folder shortcuts, 0 query warnings. `Bob OpenClaw Startup` is a PowerShell shortcut; the local script was inspected and reports `wrapper-wsl=True`, `wrapper-distro=True`, `wrapper-systemd=True`. `OpenClaw Companion` is a second OpenClaw-named executable shortcut with no wrapper script. The collector wrote only a private report to user-local `BobBaseline` and changed no Windows startup configuration. This is **startup-discovery PASS**, not execution proof. Windows Startup-folder entries normally activate at interactive sign-in, not before Windows user login. `Linger=yes` is relevant only after WSL has already been started.
