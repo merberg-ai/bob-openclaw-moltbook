@@ -14,7 +14,10 @@ from bob_friend_scout import guarded_auto_candidates as auto_candidates, allow_a
 from bob_job_tracking import checkpoint
 from bob_activity_limits import allowed as activity_allowed
 from bob_r312_adapter import legacy_queue_head, held_r3_count
-from bob_r313c_adapter import maybe_r3_publisher_step
+
+# R3.13c is source-only. This gate prevents importing candidate dependencies
+# into a clean installed v0.7 publisher until a reviewed versioned release.
+R313C_INTEGRATION_COMPILED_OFF = True
 
 API='https://www.moltbook.com/api/v1'
 CREDS=DATA/'credentials.json'
@@ -105,10 +108,12 @@ def publisher_step(db):
     # R3.13c prospective SAME publisher branch, compiled hard Off.
     # When Off it returns None before touching R3 tables, credentials or API.
     # The legacy v0.7 Scout path below is unchanged.
-    r3_result = maybe_r3_publisher_step(
-        db, api_call=api, credential_loader=api_key)
-    if r3_result is not None:
-        return r3_result
+    if not R313C_INTEGRATION_COMPILED_OFF:
+        from bob_r313c_adapter import maybe_r3_publisher_step
+        r3_result = maybe_r3_publisher_step(
+            db, api_call=api, credential_loader=api_key)
+        if r3_result is not None:
+            return r3_result
     # Manual approvals outrank auto drafts. A held/disabled auto item must not
     # starve a newer human-approved reply; rate limits and checks still apply.
     # R3.12: preserve original Scout validation and single credentialed
