@@ -1,3 +1,15 @@
+## R3.8 source increment: inert publication lifecycle and effective systemd review
+
+- [x] Add `src/bob_v08/r38_dispatch_lab.py`: only the existing marked private synthetic R3.3 SQLite fixture and a typed `InertSink` can be used. The R3.7 trusted gate atomically records `sending_simulated` and legacy-shaped `attempted_at`, followed by a fresh owner/friend/source/pause/budget barrier and one in-memory fake transport receipt. ACK, challenge, malformed response, failure and timeout outcomes are all explicitly **simulated**; no Moltbook API, credentials or real POST. The record always retains the consumed attempted send.
+- [x] Add restart recovery `recover_after_restart()`: convert a valid interrupted synthetic intent to irreversible uncertainty; never auto-replay, restore old queue bytes, or modify older legacy publication/verification records. Block corrupt in-flight synthetic records for manual inspection.
+- [x] Test concurrency, crash before/after fake send, failed receipt transaction, non-acknowledged challenge, retry after restart, owner/friend/pause/budget/source revocation, unexpected fake transport and unknown legacy history in `tests/test_r38_dispatch_recovery.py`.
+- [x] Add `scripts/report_r38_effective_units.py` plus focused tests: inspect only fixed `bob-moltbook-publisher.service/.timer` via read-only systemd `cat`, check effective ExecStart resets, oneshot shape, timer target/cadence, unexpected additional commands/restart behavior and drop-in counts. Output never includes raw environment, paths or arguments; **cutover_authorized: false**.
+- [ ] **R3.8 owner effective-unit checkpoint:** after CI merge, run the **single safe** check in [R3.8 dispatch and unit review](docs/R38-DISPATCH-RECOVERY.md) from clean `~/bob-next`. Inspect observed effective unit shape before any deployment planning. R3.6 active timer status alone does not prove the effective service command.
+- [ ] **R3.9 next:** review actual host effective unit findings and design a *publisher-side* opt-in and Bob-origin admission path without cloning the credentialed publisher. Prove real fixed-host GET and final pause consistency under isolated no-network tests, then separately review a versioned and explicitly authorized installation/rollback. No live R3 publisher migration or auto consent has been granted.
+- [ ] **R2 G1 still open:** naturally scheduled model decision on a fresh verified Scout source, not merely successful oneshot execution.
+
+---
+
 ## R3.7 implementation checkpoint: publisher-owned trust boundary (offline simulation)
 
 - [x] Build `src/bob_v08/r37_trusted_gate_lab.py`: a **marked synthetic fixture only** two-pass host-source/permission/queue verification gate that ties the R3.6 source classifier to the existing `r3_unified` transaction. Read authenticated-by-file Scout bytes, exact Bob-authored seal, queued unattempted job, owner `r3_comment_dial`, **both** `auto_enabled` and `r3_auto_enabled`, opt-in date, separate manual approval, legacy limits, manual priority and duplicate/uncertain history. No action policy from the model grants authority.
