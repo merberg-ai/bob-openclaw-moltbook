@@ -19,7 +19,7 @@ import sqlite3
 import stat
 import sys
 
-from .core import Action, Observation, parse_decision
+from .core import Action, Observation, Policy, PolicyState, check, parse_decision
 
 LAB_DIR = "r3-compat-fixtures"
 LAB_DB = "r3-legacy-compat-lab.sqlite3"
@@ -103,7 +103,8 @@ class LegacyCompatLab:
     def simulated_claim(self, action: Action, observed: Observation, *,
                         at: datetime, paused: bool = True,
                         preflight_verified: bool = False,
-                        friend_status: str = "unknown") -> CompatResult:
+                        friend_status: str = "unknown",
+                        policy: Policy | None = None) -> CompatResult:
         """Compare exact queued draft + approval, then simulate sending atomically.
 
         Positive status marks 'sending_simulated' only in the disposable fixture.
@@ -115,6 +116,21 @@ class LegacyCompatLab:
         timestamp = _stamp(at)
         if type(paused) is not bool or type(preflight_verified) is not bool:
             return CompatResult("refused", "missing_owner_or_preflight_state")
+        # The v0.8 dial is a separate authority. Existing v0.7 automatic
+        # permission cannot opt new Bob decisions into Auto on its own.
+        if policy is None:
+            policy = Policy()
+        if not isinstance(policy, Policy):
+            return CompatResult("refused", "invalid_v08_policy")
+        if policy.shadow:
+            return CompatResult("refused", "shadow_only")
+        if policy.dials.get("comment") != "auto":
+            return CompatResult("refused", "v08_comment_not_auto")
+        if policy.paused:
+            return CompatResult("refused", "v08_global_pause")
+        verdict = check(action, PolicyState(at=at), policy)
+        if verdict.disposition != "allow" or verdict.shadow:
+            return CompatResult("refused", "v08_policy_" + verdict.reason)
         db = self._open()
         try:
             head = db.execute(
