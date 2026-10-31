@@ -148,6 +148,11 @@ def rehearse_cutover(state: CutoverState, step: str, *,
     """
     if not _invariants(state):
         return CutoverResult(state, "invalid_or_overlapping_dispatchers", False)
+    gate_flags = (legacy_drained, backup_verified, rollback_rehearsed,
+                  source_adapter_verified, owner_explicitly_authorized,
+                  candidate_drained)
+    if any(type(flag) is not bool for flag in gate_flags):
+        return CutoverResult(state, "invalid_gate_argument", False)
     if step not in ("stage", "quiesce", "activate", "rollback"):
         return CutoverResult(state, "unknown_transition", False)
     if step == "stage":
