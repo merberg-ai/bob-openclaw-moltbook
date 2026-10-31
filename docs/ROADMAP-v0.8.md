@@ -1,3 +1,11 @@
+## R3.3 unified handoff prototype (source-only, CI candidate)
+
+Implemented a **single synthetic SQLite ledger** for new Bob-authored comment sealing, independently approved manual drafts or separately enabled/dated automatic drafts, manual-first legacy queue selection, actual shared v0.7 attempted-send limits, v0.8 policy and permission recheck, and final compare-and-swap to `sending_simulated` with one attempt and one audit row. Unknown outcomes lock against retry. Concurrent claimants serialize under `BEGIN IMMEDIATE`; SQL audit failures roll back the entire synthetic attempt. No `releases/current.json`, worker or credential code is changed. Default Shadow4 remains Off/Shadow.
+
+**R3.4 next:** no production cutover yet. Build the trusted-publisher adapter and cutover *design/rehearsal* for genuinely verified Scout origin, private consent, real friend/GET proof, startup/timer ownership, migration and code-only rollback. The existing live v0.7 publisher cannot simply process these new Bob-authored seals. The owner must explicitly authorize any installation and new automatic action category, after isolated dry-run reviews. Distinguish R2's successful scheduled service/no-event tick from the still-unverified naturally timer-driven *model decision*.
+
+---
+
 ## R3.2 compatibility experiment: legacy queue and owner approval in one simulated transaction
 
 The R3.2 code/review stage now includes a **synthetic-only legacy publisher queue harness**, separate from the R3.1 reservation experiment. It validates legacy v0.7 manual-first queued drafts, owner decisions, queue/source integrity, auto_enabled, friend preflight gating, existing budget module and unknown outcomes against an explicitly private fixture, plus an independent v0.8 policy check. Success produces only `sending_simulated` and `attempted_at` inside the disposable lab DB, never a credentialed POST. Synthetic SQL fault injection proves both intent and audit entry roll back.
