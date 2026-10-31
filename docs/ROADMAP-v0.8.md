@@ -1,3 +1,11 @@
+## R3.6 source-only real-host inventory and draft origin contract
+
+The R3.6 change adds a read-only, bounded **installed-host data collection script** using `systemctl show` on fixed Bob unit names and SQLite `mode=ro`, with a concise printable summary and optional sanitized JSON. It observes current publisher/shadow/reconcile state, legacy SQLite schema, validated posting limits, pause, historical attempted and uncertain counts. The collector cannot toggle services or grant permissions, and its `cutover_authorized` field is always false. It is **not deployed** by an updater and requires a single owner-run check in the separate `~/bob-next` source checkout for real-host acceptance. See [R3.6 host review](docs/R36-HOST-READINESS.md).
+
+A separate read-only `r36_admission_contract.py` verifies saved Scout evidence and classifies only exact matching queued legacy Scout drafts or new Bob-authored drafts with a matching R3 sealed proposal. It is **not** a publisher, does not load credentials, check real external friend/GET state, modify an installed DB or authorize a POST. The existing v0.7 publisher is unchanged. The final live approval, preflight, ownership and rollback requirements remain R3.7+ engineering. A completed natural timer-driven R2 model decision is still independently pending.
+
+---
+
 ## R3.5 private schema migration, reboot and code-only rollback lab (source-only)
 
 The next cutover rehearsal includes an additive transactional synthetic migration from v0.7-shaped queue tables to the R3 proposal/owner-approval schema, under a strict private fixture marker. Tests cover existing history preservation, idempotence, unrecognized schema, SQL crash mid-DDL and rollback without reverting subsequent uncertain publication attempts. A separate pure reboot evaluator rejects two active publisher owners, split timers/workers, unverified startup reconciliation and candidate auto-resume; the stage systemd templates are reviewed in-memory for timer-to-service linkage only. `scripts/rehearse_r35_deployment.py` reports an expected denied unauthorized activation and rollback with no actual systemd or HTTP action.
