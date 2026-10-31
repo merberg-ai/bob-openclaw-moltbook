@@ -94,7 +94,7 @@ class R313COfflineTests(unittest.TestCase):
     def connect(self):
         return sqlite3.connect(self.path,timeout=8,isolation_level=None)
 
-    def run(self, *, response="ack", db=None, after_intent=None, after_post=None,
+    def exercise(self, *, response="ack", db=None, after_intent=None, after_post=None,
             post=None, remote=None):
         calls=[]
         def fake_post(target,text):
@@ -158,7 +158,7 @@ class R313COfflineTests(unittest.TestCase):
             self.assertEqual(_read_envelope(db,RUN),self.action)
             row=db.execute("SELECT action_json FROM r313c_action_envelopes").fetchone()
             self.assertEqual(row[0],canonical_action(self.action))
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"api_acknowledged")
         self.assertTrue(result.attempted)
         self.assertEqual(len(calls),1)
@@ -174,7 +174,7 @@ class R313COfflineTests(unittest.TestCase):
     def test_missing_or_tampered_reason_envelope_prevents_attempt(self):
         with closing(self.connect()) as db:
             db.execute("DELETE FROM r313c_action_envelopes")
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"held")
         self.assertEqual(calls,[])
         self.assertIsNone(self.row()[1])
@@ -187,7 +187,7 @@ class R313COfflineTests(unittest.TestCase):
             db.execute("UPDATE r313c_action_envelopes SET "
                        "action_json=?,action_sha256=?",
                        (fake,hashlib.sha256(fake.encode()).hexdigest()))
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"held")
         self.assertEqual(calls,[])
         self.assertIsNone(self.row()[1])
@@ -196,13 +196,13 @@ class R313COfflineTests(unittest.TestCase):
         with closing(self.connect()) as db:
             db.execute("UPDATE publish_settings SET value='0' "
                        "WHERE name='r3_auto_enabled'")
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"held")
         self.assertEqual(calls,[])
         self.assertIsNone(self.row()[1])
 
     def test_remote_identity_mismatch_blocks_without_attempt(self):
-        result,calls=self.run(remote=lambda p,a:RemoteReview(False,"wrong_author"))
+        result,calls=self.exercise(remote=lambda p,a:RemoteReview(False,"wrong_author"))
         self.assertEqual(result.status,"held")
         self.assertIn("wrong_author",result.reason)
         self.assertEqual(calls,[])
@@ -217,25 +217,25 @@ class R313COfflineTests(unittest.TestCase):
             seal,_=_validated(self.action,self.obs)
             db.execute("INSERT INTO r3_owner_approvals VALUES(?,?,?,?)",
                        (RUN,seal,"approved",NOW.isoformat()))
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"held")
         self.assertEqual(calls,[])
         with closing(self.connect()) as db:
             db.execute("UPDATE publish_settings SET value='1' "
                        "WHERE name='r3_manual_enabled'")
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"api_acknowledged")
         self.assertEqual(len(calls),1)
 
     def test_pause_after_committed_intent_consumes_attempt_no_post(self):
         def pause():
             (self.root/"paused").touch(mode=0o600)
-        result,calls=self.run(after_intent=pause)
+        result,calls=self.exercise(after_intent=pause)
         self.assertEqual(result.status,"uncertain")
         self.assertTrue(result.attempted)
         self.assertEqual(calls,[])
         self.assertIsNotNone(self.row()[1])
-        again,newcalls=self.run()
+        again,newcalls=self.exercise()
         self.assertEqual(newcalls,[])
         self.assertEqual(again.status,"not_selected")
 
@@ -244,7 +244,7 @@ class R313COfflineTests(unittest.TestCase):
             with closing(self.connect()) as db:
                 db.execute("UPDATE publish_settings SET value='off' "
                            "WHERE name='r3_comment_dial'")
-        result,calls=self.run(after_intent=revoke)
+        result,calls=self.exercise(after_intent=revoke)
         self.assertEqual((result.status,calls),("uncertain",[]))
         self.assertIn("owner",result.reason)
         self.assertIsNotNone(self.row()[1])
@@ -253,7 +253,7 @@ class R313COfflineTests(unittest.TestCase):
         def added_friend():
             with closing(self.connect()) as db:
                 db.execute("INSERT INTO bob_friends VALUES('thirdpartyagent')")
-        result,calls=self.run(after_intent=added_friend)
+        result,calls=self.exercise(after_intent=added_friend)
         self.assertEqual(result.status,"uncertain")
         self.assertEqual(calls,[])
         self.assertIsNotNone(self.row()[1])
@@ -266,16 +266,16 @@ class R313COfflineTests(unittest.TestCase):
                     db.execute("UPDATE publish_jobs SET state='queued',"
                                "attempted_at=NULL,comment_id=NULL")
                     db.execute("UPDATE r3_proposals SET state='queued'")
-                result,calls=self.run(response=outcome)
+                result,calls=self.exercise(response=outcome)
                 self.assertEqual(result.status,"uncertain")
                 self.assertTrue(result.attempted)
                 self.assertEqual(len(calls),1)
-                again,calls2=self.run(response="ack")
+                again,calls2=self.exercise(response="ack")
                 self.assertEqual(again.status,"not_selected")
                 self.assertEqual(calls2,[])
 
     def test_challenge_requires_human_existing_publisher_verifier(self):
-        result,calls=self.run(response="challenge")
+        result,calls=self.exercise(response="challenge")
         self.assertEqual(result.status,"awaiting_verification")
         self.assertEqual(len(calls),1)
         with closing(self.connect()) as db:
@@ -283,19 +283,19 @@ class R313COfflineTests(unittest.TestCase):
                 "SELECT state,challenge_code FROM publish_jobs WHERE run_id=?",
                 (RUN,)).fetchone(),
                 ("awaiting_verification","moltbook_fake"))
-        self.assertEqual(self.run()[0].status,"not_selected")
+        self.assertEqual(self.exercise()[0].status,"not_selected")
 
     def test_crash_after_post_recovery_locks_attempt_not_replay(self):
         def crash():
             raise RuntimeError("synthetic process crash after fake post")
         with self.assertRaisesRegex(RuntimeError,"synthetic process crash"):
-            self.run(after_post=crash)
+            self.exercise(after_post=crash)
         self.assertEqual(self.row()[0],"sending")
         with closing(self.connect()) as db:
             self.assertEqual(recover_inflight(db),1)
             self.assertEqual(recover_inflight(db),0)
         self.assertEqual(self.row()[0],"uncertain")
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"not_selected")
         self.assertEqual(calls,[])
 
@@ -307,7 +307,7 @@ class R313COfflineTests(unittest.TestCase):
                        ("20261030T225900Z", "f"*64,
                         "11111111-1111-4111-8111-111111111111",
                         "Legacy manual draft",NOW.isoformat(),NOW.isoformat()))
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"not_selected")
         self.assertEqual(calls,[])
         self.assertIsNone(self.row()[1])
@@ -321,14 +321,14 @@ class R313COfflineTests(unittest.TestCase):
                        ("20261030T220000Z","f"*64,ID,
                         "Previously attempted",NOW.isoformat(),
                         NOW.isoformat(),NOW.isoformat()))
-        result,calls=self.run()
+        result,calls=self.exercise()
         self.assertEqual(result.status,"held")
         self.assertEqual(calls,[])
         self.assertIsNone(self.row()[1])
 
     def test_concurrent_claim_only_one_fake_post(self):
         with ThreadPoolExecutor(max_workers=2) as pool:
-            answers=list(pool.map(lambda _:self.run(),range(2)))
+            answers=list(pool.map(lambda _:self.exercise(),range(2)))
         posted=sum(len(calls) for _,calls in answers)
         self.assertEqual(posted,1)
         self.assertEqual(self.row()[0],"published")
