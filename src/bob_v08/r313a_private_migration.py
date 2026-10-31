@@ -7,6 +7,7 @@ This is not a production migration API or an R3 publisher permission.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -229,10 +230,11 @@ def _rehearse_copy(source: Path) -> dict:
         copied = folder / "queue-copy.sqlite3"
         fd = os.open(copied, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
         os.close(fd)
-        with sqlite3.connect(source.absolute().as_uri() + "?mode=ro",
-                             uri=True, timeout=5) as live:
+        with closing(sqlite3.connect(source.absolute().as_uri() + "?mode=ro",
+                                     uri=True, timeout=5)) as live:
             live.execute("PRAGMA query_only=ON")
-            with sqlite3.connect(copied, isolation_level=None, timeout=5) as copy:
+            with closing(sqlite3.connect(copied, isolation_level=None,
+                                         timeout=5)) as copy:
                 live.backup(copy, pages=64, sleep=0.02)
                 if not _shape(copy) or ADD_NAMES & _tables(copy) or any(
                         x.startswith("r3_") for x in _tables(copy)):
