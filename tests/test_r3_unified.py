@@ -74,6 +74,7 @@ def fixture(path):
         db.executemany("INSERT INTO publish_settings VALUES(?,?)", (
             ("auto_enabled","1"),
             ("r3_auto_enabled","1"),
+            ("r3_comment_dial","auto"),
             ("r3_auto_since","2026-10-30T22:00:00Z"),
             ("activity_limit_comment_daily","2"),
             ("activity_limit_comment_auto_daily","1"),
@@ -179,6 +180,27 @@ class UnifiedTests(unittest.TestCase):
                        " WHERE name='r3_auto_since'")
         self.assertEqual(self.lab.queue(self.action,self.obs,mode="auto",at=NOW,
                          policy=self.auto).state,"queued_simulated")
+
+    def test_persisted_owner_dial_revoked_after_queue_blocks_intent(self):
+        self.stage_auto()
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE publish_settings SET value='off' "
+                       "WHERE name='r3_comment_dial'")
+        result=self.presend()
+        self.assertEqual((result.state,result.reason),
+                         ("held","owner_comment_dial_off"))
+        self.assertEqual(self.sql("SELECT attempted_at FROM publish_jobs"),[(None,)])
+
+    def test_owner_propose_dial_cannot_be_upgraded_to_auto_by_caller(self):
+        self.lab.propose(self.action,self.obs,at=NOW)
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE publish_settings SET value='propose' "
+                       "WHERE name='r3_comment_dial'")
+        self.assertEqual(self.lab.queue(self.action,self.obs,mode="auto",
+                         at=NOW,policy=self.auto).reason,"owner_comment_not_auto")
+        self.approve()
+        self.assertEqual(self.lab.queue(self.action,self.obs,mode="manual",
+                         at=NOW,policy=self.manual).state,"queued_simulated")
 
     def test_auto_consent_revoked_after_queue_blocks_intent(self):
         self.stage_auto()

@@ -1,3 +1,13 @@
+## R3.4 completed source increment: pinned Scout evidence and dry-run service ownership
+
+- [x] Add `r3_cutover_rehearsal.py`: source-bound `read_observation()` verification before propose, queue and simulated intent; pin snapshot, post and legacy Scout approval hashes; terminally hold changed saved evidence without consuming a synthetic attempt.
+- [x] Make R3.3 `r3_unified.py` reread the persisted lab-only `r3_comment_dial` within queue/intent transactions. An Off/missing dial blocks, Propose cannot be upgraded to Auto, and revocation after queue stops simulated sending. Preserve distinct human approval of Bob-authored comment text.
+- [x] Model pure one-publisher stages, explicit owner authorization, old/new worker drain, shadow timer preservation, safe rollback with immutable attempted/uncertain history; provide `scripts/rehearse_r3_cutover.py` denial-and-rollback report. Focused offline `tests/test_r3_cutover_rehearsal.py` and CI triggers cover source tamper, disabled/revoked settings, simulated GET staleness, overlap and nonboolean gates. **No host actions or release install.**
+- [ ] **R3.5 next:** replace synthetic truth placeholders with reviewed host-side trust *contracts*, rehearse exact installed unit ownership and crash/reboot behavior using inert fixture templates, and prove additive single-publisher migration/rollback with no stale SQLite state restore. Do not treat the R3.3 caller-supplied `Proof`, `Policy` or pause boolean as live authorization; real friend/GET checks and actual owner settings remain unimplemented.
+- [ ] **R2 still pending separately:** naturally timer-driven OpenClaw decision against a new verified saved Scout selection; no force replay and no premature R2 G1 closure.
+
+---
+
 ## R3.3 implementation checkpoint: one simulated publisher ledger
 
 - [x] Add `src/bob_v08/r3_unified.py`, joining the R3.1 unique reservation and R3.2 legacy queue protections into **one** marked synthetic database. A new Bob-generated comment gets a unique source-bound seal and proposal record, never inherits the hash or manual approval for an older v0.7 Scout draft.

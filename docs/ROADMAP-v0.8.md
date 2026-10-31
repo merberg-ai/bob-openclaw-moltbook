@@ -1,3 +1,11 @@
+## R3.4 offline source trust and cutover ownership rehearsal (CI candidate)
+
+A source-only rehearsal now verifies **authentic locally saved Scout feed/result bytes** with the reviewed R2 `read_observation()` at proposal, queue and final simulated intent, rejecting source and action drift, missing/changed hashes and symlink files. R3.3 rechecks a **separate persisted owner comment dial** in the same synthetic SQLite transaction, preventing model input from silently upgrading Propose to Auto or ignoring revocation after queueing. The inert cutover state machine refuses dual publishers, active legacy worker cutover, unknown owner authorization and unproven backup/rollback; a simulated code-only rollback keeps historical attempts and uncertain state intact. `scripts/rehearse_r3_cutover.py` provides a small deterministic deny-and-rollback report, with no systemd access.
+
+This demonstrates the engineering design, **not a trusted production adapter or actual systemd cutover rehearsal**. Synthetic `Proof` from the harness is never a real network GET or verified friend response. Current v0.7 publisher would still reject new Bob-authored sealed drafts, and `releases/current.json` remains Shadow4. Next R3.5 builds a reviewed production-adapter *contract* and isolated migration/service-template rehearsals before any host install or new owner permission.
+
+---
+
 ## R3.3 unified handoff prototype (source-only, CI candidate)
 
 Implemented a **single synthetic SQLite ledger** for new Bob-authored comment sealing, independently approved manual drafts or separately enabled/dated automatic drafts, manual-first legacy queue selection, actual shared v0.7 attempted-send limits, v0.8 policy and permission recheck, and final compare-and-swap to `sending_simulated` with one attempt and one audit row. Unknown outcomes lock against retry. Concurrent claimants serialize under `BEGIN IMMEDIATE`; SQL audit failures roll back the entire synthetic attempt. No `releases/current.json`, worker or credential code is changed. Default Shadow4 remains Off/Shadow.

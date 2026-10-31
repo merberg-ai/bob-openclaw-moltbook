@@ -195,7 +195,19 @@ class UnifiedLab:
             return "shadow_only"
         if policy.paused:
             return "v08_paused"
+        # R3.4: the model-provided Policy is never enough. This scope-specific
+        # dial must be persisted by the simulated OWNER, and is reread inside
+        # the same queue/attempt transaction. Missing or corrupt = Off.
+        owner_row = db.execute(
+            "SELECT value FROM publish_settings WHERE name='r3_comment_dial'").fetchone()
+        owner_dial = owner_row[0] if owner_row else "off"
+        if owner_dial not in ("propose", "auto"):
+            return "owner_comment_dial_off"
+        if mode == "auto" and owner_dial != "auto":
+            return "owner_comment_not_auto"
         dial = policy.dials.get("comment")
+        if dial == "auto" and owner_dial == "propose":
+            return "owner_dial_below_requested"
         if dial != ("auto" if mode == "auto" else "propose") and not (
                 mode == "manual" and dial == "auto"):
             return "v08_comment_dial"
@@ -339,6 +351,26 @@ class UnifiedLab:
         db.execute("INSERT INTO r3_lab_audit VALUES(NULL,?,?,?,?)",
                    (run, "hold", reason, at))
         return Outcome("held", reason)
+
+    def simulated_hold_source(self, run: str, *, at: datetime):
+        """Hold a queued synthetic draft after fresh Scout integrity failure.
+
+        Deliberately cannot touch sending or attempted jobs. This preserves
+        older real-looking attempts in the synthetic DB on source drift.
+        """
+        if not isinstance(run, str) or not RUN.fullmatch(run):
+            raise ValueError("invalid_lab_run")
+        stamp = _ts(at)
+        db = self._open()
+        def transaction(db):
+            row = db.execute("SELECT state FROM r3_proposals WHERE source_run=?",
+                             (run,)).fetchone()
+            job = db.execute("SELECT state,attempted_at FROM publish_jobs WHERE run_id=?",
+                             (run,)).fetchone()
+            if row != ("queued",) or job != ("queued", None):
+                return Outcome("refused", "not_queued_or_already_attempted")
+            return self._held(db, run, stamp, "verified_source_drift")
+        return self._finish(db, transaction)
 
     def simulated_uncertain(self, run: str, *, at: datetime):
         if not isinstance(run, str) or not RUN.fullmatch(run):
