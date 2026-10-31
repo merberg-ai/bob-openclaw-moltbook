@@ -26,7 +26,7 @@ class TrustedHostTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
         self.home = self.root / "home"
-        (self.home / ".config" / "moltbook").mkdir(parents=True, mode=0o700)
+        (self.home / ".config").mkdir(parents=True, mode=0o700)
         (self.home / ".config" / "bob-system").mkdir(mode=0o700)
         os.chmod(self.home, 0o700)
         os.chmod(self.home / ".config", 0o700)
