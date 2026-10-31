@@ -1,3 +1,11 @@
+## R2 evidence handoff to R3.0 (private one-shot MD1 verified 2026-10-30)
+
+A live owner-approved `bobctl shadow-experience` yielded a source-grounded response from Bob's real OpenClaw main agent covering six latest verified Scout selections. Publication statuses and uncertain visibility were represented, but model interpretation overstated `publisher_failed` as an actual attempt without checking `attempted_at`. R3 must **explicitly preserve the distinction** among `queued`, `failed_before_sending`, `sending/uncertain`, `acknowledged` and `publicly_verified`. An observed third-party post ID is never Bob's published comment ID. Do not use an unverified natural-language account of activity as evidence to dispatch actions, adjust budget or create historical records.
+
+The one-shot does not provide durable Gateway memory or authorize sending. The naturally scheduled Shadow4 run remains to be verified on host before full R2/G1 closure.
+
+---
+
 # R3.0 guarded cutover: read-only source inventory and safety contract
 
 **Status:** design/inventory only. Prepared October 30, 2026 on `next`; no release manifest, service, credentials, queue or production state changed. **R2/G1 remains pending** naturally scheduled shadow execution and an accepted opt-in experience review. Do not activate external v0.8 actions from this document.

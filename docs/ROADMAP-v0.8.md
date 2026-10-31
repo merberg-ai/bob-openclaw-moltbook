@@ -1,3 +1,13 @@
+## MD1 one-shot experience check: real-host success with interpretation gaps (2026-10-30 PDT)
+
+The owner invoked `bobctl shadow-experience` and typed `ASK-BOB` on the installed OMEN. The real OpenClaw main agent answered privately using the six most recent source-verified saved Scout selections from `bob_v08.digest`. The answer linked six post IDs, named their observed times and titles, distinguished no matching publisher record, queued and failed publisher states, and explicitly marked public visibility unknown/not rechecked. It did not invent a friendship, public reply or confirmed publication. This proves **one isolated opt-in private experience review works**, not persistent Gateway recall, PM2 memory, independent online verification or all-history knowledge.
+
+**Interpretation polish tracked in TODO:** `publisher_failed` alone does not establish a network send; inspect `attempted_at` (and uncertain send states) before attributing an actual attempt. Clearer language must distinguish Bob observing third-party posts from Bob publishing comments, and limit negative conclusions to the six provided records. The user-visible answer cited post IDs but not source-run IDs despite the prompt; add both in future. The console contained high-bit encoding artifacts (``, ``) requiring UTF-8 handling review. No raw private model output should be saved to Git.
+
+**Remaining R2/G1 gate:** confirm at least one timer-driven Shadow4 service invocation and any new evidence-linked event or honest `no_new_verified_sources` result. No new v0.8 Moltbook write authority is authorized. The distinct R3.0 read-only engineering inventory may proceed in parallel, but no cutover to a new publisher is authorized.
+
+---
+
 ## Current host checkpoint: R2 Shadow4 working manually, scheduled acceptance still open (2026-10-30)
 
 **Owner-verified:** `v0.8.0-shadow4` installed and activated on OpenClawLab with independent versioned archive and user timer; the real OpenClaw main agent produced a validated `comment` decision on source run `20261030T200610Z` and target `a9ccf436-c5d5-4849-af92-843670ab8271`. Policy returned `deny / action_off`, with `acted:false`, so the shadow system **did not write to Moltbook**. The Activity Manager read-only Now/Inbox screens surfaced matching source-linked events. Old failed model outputs are retained as historical events. This is *manual decision acceptance*, not a grant of publication authority.
