@@ -32,7 +32,7 @@ HASH = re.compile(r"[a-f0-9]{64}\Z")
 
 # These imports only expose the shared policy evaluator. Never call
 # bob_publish_common.connect(), whose default path is the real legacy DB.
-LIB = str(Path(__file__).resolve().parents[2] / "lib" / "bob")
+LIB = str(Path(__file__).resolve().parents[1] / "lib" / "bob")
 if LIB not in sys.path:
     sys.path.insert(0, LIB)
 from bob_activity_limits import allowed as v07_activity_allowed  # noqa: E402
