@@ -1,3 +1,14 @@
+## CH-HTTPS3 OMEN Windows CA trust reported; TLS-only cutover release ready for acceptance (2026-10-31)
+
+- [x] Owner confirmed **public CA imported successfully into the Windows trust store on BOTH the OMEN and the primary remote LAN Windows computer**. Verified source certificate SHA256: `af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`. This is owner-reported store import, not yet a successful post-switch browser HTTPS handshake.
+- [x] Reviewed CH-HTTPS3 TLS-only manager/source extension tested in isolated real localhost TLS fixture (979 Python tests, Windows parse). Preserves existing R3 controls and legacy routes; TLS>=1.2, trusted exact CA/SAN, strict HTTPS Origin/CSRF/Host and no HTTP fallback.
+- [x] Promote exact versioned `v0.8.0-chhttps3` from installed `v0.8.0-chhttps1`: only `bob_manager_tls.py` plus generated `bob-activity-manager`, `restart_manager: true`. No publisher, Gateway, Scout, timer, SQLite or R3 consent change.
+- [x] Add fixed-host read-only `scripts/report_ch_https3_cutover.py --preflight` before updating and `--installed` afterward; requires owner-pinned public CA fingerprint, valid private cert chain, installed registry hashes, existing manager/timers active, R3 complete+compiled-Off, authenticated TLS 1.2+ manager routes, unauthenticated R3 rejected, plaintext HTTP on old port refused.
+- [ ] **Owner CH-HTTPS3:** after CI and merge, `cd ~/bob-next && git pull --ff-only && python3 scripts/report_ch_https3_cutover.py --preflight` must PASS. Next `bobctl update --check` must show exact two-file CH3 release and manager restart yes. Then `bobctl update`, owner typed `UPDATE`; afterwards run `python3 scripts/report_ch_https3_cutover.py --installed` read-only and verify local/remote browsers at `https://192.168.1.24:18790/r3` without warnings. Do not proceed if earlier gates fail. On failure consult updater code-only journal, **never restore old SQLite**.
+- [ ] **CH-HTTPS4** browser trust and remote-LAN acceptance, HTTP denial, rotate historical Basic auth password, test post-restart / Windows WSL reboot and legacy publisher no-duplicate evidence. R3 Bob-authored real sending remains separately unauthorised.
+
+---
+
 ## CH-HTTPS2 OMEN cert PASS; CH-HTTPS3 source-only candidate (2026-10-31)
 
 - [x] **Owner CH-HTTPS2 local cert acceptance PASS:** independent fixed-host read-only preflight verified CH-HTTPS1 install, no material and eligible; owner typed `PREPARE BOB HTTPS`, private CA/server cert created, three SANs verified (192.168.1.24 / 127.0.0.1 / localhost), disposable TLS handshake and wrong-hostname refusal PASS. Repeat `--verify` read-only PASS. Public CA SHA256 **`af47c380af49eaf5b51683eb2cb1b6455eba019e754e09e295a0a3eeedc1f196`**. No TLS service activated or R3 send rights.
