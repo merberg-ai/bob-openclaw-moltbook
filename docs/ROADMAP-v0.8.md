@@ -1,3 +1,11 @@
+## G2.3 observed Windows reboot and OpenClaw recovery PASS; external acceptance remains (2026-10-31)
+
+Owner provided before/after Windows reboot evidence. **Before reboot:** G2 local host `PASS`, HTTPS and R3 hard Off `PASS`, expected user timer/manager and dormant competitors `PASS`, effective legacy publisher reviewed, SQLite schema/journal verified, legacy attempts **23**, uncertain **0**, linger yes. **After Windows reboot and sign-in:** Windows `wsl.exe --list --verbose` showed `OpenClawLab Running`. Subsequent WSL G2 `--postcheck` again gave `host gate: PASS` with the same 23 attempted/0 uncertain counts and all safeguards; `openclaw-gateway.service` returned `active`. This provides owner-witnessed recovery after Windows interactive logon, not unattended machine boot and not proof that the specific shortcut is the only boot mechanism.
+
+**Still open before full G2 closure:** user-visible post-reboot TLS/new password from both OMEN and second LAN computer, independently reviewed external Moltbook receipts and attempted target/no-duplicate ledger reconciliation, and private LAN/WAN listener/firewall exposure verification. The G2 report's `Windows reboot observed: NO` remains correctly read-only and cannot itself witness a Windows restart; likewise `External duplicate posting ruled out: NO` cannot be overridden by unchanged counters alone. R3 dispatch and automatic real posting remain compiled Off and unauthorized. No service, database or release change made by this documentation-only milestone.
+
+---
+
 ## G2.2 Windows startup inventory accepted; G2.3 supervised owner reboot acceptance (2026-10-31)
 
 Owner ran the reviewed Windows PowerShell startup collector on OMEN. Report: **0** matching scheduled tasks, **0** Run entries, **2** user Startup shortcuts, **0** warnings. The `Bob OpenClaw Startup` PowerShell shortcut's script was inspected and references **WSL/OpenClawLab/systemd**; an independent `OpenClaw Companion` OpenClaw-named executable startup shortcut also exists. No startup settings or WSL services were changed. Combined with G2.1 local host `PASS`, this supports **Windows interactive-user-logon** recovery architecture, but **not** unattended machine boot recovery or any actual post-reboot operation.
