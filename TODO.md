@@ -1,3 +1,13 @@
+## R3.13d live OFF-schema migration applied on OMEN (owner-reported, 2026-10-31)
+
+- [x] Owner drained publisher and manager, disabled publisher/Scout user timers and established private pause; final fixed-host read-only report showed installed stage1 verified, eligible schema, paused+drained yes, journal absent and explicit migration eligible.
+- [x] Owner independently typed `MIGRATE R3 OFF` for `scripts/r313d_live_off_migration.py --apply-off`. Tool returned `R3.13d LIVE OFF SCHEMA: APPLIED (owner-confirmed)`, historical attempted sends preserved **23**, historical uncertain **0**, database rollback by stale restore **NEVER**, new R3 publication permissions **NONE**, publisher/manager **STILL STOPPED**.
+- [ ] **Post-migration independent read-only acceptance still pending:** check `python3 scripts/r313d_live_off_migration.py --json` for `r3_schema=ready`, journal `complete`, attempts `23`, uncertain `0`, pause true, publisher/manager drained true, installed release verified. `eligible_for_off_migration=false` is correct after successful migration. Do not invoke `--apply-off` again.
+- [ ] **Next staged service restoration:** start Activity Manager while private pause remains, run `python3 scripts/report_r313d_stage1_installed.py` and verify authenticated R3 page; only after this passes restore original `enabled+active` publisher/Scout timer states and remove the exact owner-created pause marker LAST. Do not start legacy publisher oneshot by hand. Do not touch Gateway/Shadow. No real R3 canary or automatic permissions.
+- [ ] **Ledger follow-up:** prior private snapshot had 22 attempts, live Off migration retained 23. One additional attempted job appeared in the interval while the legacy timer was running; that alone does NOT prove a successful public post. Preserve all records and check source-linked provenance later, without replay.
+- [ ] **Remaining R3.13d gates:** secure HTTPS/protected owner LAN route before enabling manual R3 owner mutations, explicit canary/one-publisher G2, reboot/no-duplicate/code-only rollback. R2 G1 remains independent.
+
+---
 ## R3.13d stage1 OMEN install accepted (operator-reported, 2026-10-31)
 
 - [x] **Guarded updater acceptance PASS:** owner ran `bobctl update --check`, verified exact `v0.8.0-r3stage1` seven-file manifest and Activity Manager restart, then ran `bobctl update` with typed `UPDATE`; result `BOB UPDATE: updated`.
