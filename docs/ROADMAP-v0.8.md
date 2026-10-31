@@ -1,3 +1,13 @@
+## R3.13d production SOURCE checkpoints accepted (2026-10-31)
+
+PR #89 merged the **Off-first owner-controls and real OpenClaw sealed-proposal source**, with 932 Python tests green and Windows startup validation. The original pinned Activity Manager remains untouched, the generated dashboard extends existing R2/OC4/FM4.1 routes, and automatic Bob-authored publishing remains compiled Off. The new `v0.8.0-r3stage1` file manifest is **noncurrent** under `releases/candidates/`; no installed executable or live database changed.
+
+PR #90 merged the **separately gated owner-confirmed live Off-only schema migration source** at `ea8f3506a336a3616e5fe64b829d583f86f3d922`, with **941 Python tests** and Windows startup parsing green (GitHub Actions `41213864893`). The default CLI remains read-only and refuses any live write until the exact stage1 code release is independently approved and installed, the publisher timer and services are drained, a private restore-tested SQLite backup and durable journal are available, and an interactive owner types `MIGRATE R3 OFF`. This adds only Off schema, never Bob R3 permission.
+
+**Owner OMEN acceptance and public cutover NOT yet completed.** The next safe checkpoint is `python3 scripts/report_r313d_off_first.py` on the host after `git pull --ff-only`. `releases/current.json` still points to `v0.8.0-shadow4`. Owner-accepted stage1 promotion/install, actual paused/drained Off migration, separately approved exact-draft one-publisher canary, WSL/Windows reboot/no-retry acceptance and R2 G1 all remain open. No blind real POST or automatic R3 posting may be enabled.
+
+---
+
 ## R3.13d separate guarded live OFF migration candidate (source only)
 
 The production boundary is **not** a `bobctl update` side effect: `src/bob_v08/r313d_live_off_contract.py` applies R3.5 and R3.13c additive DDL in one SQLite transaction with explicit Off R3 owner keys and a complete legacy history digest, and `scripts/r313d_live_off_migration.py` is the only fixed-host operator command allowed to run it. Its default operation is read-only. The separately approved interactive `--apply-off` requires the installed Off-first code release and verified updater hashes, source triple-Off guard, owner-private pause, disabled and inactive publisher timer, inactive publisher and manager services, an exclusive updater lock, and a restore-tested private backup. The durable `prepared/complete` journal blocks unknown recovery, and an older SQLite backup is **never** automatically restored over later attempted or uncertain sends. No service is stopped/restarted by the tool; no Moltbook network path is added.
