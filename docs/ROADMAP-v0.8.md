@@ -1,3 +1,11 @@
+## CH-HTTPS4 manager restart accepted; G2 Windows/WSL recovery preflight (2026-10-31)
+
+Owner reported successful restart of **only** `bob-activity-manager.service`, which remained `active`. Both pre- and post-restart CH-HTTPS4 credential/current HTTPS/R3 Off gate and installed CH-HTTPS3 TLS integrity/rejected HTTP checks passed, with original publisher/Scout timers active. The separate previously accepted password rotation proved old password denied and new accepted. This is manager-only recovery, NOT full Windows/WSL reboot, fresh independent two-client browser trust, independent startup persistence, LAN-only firewall inspection, or publisher no-duplicate proof.
+
+Source-only G2 read-only `scripts/report_g2_recovery.py` stages distinct `--baseline` / `--postcheck` snapshots of allowlisted unit state, competitor/duplicate scope inertness, legacy publisher effective reviewed unit, current HTTPS/R3 Off and historical attempted/uncertain counts. No host changes; a PASS is a **local host-state gate**, not a reboot witness or external Moltbook receipt audit. Prior Windows discovery found two user Startup-folder items, one invoking an OpenClawLab WSL/systemd wrapper, and system-scope Scout units coexisting with user-scope Scout units: explicit inactive/disabled confirmation must precede a risky reboot. G2 full reboot and source-linked ledger comparison require separate owner observation. No R3 dispatch or canary consent.
+
+---
+
 ## CH-HTTPS4 live password rotation accepted, manager restart next (2026-10-31)
 
 The owner confirmed the original CH-HTTPS4 refusal was caused by attempting to replace the password with an identical value, as intended by the fail-closed rule. A read-only audit correctly reported that the historical credential remained active and the alternate candidate was rejected. On a subsequent **distinct** replacement, the interactive CH-HTTPS4 tool reported `credential change: APPLIED`, verified the old password's 401, the new password's authenticated HTTPS 200, and the postflight CH-HTTPS3/R3 safeguards `PASS`. No service, database, publisher or Moltbook action occurred. This is accepted server-side credential rotation, **not yet** two-client post-change browser acceptance or restart recovery.
