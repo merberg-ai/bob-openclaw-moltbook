@@ -1,10 +1,20 @@
-## R3.13b source candidate: production-safe contract and independently gated R3 consent (OMEN acceptance pending)
+## R3.13b OMEN operator acceptance PASS (2026-10-30)
+
+- [x] **Read-only installed-source review PASS:** trusted queue boundary `yes`; legacy schema `match`; installed R3 owner settings `absent_off`; effective publisher unit `reviewed_shape`; executable `owner_controlled_regular`; updater registry `verified_registry_hash`; installed versus unreleased `next` source `different_legacy_release_expected`; boundary and source review blockers `none`.
+- [x] **Private-copy upgrade rehearsal PASS:** default-Off schema/owner-control upgrade `PASS`; simulated pre-commit crash rollback `True`; repeat migration `True`; existing history preserved `True`; historical send attempts `22`, uncertain outcomes `0`; newer synthetic uncertain attempt retained `True`; code-only rollback preserved history `True`; private copy deleted. Operator confirms live database changed `NO`, installed publisher changed `NO`, new R3 manual/auto posting rights `NONE`, cutover authorization `NO`.
+- [x] Record the owner-supplied point-in-time sanitized results without copying database contents, unit values, credentials or paths. This validates R3.13b's rehearsal contract only, not a production migration or ongoing service health.
+- [ ] **Next R3.13c:** review/build the existing single publisher's authenticated R3 admission and real-transport path with fixed-host exact post/author GET, source/friend/owner/pause/rate checks, durable intent and post-intent final barrier, challenge/timeout/uncertain no-retry; keep live dispatch Off pending distinct owner authority, production installer and independent authenticated R3 manual/auto UI.
+- [ ] **Later R3.13d:** separately approved staged install, publisher drain, canary, WSL/Windows reboot and code-only rollback, preserving all new attempts. **R2 G1** remains independently pending.
+
+---
+
+## R3.13b source contract completed; OMEN acceptance PASS (2026-10-30)
 
 - [x] Add `src/bob_v08/r313b_upgrade_contract.py`: no live entrypoint; exact marked 0700/0600 private-copy-only additive R3.5 schema and four explicit default-Off keys (`r3_comment_dial`, `r3_manual_enabled`, `r3_auto_enabled`, `r3_auto_since`). Validate all preexisting legacy rows, transactional crash rollback, idempotence and refusal of unknown schema / preexisting R3 opt-in. Legacy v0.7 Auto is never sufficient.
 - [x] Add read-only independent consent review: manual requires separate R3 manual enable + compatible dial + exact owner-approved Bob seal; auto requires separate R3 opt-in, previous v0.7 opt-in and source-newer-than-R3-opt-in. No live UI setter or dispatch authority installed; every result has `dispatch_authorized=False`.
 - [x] Add `src/bob_v08/r313b_install_attestation.py` for sanitized R3.8 effective-unit / actual installed publisher ExecStart binary verification, permissions, symlink/ancestor checks, private updater registry hash evidence and informative next-candidate comparison. No paths/secrets/hashes exposed. Missing registry tracking is not assumed to be validated release integrity.
 - [x] Add `scripts/report_r313b_host.py`: fixed read-only host evidence; opt-in `--private-copy` SQLite online snapshot into strict marker/private fixture, upgrade tables+Off settings, simulated crash and rollback, idempotence, full legacy history validation, simulated post-upgrade uncertain attempt retained under code-only rollback, temp cleanup. Add focused regressions, CI triggers, [guide](docs/R313B-UPGRADE-CONSENT-ATTESTATION.md) and noninstallable candidate. `releases/current.json` unchanged.
-- [ ] **Operator acceptance pending:** review read-only report after merge; run `--private-copy` only on eligible host. These checks do not install or enable new R3 rights.
+- [x] **Operator acceptance PASS (2026-10-30):** read-only installed executable and publisher unit review, updater registry hash verification and disposable private-copy upgrade/rollback acceptance recorded above; no live changes or R3 rights.
 - [ ] **R3.13c:** implement/review authenticated single-publisher R3 send branch and final after-intent source/friend/owner/pause barrier with challenge and uncertain no-retry. Independent authenticated UI controls and eventual release still need separate approval.
 - [ ] **R3.13d:** separate owner-approved stage/drain/canary/reboot/code-only rollback before any real Bob-authored posts. R2 G1 remains open.
 
