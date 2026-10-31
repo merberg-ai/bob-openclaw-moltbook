@@ -1,3 +1,13 @@
+## R3.3 implementation checkpoint: one simulated publisher ledger
+
+- [x] Add `src/bob_v08/r3_unified.py`, joining the R3.1 unique reservation and R3.2 legacy queue protections into **one** marked synthetic database. A new Bob-generated comment gets a unique source-bound seal and proposal record, never inherits the hash or manual approval for an older v0.7 Scout draft.
+- [x] Enforce separate manual approval vs auto flags, v0.8 Off/Propose/Auto policy, dated auto opt-in, manual-first/FIFO queue, current legacy rate policy, trusted-placeholder preflight and friend protection, and atomic synthetic `sending/attempted_at` CAS. Ambiguous outcomes remain locked; no credentialed publisher integrated.
+- [x] Test concurrent workers, altered text, revocation after queue, legacy queue collisions, UTC budgets/spacing, stale preflight, SQL crash rollback, uncertain/restart state and refusal of live DB paths in `tests/test_r3_unified.py`. Trigger CI on these tests.
+- [ ] **R3.4 next:** build an isolated host-trust adapter and publish-control migration/restart/rollback rehearsal with exact current unit ownership, signed/verified Scout provenance and real **one-publisher** source validation; never substitute a synthetic preflight/owner-consent argument for actual host authority. Preserve historical attempts and make rollback code-only after new database events.
+- [ ] **R2 G1 still pending:** naturally timer-driven OpenClaw decision on a new verified Scout selection; a successful no-event scheduled service alone is insufficient.
+
+---
+
 ## R3.2 legacy compatibility checkpoint (source-only)
 
 - [x] Build isolated `r3_legacy_compat.py` preview against a private marked fixture of actual legacy queue tables. It reuses the real `bob_activity_limits.allowed()` implementation and checks manual-first/FIFO, exact draft+hash, manual approval, auto enabled/owner override, friend clearance, age, duplicate target, same-transaction `attempted_at`, final synthetic audit and irreversible uncertain status.
