@@ -25,10 +25,11 @@ FILES=frozenset((
     "bob_r4_reflections.py","bob_r4_decision.py","bob_r4_ledger.py",
     "bob_r4_suggestions.py","bob_r4_schema.py",
     "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
-    "bob_r4_web.py",
+    "bob_r4_web.py","bob_r4_outbox.py",
+    "bob_r4_publisher_adapter.py","bob-moltbook-publisher",
 ))
 UNSAFE_WORKERS=frozenset((
-    "bob-moltbook-publisher","bob-moltbook-scout","bob-r3-propose",
+    "bob-moltbook-scout","bob-r3-propose",
     "bob-r3-canary-arm","bob_r313c_adapter.py","bob_r3_canary_lock.py"))
 
 
@@ -69,6 +70,7 @@ def inspect(root:Path=ROOT) -> dict:
                 "scripts/bob_release_updater.py" if name=="bob-release-updater"
                 else "src/bin/bobctl" if name=="bobctl"
                 else "src/bin/bob-r4-propose" if name=="bob-r4-propose"
+                else "src/bin/bob-moltbook-publisher" if name=="bob-moltbook-publisher"
                 else "src/lib/bob/"+name)
             if origin!=("source",path):
                 raise ValueError("r4_unreviewed_source_target")
@@ -85,6 +87,16 @@ def inspect(root:Path=ROOT) -> dict:
     migration=(root/"src/lib/bob/bob_r4_schema.py").read_text("utf-8")
     if "INSTALL_HOOK_COMPILED_OFF=True" not in migration:
         raise ValueError("r4_source_migration_host_gate_unverified")
+    publisher=(root/"src/bin/bob-moltbook-publisher").read_text("utf-8")
+    adapter=(root/"src/lib/bob/bob_r4_publisher_adapter.py").read_text("utf-8")
+    outbox=(root/"src/lib/bob/bob_r4_outbox.py").read_text("utf-8")
+    if (publisher.count("R4_SINGLE_PUBLISHER_COMPILED_OFF = True")!=1
+            or "if not R4_SINGLE_PUBLISHER_COMPILED_OFF:" not in publisher
+            or "R313C_INTEGRATION_COMPILED_OFF = False" not in publisher
+            or publisher.count("def api(")!=1
+            or "R4_REAL_DISPATCH_COMPILED_OFF=True" not in adapter
+            or "PUBLIC_DISPATCH_COMPILED_OFF=True" not in outbox):
+        raise ValueError("r4_original_publisher_scope_not_compiled_off")
     if (not "AUTO_ENGINE_COMPILED_OFF=True" in controls or
             not "dispatch_authorized: bool = False" in policy or
             "Authorization: Bearer" in web or
