@@ -47,6 +47,9 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-r3stage1": "http",
     "v0.8.0-chhttps1": "http",
     "v0.8.0-chhttps3": "https",
+    # R3 source candidate retains strict HTTPS on the existing private LAN port.
+    # This does not enable R3 dispatch or authorize a production installation.
+    "v0.8.0-cutover1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
