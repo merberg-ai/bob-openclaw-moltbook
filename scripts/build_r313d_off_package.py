@@ -21,13 +21,16 @@ MODULES = (
     "r313d_staging.py", "r313d_producer.py",
 )
 MAX_BYTES = 512*1024
+FROZEN_FORMAT1 = {'r313d_producer.py', 'r313c_candidate.py'}
 
 
-def build() -> tuple[bytes,bytes]:
+def build(*, development=False) -> tuple[bytes,bytes]:
     memory = BytesIO()
     with ZipFile(memory,"w",compression=ZIP_STORED) as archive:
         for name in MODULES:
-            path = ROOT/"src"/"bob_v08"/name
+            path = (ROOT/"release_baselines"/"v08-r3format1"/name
+                    if name in FROZEN_FORMAT1 and not development
+                    else ROOT/"src"/"bob_v08"/name)
             if path.is_symlink() or not path.is_file():
                 raise ValueError("r3_missing_reviewed_module")
             content=path.read_bytes()
@@ -48,6 +51,11 @@ def build() -> tuple[bytes,bytes]:
     if not 0 < len(package) <= MAX_BYTES or not 0 < len(program) <= MAX_BYTES:
         raise ValueError("r3_package_oversized")
     return package,program
+
+
+def build_development():
+    """For future signed candidate only; historical build() remains frozen."""
+    return build(development=True)
 
 
 if __name__ == "__main__":
