@@ -216,6 +216,10 @@ def reserve_once(db,source_dir,*,at:datetime):
         from bob_r4_controls import CAPS
         if count>=CAPS[kind]:
             raise ValueError("r4_outbox_action_daily_budget")
+        from bob_r4_budget import inspect as inspect_global_budget
+        budget=inspect_global_budget(db,at=at)
+        if not budget.allowed:
+            raise ValueError("r4_outbox_"+budget.reason)
         row=db.execute(
             "UPDATE r4_action_outbox SET state='attempting',"
             "attempted_at=?,updated_at=?,last_code='intent_committed' "
