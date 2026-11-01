@@ -17,7 +17,7 @@ from bob_r312_adapter import legacy_queue_head, held_r3_count
 
 # R3.13c is source-only. This gate prevents importing candidate dependencies
 # into a clean installed v0.7 publisher until a reviewed versioned release.
-R313C_INTEGRATION_COMPILED_OFF = True
+R313C_INTEGRATION_COMPILED_OFF = False  # exact signed, owner-armed one-comment canary ONLY
 
 # R3 cutover preparation: preserve the existing single credentialed sender.
 # All legacy attempts at the same target must block a second POST, regardless
@@ -124,9 +124,10 @@ def record_publisher_skip(db,code,rid=''):
 def publisher_step(db):
     auto_candidates(db)
     db.commit()
-    # R3.13c prospective SAME publisher branch, compiled hard Off.
-    # When Off it returns None before touching R3 tables, credentials or API.
-    # The legacy v0.7 Scout path below is unchanged.
+    # R3 single-writer canary: wrapper only enters the R3 branch after the
+    # *exact* compiled source seal, manually queued job and private owner arm.
+    # Its wide R3 dispatch switches remain hard Off. Before owner arming,
+    # the adapter returns None; legacy Scout admission remains unchanged.
     if not R313C_INTEGRATION_COMPILED_OFF:
         from bob_r313c_adapter import maybe_r3_publisher_step
         r3_result = maybe_r3_publisher_step(

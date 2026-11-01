@@ -22,8 +22,8 @@ from bob_v08 import r313d_producer as producer
 class R3Skip1ReleaseTests(unittest.TestCase):
     def test_exact_manifest_and_backward_chain(self):
         candidate=json.loads((ROOT/"releases/candidates/r3-skip1-offfirst.json").read_text())
-        current=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(current,candidate)
+        # Historic accepted skip1 candidate stays immutable after canary promotion.
+        self.assertEqual(candidate["release"],"v0.8.0-r3skip1")
         self.assertEqual(candidate["release"],"v0.8.0-r3skip1")
         self.assertEqual(candidate["from"],"v0.8.0-r3format1")
         self.assertFalse(candidate["restart_manager"])
@@ -59,7 +59,7 @@ class R3Skip1ReleaseTests(unittest.TestCase):
 
     def test_new_release_only_uses_existing_fail_closed_diagnostic_preflight(self):
         code=(ROOT/"scripts/bob_release_updater.py").read_text()
-        self.assertIn('"v0.8.0-r3format1","v0.8.0-r3skip1") and not preflight_r3_diagnostics_only()',code)
+        self.assertIn('"v0.8.0-r3skip1","v0.8.0-r3canary1") and not preflight_r3_diagnostics_only()',code)
         handoff=(ROOT/"scripts/r3_service_handoff.py").read_text()
         self.assertIn('"v0.8.0-r3skip1") or not updater.live_ok(state)',handoff)
         self.assertIn('("bob_r313c_adapter.py",("R313C_REAL_DISPATCH",False))',handoff)

@@ -296,7 +296,8 @@ def _claim(db: sqlite3.Connection, source: Path, pause: Path,
 
 def candidate_step(db: sqlite3.Connection, source: Path, pause: Path,
                    *, clock, public_get, post_comment,
-                   after_intent=None, after_post=None) -> CandidateResult:
+                   after_intent=None, after_post=None,
+                   exact_canary_run=None) -> CandidateResult:
     """Prospective single publisher branch, callable only by a trusted wrapper.
 
     source/pause/clock/transport are supplied by the fixed installed publisher
@@ -309,6 +310,10 @@ def candidate_step(db: sqlite3.Connection, source: Path, pause: Path,
         run = _head(db)
         if run is None:
             return CandidateResult("not_selected", "legacy_head_or_empty")
+        # Enforce the compiled one-run source pin after choosing the queue head.
+        # A queue race must never switch the outbound action to a different run.
+        if exact_canary_run is not None and run != exact_canary_run:
+            return CandidateResult("held", "exact_canary_run_changed")
         action = _read_envelope(db, run)
         obs, pin, seal, fingerprint = _source_seal(db, source, action)
         job = db.execute(

@@ -210,8 +210,11 @@ class PrivateStagingTests(unittest.TestCase):
 class SourceGateTests(unittest.TestCase):
     def test_three_source_gates_are_off_and_no_release_installed(self):
         result=source_off_gate(ROOT)
-        self.assertTrue(result["production_off_source"])
-        self.assertEqual(result["gate_results"],["hard_off"]*3)
+        # The later exact/manual canary reuses the one publisher, so the
+        # original OFF-FIRST integration audit appropriately no longer passes.
+        # The broad R3.12 and R3.13c dispatch switches remain hard Off.
+        self.assertFalse(result["production_off_source"])
+        self.assertEqual(result["gate_results"],["unverified","hard_off","hard_off"])
         self.assertFalse(result["installable"])
         from bob_r313c_adapter import production_dispatch_enabled
         self.assertFalse(production_dispatch_enabled())
@@ -228,6 +231,12 @@ class SourceGateTests(unittest.TestCase):
                 dest=copy/relative
                 dest.parent.mkdir(parents=True,exist_ok=True)
                 dest.write_bytes((ROOT/relative).read_bytes())
+            self.assertFalse(source_off_gate(copy)["production_off_source"])
+            # Reconstruct a synthetic historical OFF-FIRST fixture only.
+            pub=copy/paths[0]
+            pub.write_text(pub.read_text().replace(
+                "R313C_INTEGRATION_COMPILED_OFF = False",
+                "R313C_INTEGRATION_COMPILED_OFF = True"))
             self.assertTrue(source_off_gate(copy)["production_off_source"])
             target=copy/paths[2]
             target.write_text(

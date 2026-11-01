@@ -30,7 +30,7 @@ def build() -> tuple[bytes,bytes]:
             # Freeze the historical producer exactly as signed in format1.
             # New source belongs only in the separately reviewed skip1 ZIP.
             path = (ROOT/"release_baselines"/"v08-r3format1"/name
-                    if name == "r313d_producer.py"
+                    if name in ("r313d_producer.py","r313c_candidate.py")
                     else ROOT/"src"/"bob_v08"/name)
             if path.is_symlink() or not path.is_file():
                 raise ValueError("r3_missing_reviewed_module")

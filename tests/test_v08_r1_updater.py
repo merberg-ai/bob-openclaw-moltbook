@@ -139,7 +139,8 @@ class ManifestAndCommandTests(unittest.TestCase):
         self.assertEqual(obj["restart_manager"], obj["release"] not in
                          ("v0.8.0-shadow2", "v0.8.0-shadow3", "v0.8.0-shadow4",
                           "v0.8.0-chhttps1","v0.8.0-r3diag1",
-                           "v0.8.0-r3format1", "v0.8.0-r3skip1"))
+                           "v0.8.0-r3format1", "v0.8.0-r3skip1",
+                           "v0.8.0-r3canary1"))
         if obj["release"] == "v0.7.8-updater2":
             self.assertEqual(obj["from"], "v0.7.6-oc41-polish1")
             self.assertEqual({i["name"] for i in obj["files"]},
@@ -233,6 +234,17 @@ class ManifestAndCommandTests(unittest.TestCase):
             self.assertNotIn("bob-activity-manager",
                              {i["name"] for i in obj["files"]})
             self.assertNotIn("bob-moltbook-publisher",
+                             {i["name"] for i in obj["files"]})
+        elif obj["release"]=="v0.8.0-r3canary1":
+            self.assertEqual(obj["from"],"v0.8.0-r3skip1")
+            self.assertFalse(obj["restart_manager"])
+            self.assertEqual({i["name"] for i in obj["files"]},
+                             {"bob-release-updater","bobctl","bob_r3_package.pyz",
+                              "bob_r3_canary_lock.py","bob_r313c_adapter.py",
+                              "bob-moltbook-publisher","bob-r3-canary-arm"})
+            self.assertNotIn("bob-activity-manager",
+                             {i["name"] for i in obj["files"]})
+            self.assertNotIn("bob-moltbook-scout",
                              {i["name"] for i in obj["files"]})
         else:
             self.fail("Unexpected release chain")

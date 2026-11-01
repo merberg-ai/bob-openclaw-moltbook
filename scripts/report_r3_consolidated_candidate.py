@@ -70,9 +70,9 @@ def inspect(*, root=ROOT, build=True) -> dict:
         raise ValueError("symlinked release manifest")
     current=json.loads(current_path.read_text(encoding="utf-8"))
     proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
-    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1")
+    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1")
     if current.get("release") not in (
-            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1"):
+            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1"):
         raise ValueError("unreviewed_source_release_or_promotion")
     if current.get("release")=="v0.8.0-cutover1" and any(current.get(key)!=proposed.get(key) for key in (
             "format","release","from","files","restart_manager")):
@@ -107,9 +107,36 @@ def inspect(*, root=ROOT, build=True) -> dict:
     controller=(root/"src/bin/bobctl").read_text(encoding="utf-8")
     if '"v0.8.0-cutover1": "https"' not in controller:
         raise ValueError("bobctl candidate HTTPS mode unavailable")
-    for name,(variable,expected) in OFF_CONSTANTS.items():
-        if _literal_constant(root/name,variable) is not expected:
-            raise ValueError("R3 actual source send gate is not Off")
+    exact=current.get("release")=="v0.8.0-r3canary1"
+    if exact:
+        # The historic integration-off audit must NEVER label an exact
+        # owner-arm canary as globally compiled Off, or as a cutover release.
+        # Only narrowly pinned manual behavior may bypass the old importer gate.
+        candidate=current
+        reviewed=json.loads((root/"releases/candidates/r3-canary1-exact-manual.json").read_text())
+        if candidate!=reviewed:
+            raise ValueError("canary_release_manifest_not_exact")
+        required=dict(OFF_CONSTANTS)
+        required["src/bin/bob-moltbook-publisher"]=(
+            "R313C_INTEGRATION_COMPILED_OFF",False)
+        for name,(variable,expected) in required.items():
+            if _literal_constant(root/name,variable) is not expected:
+                raise ValueError("R3 actual source send gate is not Off")
+        if _literal_constant(root/"src/lib/bob/bob_r313c_adapter.py",
+                             "R3_EXACT_CANARY_COMPILED") is not True:
+            raise ValueError("canary_exact_source_flag_absent")
+        lock=(root/"src/lib/bob/bob_r3_canary_lock.py").read_text()
+        if not all(x in lock for x in (
+                "20261101T151033Z",
+                "870a59f6bb3ccc02088bf44e8f1530c7a19a4d511f312420b609d8fa735a4bc2",
+                "bf2095bd-15cf-46e9-9bf0-8aa47bea6c5a",
+                "2026-11-05T00:00:00Z",
+                "def marker_valid(")):
+            raise ValueError("canary_exact_source_lock_invalid")
+    else:
+        for name,(variable,expected) in OFF_CONSTANTS.items():
+            if _literal_constant(root/name,variable) is not expected:
+                raise ValueError("R3 actual source send gate is not Off")
     if "FINAL_NO_DUPLICATE_CLAIM" not in (root/"src/bin/bob-moltbook-publisher").read_text(encoding="utf-8"):
         raise ValueError("single-publisher final duplicate guard is absent")
 
@@ -128,7 +155,7 @@ def inspect(*, root=ROOT, build=True) -> dict:
         "from":"v0.8.0-chhttps3",
         "release":"v0.8.0-cutover1",
         "files_built":len(sha),
-        "source_gates":"four_hard_off",
+        "source_gates":"one_exact_manual_owner_arm_only" if exact else "four_hard_off",
         "single_existing_credentialed_publisher":True,
         "publisher_atomic_duplicate_guard_present":True,
         "dashboard_transport":"https_only",
