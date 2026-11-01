@@ -190,6 +190,10 @@ def record(db: sqlite3.Connection, source_dir: Path, observed, decision: Decisio
             raise ValueError("r4_schema_changed")
         if _observed(source_dir,decision.source_run)!=initial:
             raise ValueError("r4_source_changed_during_record")
+        # A second author's post may vanish while Bob is deciding.
+        # Recheck independently saved distinct author sources at commit.
+        if decision.kind=="follow" and author_count(source_dir,initial)<2:
+            raise ValueError("r4_repeat_author_evidence_revoked")
         modes=read_modes(db)
         if pause_state(db) or not any(
                 modes[name]=="propose" for name in PROPOSABLE):
@@ -208,10 +212,15 @@ def record(db: sqlite3.Connection, source_dir: Path, observed, decision: Decisio
                 if db.execute("SELECT 1 FROM "+table+" WHERE "+column+"=?",
                               (decision.source_run,)).fetchone():
                     raise ValueError("r4_legacy_source_already_used")
-        if decision.kind=="comment" and db.execute(
-            "SELECT 1 FROM publish_jobs WHERE post_id=? LIMIT 1",
-            (initial.post_id,)).fetchone():
-            raise ValueError("r4_comment_target_already_attempted")
+        if decision.kind=="comment":
+            if db.execute(
+                "SELECT 1 FROM publish_jobs WHERE post_id=? LIMIT 1",
+                (initial.post_id,)).fetchone():
+                raise ValueError("r4_comment_target_already_attempted")
+            if db.execute(
+                "SELECT 1 FROM r3_proposals WHERE post_id=? LIMIT 1",
+                (initial.post_id,)).fetchone():
+                raise ValueError("r4_comment_target_already_proposed_in_r3")
         stamp=at.astimezone(timezone.utc).isoformat()
         state="skipped" if decision.kind=="skip" else "proposed"
         db.execute(
@@ -258,6 +267,12 @@ def review(db: sqlite3.Connection, source_dir: Path, run: str,
             if pause_state(db) or (
                     read_modes(db)[decision.kind]!="propose"):
                 raise ValueError("r4_action_paused_or_revoked")
+            # A legacy send may have appeared after Bob's private proposal.
+            # An approval cannot honestly represent a still-clear target.
+            if decision.kind=="comment" and db.execute(
+                    "SELECT 1 FROM publish_jobs WHERE post_id=? LIMIT 1",
+                    (obs.post_id,)).fetchone():
+                raise ValueError("r4_target_consumed_since_proposal")
         # Recheck the source *inside* owner transaction.
         if _observed(source_dir,run)!=obs:
             raise ValueError("r4_source_changed_during_review")
