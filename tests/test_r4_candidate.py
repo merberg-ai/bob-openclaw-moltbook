@@ -52,7 +52,14 @@ class R4CandidateReportTests(unittest.TestCase):
         self.assertEqual(live["release"],"v0.8.0-r3canary1")
         self.assertEqual(candidate["from"],live["release"])
         self.assertNotEqual(candidate["release"],live["release"])
-        self.assertNotIn("bob-moltbook-publisher",
+        # The ONE original publisher is included, not a second worker.
+        self.assertIn("bob-moltbook-publisher",
+                      {f["name"] for f in candidate["files"]})
+        self.assertIn("bob_r4_publisher_adapter.py",
+                      {f["name"] for f in candidate["files"]})
+        self.assertIn("bob_r4_outbox.py",
+                      {f["name"] for f in candidate["files"]})
+        self.assertNotIn("bob-r4-publisher",
                          {f["name"] for f in candidate["files"]})
 
 
