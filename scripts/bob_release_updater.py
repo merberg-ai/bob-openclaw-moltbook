@@ -54,6 +54,8 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-r3format1": "https",
     "v0.8.0-r3skip1": "https",
     "v0.8.0-r3canary1": "https",
+    # R4 only after separate signed, owner-approved one-time install.
+    "v0.8.0-autonomy1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -451,7 +453,8 @@ def read_journal():
         return None
     data = read_json(JOURNAL)
     if (data.get("format") != FORMAT or data.get("phase") not in
-            ("prepared", "installed", "restarted", "rolled_back", "complete", "incident")
+            ("prepared", "installed", "migrated", "restarted", "rolled_back",
+              "complete", "incident")
             or not RELEASE_ID.fullmatch(data.get("release", ""))):
         raise ValueError("unrecognized updater journal")
     return data
@@ -575,6 +578,61 @@ def preflight_r3_diagnostics_only() -> bool:
         return False
 
 
+def r4_publisher_inactive() -> bool:
+    """Read-only exact effective publisher unit gate before R4 migration."""
+    try:
+        import report_r3_cutover_inventory as inventory
+        import report_r38_effective_units as effective
+        facts=inventory.unit_facts("user",effective.SERVICE)
+        return (facts.get("load")=="loaded" and
+                facts.get("active")=="inactive")
+    except (OSError,ValueError,TypeError,KeyError,ImportError,
+            RuntimeError,AttributeError):
+        return False
+
+
+def installed_r4_schema_module():
+    """Load reviewed staged module only from the hash-verified BIN tree."""
+    p=BIN/"bob_r4_schema.py"
+    if p.is_symlink() or not p.is_file():
+        raise ValueError("r4_installed_schema_missing")
+    # Only the updater-selected, hash-verified installed dependency directory.
+    sys.path.insert(0,str(BIN))
+    try:
+        spec=importlib.util.spec_from_file_location(
+            "_bob_r4_installed_schema",p)
+        if spec is None or spec.loader is None:
+            raise ValueError("r4_installed_schema_loader_invalid")
+        mod=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if Path(mod.__file__).resolve()!=p.resolve():
+            raise ValueError("r4_schema_import_source_changed")
+        return mod
+    finally:
+        sys.path.remove(str(BIN))
+
+
+def r4_apply_guarded_schema(current,plan,contents,backup,
+                            *,candidate_registry):
+    """Only from existing locked updater, after candidate hashes verified.
+
+    R4 SQLite DDL is additive. A later rollback restores code/registry only,
+    never an old DB snapshot over possible newly counted public attempts.
+    """
+    if plan["release"]!="v0.8.0-autonomy1":
+        return None
+    if not live_ok(candidate_registry):
+        raise ValueError("r4_candidate_code_hash_unverified")
+    from r4_install_guard import run_migration
+    # No TLS downgrade, new publisher, or hidden schema-created-on-GET.
+    return run_migration(
+        schema_module=installed_r4_schema_module(),
+        db_path=DB,backup=backup,backup_dir=BACKUP_DIR,
+        current=current,plan=plan,contents=contents,
+        candidate_hashes_verified=True,
+        publisher_inactive=r4_publisher_inactive())
+
+
 def update(folder, current, plan, contents, *, auth):
     private_dir(STATE_DIR)
     fd = locked()
@@ -587,7 +645,7 @@ def update(folder, current, plan, contents, *, auth):
             raise ValueError("existing authenticated UI unhealthy")
         # Backup is verified before any live code is replaced.
         from backup_live_sqlite import create_verified_backup
-        create_verified_backup(DB, BACKUP_DIR)
+        backup=create_verified_backup(DB, BACKUP_DIR)
         tx = STATE_DIR / ("tx-" + plan["release"])
         if tx.exists() or tx.is_symlink():
             raise ValueError("release journal archive exists")
@@ -632,6 +690,14 @@ def update(folder, current, plan, contents, *, auth):
             # failed-health rollback can restore the old code AND registry.
             # This is code-only recovery: never restore SQLite after a send.
             save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
+            if plan["release"]=="v0.8.0-autonomy1":
+                step="performing guarded additive R4 SQLite migration"
+                r4_apply_guarded_schema(
+                    current,plan,contents,backup,
+                    candidate_registry=next_state)
+                # The journal explicitly records that R4 DDL may remain
+                # after code-only rollback. Never restore a stale DB backup.
+                store_journal({**journal,"phase":"migrated"})
             if plan["restart_manager"]:
                 step = "restarting Activity Manager"
                 restart_manager()
@@ -730,7 +796,8 @@ def main():
             return 0
         if args.recover:
             journal = read_journal()
-            if not journal or journal["phase"] not in ("prepared", "installed", "restarted"):
+            if not journal or journal["phase"] not in (
+                    "prepared","installed","migrated","restarted"):
                 raise ValueError("no recoverable interrupted transaction")
             print("Recovery requested for:", journal["release"])
             if not sys.stdin.isatty() or input("Type RECOVER to restore original code: ") != "RECOVER":
@@ -763,7 +830,7 @@ def main():
             return 0
         if plan["release"]=="v0.8.0-cutover1" and not preflight_r3_consolidated_offfirst():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
-        if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1") and not preflight_r3_diagnostics_only():
+        if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1") and not preflight_r3_diagnostics_only():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
