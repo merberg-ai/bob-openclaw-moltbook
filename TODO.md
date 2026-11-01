@@ -1,3 +1,11 @@
+## R3 signed-archive activation/recovery engineering source gate (2026-10-31)
+
+- [x] **Fix candidate private-registry activation order:** original updater publishes installed SHA registry after manager restart, but new R3 signed ZIP loader requires exact hash at import during startup. Reviewed source update checks all candidate hashes, atomically publishes provisional new registry with an incomplete transaction journal, **then** restarts manager and performs HTTPS health; failure/code-only rollback restores old code and prior registry. The production installed updater remains unchanged until a later owner-approved release.
+- [x] **Disposable real-updater rehearsal added:** tests call actual updater `update`/`rollback` with isolated synthetic manager/archive/registry/journal, mocked systemd/HTTP/backup. Demonstrates candidate SHA already trustworthy on restart; rollback after failed health, interruption and restart error; **post-update synthetic SQLite attempts survive rollback** (never stale database restore). These are CI fixtures, not real host acceptance.
+- [ ] **Final R3 release still withheld:** integrate safe original publisher module reload, exact controlled service ownership and post-restart checks with code-only unit rollback, owner-consent and pre-POST validation, shadow G1 scheduling, and separately reviewed canary permission. Candidate not promoted; existing services/timers and R3 Off unchanged.
+
+---
+
 ## R3 consolidated source bundle staged (2026-10-31; no live install or posting)
 
 - [x] **One 12-file integration candidate, source-only:** `releases/candidates/r3-cutover1-integration-off.json` chains exactly from the installed-source `v0.8.0-chhttps3` to the reserved `v0.8.0-cutover1` identity. It collects one existing credentialed publisher (with hardened duplicate checks), existing R3 owner/proposal modules, verified R3 ZIP/launcher, HTTPS-only generated Activity Manager/navigation, and source updater+`bobctl` transport compatibility. **`releases/current.json` is not modified.**
