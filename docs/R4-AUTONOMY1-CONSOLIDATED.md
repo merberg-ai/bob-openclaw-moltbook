@@ -115,13 +115,26 @@ the saved comment is not proof of global absence of every external duplicate.
       happens. A success-shaped API ACK is NOT independent proof the
       user-visible upvote exists. Test harness is *not in the future
       installed manifest* and rejects every file-backed database.
-- [ ] **Activate any real R4 social dispatch only in a future separately
-      reviewed signed release:** integrate those verified source checkers
-      into the original publisher with its production host/registry gate,
-      exact owner authorization, fresh fixed-host authenticated requests,
-      final pre-POST and challenge/error handling. Two independent R4
-      dispatch switches remain hard Off; no actual credentialed R4 action
-      or external vote read-back has been enabled or demonstrated.
+- [x] **Staged original-publisher HTTP adapter, still Off:** the existing
+      sole credentialed publisher now has a prospective UPVOTE-only path:
+      exact owner/source/private outbox, public fixed-host post/author GET,
+      authenticated self-identity GET, durable intent, second remote proof,
+      final owner/pause/legacy barrier, one fixed API POST and strict
+      ACK-versus-uncertain accounting. A read-only
+      `bob_r4_installed_gate.py` validates exact `autonomy1` version,
+      original publisher + all required R4 source SHA-256 registry entries,
+      file ownership and permissions, and absence of an active updater
+      transaction. No separate credential worker is installed.
+- [ ] **Explicit release authorization and actual remote acceptance
+      remain outstanding:** all THREE source gates
+      `R4_SINGLE_PUBLISHER_COMPILED_OFF`,
+      `R4_REAL_DISPATCH_COMPILED_OFF` and
+      `R4_EXACT_OWNER_SEND_COMPILED_OFF` are True; the private outbox has
+      an additional `PUBLIC_DISPATCH_COMPILED_OFF=True` guard.
+      The production R4 adapter is UNREACHABLE and no credentialed
+      R4 upvote has occurred. Enablement requires a separate reviewed
+      signed source change plus verified host release, remote endpoint,
+      challenge/error/timeout and vote-status acceptance.
 - [ ] API-specific negative tests: unavailable or changed endpoints,
       malformed source, identity collision, unknown remote following,
       challenge/timeout, duplicate target, pause, crash and restart.
@@ -189,6 +202,33 @@ additive and do not replace R3 proposal, approval, attempted, or receipt
 history. CI covers explicit owner consent, malformed seals, rejected
 parent decisions, stale source, duplicate review, backend failures and
 synthetic migration preservation.
+
+### Original publisher: signed-host and network integration scaffold
+
+Only the original `bob-moltbook-publisher` retains the existing
+`api()` and `api_key()`. R4's own adapter does not import or read
+credentials and is called only after legacy and R3 queue precedence.
+The staged branch uses authenticated `GET /agents/me` to verify Bob's
+remote account and refuses self-votes, and uses the established
+fixed-host, bounded/redirect-rejecting R3 post GET twice against the
+exact original selected author. It never accepts a hostname, path,
+user identity, URL or instruction from Bob's response.
+
+An actual R4 send remains blocked even if the owner privately approves,
+queues, and lifts R4 pause. Three independent source gates are True;
+the separate outbox implementation has a fourth hard-Off flag.
+`bob_r4_installed_gate.verify` additionally refuses the wrong release,
+an active updater transaction, modified/untracked R4 source hashes,
+unsafe file modes or missing original publisher. This function is
+READ ONLY and cannot install, send, arm or repair anything.
+
+The source adapter's callback-based logic is exercised only with an
+injected fake API and in-memory database in CI. A successful synthetic
+response becomes `api_acknowledged_not_public_receipt`; a malformed
+response, rate refusal, changed author/own identity, expired source
+or crash becomes a held/uncertain state without retry. Platform vote
+visibility cannot be independently asserted absent a verified
+authoritative voter-state endpoint.
 
 ### R4 publisher and first action outbox (development only)
 
