@@ -53,9 +53,23 @@ def verify(*,home:Path|None=None)->bool:
                 not _owned(base/".local/state",True) or
                 not _owned(state,True,private=True)
                 or not _owned(bindir,True)
-                or not _owned(installed,False,private=True)
-                or journal.exists() or journal.is_symlink()):
+                or not _owned(installed,False,private=True)):
             return False
+        # The existing updater leaves a completed transaction journal on
+        # disk. Only a trusted, exact, COMPLETE signed-release journal is
+        # allowed. Prepared/installed/migrated/restarted and incident phases
+        # are never authority to load publisher credentials.
+        if journal.exists() or journal.is_symlink():
+            if (not _owned(journal,False,private=True)
+                    or not 0<journal.stat().st_size<=16384):
+                return False
+            detail=json.loads(journal.read_text(encoding="utf-8"))
+            if (type(detail) is not dict or
+                    detail.get("format")!=REGISTRY_FORMAT
+                    or detail.get("release")!=RELEASE
+                    or detail.get("phase")!="complete"
+                    or detail.get("restart_manager") is not True):
+                return False
         if not 0<installed.stat().st_size<=65536:
             return False
         info=json.loads(installed.read_text(encoding="utf-8"))
