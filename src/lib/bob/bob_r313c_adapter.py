@@ -110,5 +110,5 @@ def maybe_r3_publisher_step(db, *, api_call, credential_loader):
         if outcome.status == "not_selected":
             return None  # Existing legacy Scout job remains authoritative.
         return "R3 candidate outcome: " + outcome.status
-    except (OSError, sqlite3.Error, ValueError, TypeError):
+    except (OSError, sqlite3.Error, ValueError, TypeError, ImportError, KeyError):
         return "R3 candidate fail-closed; no send"
