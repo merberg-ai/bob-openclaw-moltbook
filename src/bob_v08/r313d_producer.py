@@ -20,7 +20,7 @@ import pwd
 import sqlite3
 
 from .core import Action, decision_prompt, parse_decision
-from .evidence import latest_observations
+from .evidence import latest_observations, read_observation
 from .r3_cutover_rehearsal import verified_source
 from .r3_unified import _validated
 from .r313c_candidate import canonical_action, MAX_ACTION_BYTES
@@ -169,6 +169,51 @@ def propose_verified(db: sqlite3.Connection, source_dir: Path,
                           source_run=action.source_run)
 
 
+
+def record_verified_skip(db: sqlite3.Connection, source_dir: Path,
+                         observed, *, at: datetime) -> ProposalResult:
+    """Durably consume a genuinely verified Bob abstention, never a POST.
+
+    An old skip was previously returned to systemd but not persisted, so
+    subsequent scheduled ticks chose the SAME Scout run indefinitely.
+    Revalidate source files and use the pre-existing private R3 audit table.
+    No schema change, new timer, API request, or model-supplied path.
+    """
+    if not isinstance(at, datetime) or at.tzinfo is None:
+        return ProposalResult("refused", "invalid_skip_clock")
+    try:
+        if read_observation(source_dir, observed.run_id) != observed:
+            return ProposalResult("refused", "skip_source_changed")
+        db.execute("BEGIN IMMEDIATE")
+        exists = db.execute(
+            "SELECT 1 FROM r3_lab_audit WHERE source_run=? "
+            "AND event='r313d_skip' LIMIT 1", (observed.run_id,)
+        ).fetchone()
+        collision = db.execute(
+            "SELECT 1 FROM r3_proposals WHERE source_run=? OR post_id=?",
+            (observed.run_id, observed.post_id)
+        ).fetchone() or db.execute(
+            "SELECT 1 FROM publish_jobs WHERE run_id=? OR post_id=?",
+            (observed.run_id, observed.post_id)
+        ).fetchone()
+        if exists or collision:
+            db.rollback()
+            return ProposalResult("refused", "skip_already_seen_or_target_claimed")
+        db.execute(
+            "INSERT INTO r3_lab_audit(source_run,event,reason,at) "
+            "VALUES(?,?,?,?)",
+            (observed.run_id, "r313d_skip", "bob_chose_not_to_comment",
+             at.astimezone(timezone.utc).isoformat()))
+        db.commit()
+        return ProposalResult("skipped", "bob_chose_not_to_comment",
+                              source_run=observed.run_id)
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
+        db.rollback()
+        return ProposalResult("refused", "skip_ledger_or_source_unavailable",
+                              source_run=observed.run_id)
+
+
+
 def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
     """Fixed real host entry: one fresh verified Scout selection; no POST.
 
@@ -195,6 +240,14 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
                 created = datetime.strptime(
                     obs.run_id,"%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 if created > instant or instant-created > MAX_SOURCE_AGE:
+                    continue
+                # A real, accepted skip must be remembered; otherwise the
+                # proposal timer asks Bob about the same saved Scout run on
+                # every tick. Failed model calls remain eligible for retry.
+                if db.execute(
+                    "SELECT 1 FROM r3_lab_audit WHERE source_run=? "
+                    "AND event='r313d_skip' LIMIT 1",
+                    (obs.run_id,)).fetchone():
                     continue
                 if db.execute(
                     "SELECT 1 FROM r3_proposals WHERE source_run=? OR post_id=?",
@@ -230,8 +283,7 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
                 "refused","decision_"+classification,
                 source_run=chosen.run_id)
         if action.kind == "skip":
-            return ProposalResult("skipped","bob_chose_not_to_comment",
-                                  source_run=chosen.run_id)
+            return record_verified_skip(db, DATA, chosen, at=instant)
         return propose_verified(db,DATA,action,at=instant)
 
 
