@@ -1,3 +1,11 @@
+## Consolidated R3 execution handoff, not another sequence of tiny host gates (2026-10-31)
+
+Proceed with §docs/R3-CONSOLIDATED-CUTOVER.md§ as the current implementation/acceptance guide. New §scripts/report_g2_public_receipts.py --public-get§ provides a **single read-only G2 aggregate receipt comparison** against public Moltbook comment listings, using saved legacy receipt IDs, bounded anonymous GET and no key or publisher changes. It cannot prove the total absence of unrecorded remote duplicates or audit original posts; suspicious/missing public records require human review, never replay. All production R3 send gates remain hard Off.
+
+Next build **one** complete, source/test/rollback-reviewed §v0.8.0-cutover1§ package chained from actual installed §v0.8.0-chhttps3§ with a single publisher handoff, preserved queue/history, owner consent, atomic intent and source-linked public verification. Do all intermediate engineering and synthetic tests in CI; owner acceptance should be one update + one integrated health report, with any exact public canary separately approved. R4 social autonomy/combined UI remains the next major milestone, not dozens of patches. The current manifest and host are unchanged.
+
+---
+
 ## G2.5 external reachability owner observation recorded (2026-10-31)
 
 After WSL Hyper-V firewall `Enabled=True` / `DefaultInboundAction=Block`, a source-limited TCP 18790 allow rule for `192.168.1.0/24`, zero Windows portproxy entries, mirrored WSL binding, and successful two-client LAN HTTPS, the owner reports **nothing is reachable from outside the network**. Treat this as **owner-observed external inaccessibility**, supportive of Bob's LAN-only design, *not* an independently verified comprehensive public IPv4/IPv6/router/UPnP/VPN audit; method, vantage point and exact exposure checks were not described. The unrelated `code-server WSL 8787` rule remains broad but no active 8787 socket was found in OpenClawLab.
