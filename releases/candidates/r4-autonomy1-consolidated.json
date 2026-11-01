@@ -43,6 +43,10 @@
       "source": "src/lib/bob/bob_r4_decision.py"
     },
     {
+      "name": "bob_r4_ledger.py",
+      "source": "src/lib/bob/bob_r4_ledger.py"
+    },
+    {
       "name": "bob_r4_reflections.py",
       "source": "src/lib/bob/bob_r4_reflections.py"
     },
