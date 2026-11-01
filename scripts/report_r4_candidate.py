@@ -23,7 +23,7 @@ FILES=frozenset((
     "bob-release-updater","bobctl","bob-activity-manager","navigation_shell.py",
     "bob_r4_policy.py","bob_r4_controls.py","bob_r4_projection.py",
     "bob_r4_reflections.py","bob_r4_decision.py","bob_r4_ledger.py",
-    "bob_r4_agent.py",
+    "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
     "bob_r4_web.py",
 ))
 UNSAFE_WORKERS=frozenset((
@@ -67,6 +67,7 @@ def inspect(root:Path=ROOT) -> dict:
             path=(
                 "scripts/bob_release_updater.py" if name=="bob-release-updater"
                 else "src/bin/bobctl" if name=="bobctl"
+                else "src/bin/bob-r4-propose" if name=="bob-r4-propose"
                 else "src/lib/bob/"+name)
             if origin!=("source",path):
                 raise ValueError("r4_unreviewed_source_target")
