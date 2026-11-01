@@ -97,12 +97,31 @@ the saved comment is not proof of global absence of every external duplicate.
       become terminal uncertain states, and repeats never occur. A local
       API ACK is not independent public visibility. Other R4 actions
       remain inadmissible to the outbox.
-- [ ] **Activate any real R4 social dispatch only in a future reviewed signed
-      source change:** require independently verified live remote target,
-      final revalidation after durable intent, actual host cooldown/global
-      budgets, credentialed existing-publisher call, challenge handling,
-      public/remote receipt checks, explicit category opt-in and recovery.
-      Current R4 real action send is **not implemented or enabled**.
+- [x] **Source-only remote verification and counted budget model:**
+      `bob_r4_remote_gate.py` reuses the existing R3 fixed-HTTPS-host,
+      bounded no-redirect post GET to bind exact remote post ID and original
+      author; a fresh authenticated `GET /agents/me` must prove the account
+      and prevent self-votes. No model/owner nickname can serve as identity.
+      `bob_r4_budget.py` fail-closes on malformed/future attempts, enforces
+      a conservative four-total-counted-actions-per-UTC-day source cap and
+      20-minute global spacing across existing R4/legacy/original ledgers.
+      Both are pure checkers with no credential or network ownership.
+- [x] **Two-stage simulation with final barrier, source-only:**
+      `bob_r4_verified_send_lab.py` exercises first remote identity GET,
+      atomic counted intent, second fresh post/self GET, exact source/owner
+      pause recheck and one mock upvote. If target/author changes, the
+      account changes, latency expires, R3 legacy races, or a pause is set
+      after intent, the attempt becomes terminal uncertain and no POST
+      happens. A success-shaped API ACK is NOT independent proof the
+      user-visible upvote exists. Test harness is *not in the future
+      installed manifest* and rejects every file-backed database.
+- [ ] **Activate any real R4 social dispatch only in a future separately
+      reviewed signed release:** integrate those verified source checkers
+      into the original publisher with its production host/registry gate,
+      exact owner authorization, fresh fixed-host authenticated requests,
+      final pre-POST and challenge/error handling. Two independent R4
+      dispatch switches remain hard Off; no actual credentialed R4 action
+      or external vote read-back has been enabled or demonstrated.
 - [ ] API-specific negative tests: unavailable or changed endpoints,
       malformed source, identity collision, unknown remote following,
       challenge/timeout, duplicate target, pause, crash and restart.
@@ -182,6 +201,21 @@ release candidate includes the original `bob-moltbook-publisher` and
 `bob_r4_outbox.py` for exact source-level review, without creating a
 new credential owner. The original R3 canary source and receipt remain
 preserved. The candidate is NOT promoted to `releases/current.json`.
+
+The published Moltbook API uses fixed
+`GET /api/v1/posts/{id}`, `GET /api/v1/agents/me`, and
+`POST /api/v1/posts/{id}/upvote`. No externally supplied host, URL,
+redirect, credentials or guessed identity may enter R4. The source
+simulation requires TWO remote identity checks, one before and one
+after its local counted intent. The R3 fixed-host reader already
+enforces response size, post/author equality, deleted-target
+rejection and bounded timeouts. Only a literal boolean
+`success: true` with no error is an API ACK. The current source
+does **not** claim independent confirmation of an upvote because a
+reliable authoritative voter-state read-back has not been established.
+Official API evidence:
+https://github.com/Moltbook-Official/moltbook/blob/main/skill.md
+and https://www.moltbook.com/skill.md.
 
 The private `r4_action_outbox` and `r4_action_events` tables are
 versioned and staged only by isolated R4 schema rehearsals. They preserve
