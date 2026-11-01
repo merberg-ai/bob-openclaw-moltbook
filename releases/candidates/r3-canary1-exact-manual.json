@@ -1,0 +1,38 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r3canary1",
+  "from": "v0.8.0-r3skip1",
+  "notes": "ONE exact manual R3 canary: immutable approved source/run/seal/post/UTC expiry, never sends upon install or queue alone; owner must separately queue and explicitly ARM at a trusted terminal. Existing publisher alone holds API key and counted once-only attempt. All general R3 automatic dispatch flags remain Off; legacy Scout, HTTPS manager and timers preserved. No DB migration. Unknown/failed delivery is uncertain and never automatically replayed.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r3_package.pyz",
+      "builder": "scripts/build_r3_canary_package.py",
+      "index": 0
+    },
+    {
+      "name": "bob_r3_canary_lock.py",
+      "source": "src/lib/bob/bob_r3_canary_lock.py"
+    },
+    {
+      "name": "bob_r313c_adapter.py",
+      "source": "src/lib/bob/bob_r313c_adapter.py"
+    },
+    {
+      "name": "bob-moltbook-publisher",
+      "source": "src/bin/bob-moltbook-publisher"
+    },
+    {
+      "name": "bob-r3-canary-arm",
+      "source": "src/bin/bob-r3-canary-arm"
+    }
+  ],
+  "restart_manager": false
+}
