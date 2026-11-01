@@ -146,6 +146,23 @@ class ProposalDiagnosticTests(unittest.TestCase):
         self.assertIn("END_UNTRUSTED_MOLTBOOK_JSON",prompt)
         self.assertNotIn(PRIVATE,prompt)
 
+    def test_accepted_format1_zip_is_not_mutated_by_new_skip_logic(self):
+        # One accepted release identity must never silently rebuild to the
+        # newest source. Only an explicitly new signed release may carry it.
+        import io
+        import zipfile
+        sys.path.insert(0,str(ROOT/"scripts"))
+        import build_r313d_off_package as builder
+        historical,_=builder.build()
+        updated,_=builder.build_development()
+        self.assertNotEqual(historical,updated)
+        with zipfile.ZipFile(io.BytesIO(historical)) as z:
+            content=z.read("bob_v08/r313d_producer.py")
+            self.assertNotIn(b"def record_verified_skip(",content)
+        with zipfile.ZipFile(io.BytesIO(updated)) as z:
+            content=z.read("bob_v08/r313d_producer.py")
+            self.assertIn(b"def record_verified_skip(",content)
+
     def test_valid_skip_is_accepted_without_proposal_or_public_send(self):
         output=json.dumps({"type":"skip","source_run":RUN,
                            "target_id":ID,"reason":"not relevant","text":""})
