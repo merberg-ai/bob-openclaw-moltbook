@@ -26,6 +26,8 @@ PANEL={
     "/r4/diagnostics":"diagnostics","/r4/chat":"chat"}
 ACTION_URL=re.compile(
     r"/r4/controls/(comment|reply|post|upvote|follow|unfollow)\Z")
+REVIEW_URL=re.compile(
+    r"/r4/review/(\d{8}T\d{6}Z)/(approve|reject)\Z")
 CSS="""<style>
 .r4{max-width:1120px;margin:0 auto;display:grid;gap:15px;color:#ebf4ff}
 .r4 *{box-sizing:border-box;min-width:0}
@@ -152,22 +154,61 @@ def _jobs(data):
     return '<div class="tablewrap"><table><thead><tr><th>Source</th><th>Local state</th><th>Attempt</th><th>Public</th></tr></thead><tbody>'+''.join(items)+'</tbody></table></div>'
 
 
-def _inbox(data):
-    return ('<section class="panel"><h3>Review and decisions</h3>'
-            '<p class="muted">All actionable R3 comment drafts remain in '
-            'their source-verifying owner workflow. A generic historical '
-            'queue row is not an approval. New R4 action categories are '
-            'policy-only until their own reviewed worker is installed.</p>'
-            '<p><a href="/r3">Open independently sealed R3 proposals</a> · '
-            '<a href="/v08/inbox">Shadow decision anomalies</a> · '
-            '<a href="/moltbook/discovery">Friend discovery</a></p>'
-            '</section><section class="panel"><h3>Evidence digest</h3>'
-            '<p class="muted">Most recent verified R3 event source: <code>'+
-            e(data.get("latest_r3_source") or "not recorded")+'</code>. '
-            'Do not interpret an unverified skip as a proposal, an API '
-            'acknowledgment as a visible comment, or a saved friend as a follow.'
-            '</p><p><a href="/moltbook/social-memory">Open social timeline</a>'
-            '</p></section>')
+def _inbox(data,csrf):
+    cards=[]
+    for item in data.get("r4_recent",[])[:12]:
+        run=e(item["run"])
+        seal=e(item["seal"])
+        state=e(item["state"])
+        parts=[
+            '<article class="panel"><h3>'+e(item["kind"].title())+
+            ' · '+e(item["source_title"])+'</h3>',
+            '<p class="muted">Bob R4 source <code>'+run+'</code> · observed @'+
+            e(item["source_author"])+' · review state <strong>'+state+
+            '</strong></p>',
+            '<p><strong>Bob&#39;s reason:</strong> '+e(item["reason"])+'</p>',
+        ]
+        if item["body"]:
+            parts.append('<pre class="r4-draft">'+e(item["body"])+'</pre>')
+        if item["title"]:
+            parts.append('<p>Proposed title: '+e(item["title"])+'</p>')
+        parts.append('<p class="muted">Exact seal <code>'+seal+
+                     '</code>. R4 approval records owner review only. '
+                     'It does not queue a post or enable public dispatch.</p>')
+        if item["state"]=="proposed":
+            for operation,label in (("approve","Approve private proposal"),
+                                    ("reject","Reject private proposal")):
+                confirm=operation.upper()+" R4 "+item["run"]
+                parts.append(
+                    '<form method="post" action="/r4/review/'+run+'/'+
+                    operation+'"><input type="hidden" name="csrf" value="'+
+                    e(csrf)+'"><input type="hidden" name="seal" value="'+seal+
+                    '"><label>Type '+e(confirm)+
+                    '<input name="confirmation" autocomplete="off" '
+                    'maxlength="48" required></label><button type="submit">'+
+                    e(label)+'</button></form>')
+        parts.append('</article>')
+        cards.append(''.join(parts))
+    return (
+        '<section class="panel"><h3>Bob R4 proposals · exact owner review</h3>'
+        '<p class="muted">These decisions were checked against the original '
+        'sealed Scout snapshot and an immutable Bob action seal before '
+        'display. Missing or changed source records are withheld. An '
+        'owner approval never creates a publication job. R3 continues '
+        'using its separate existing review screen.</p>'
+        '<p><a href="/r3">R3 drafts</a> · '
+        '<a href="/v08/inbox">Shadow anomalies</a> · '
+        '<a href="/moltbook/discovery">Friend discovery</a></p></section>'+
+        (''.join(cards) if cards else
+         '<section class="panel"><p>No independently verified R4 decisions '
+         'in the current bounded source window.</p></section>')+
+        '<section class="panel"><h3>Evidence digest</h3>'
+        '<p class="muted">Most recent verified R3 audit source: <code>'+
+        e(data.get("latest_r3_source") or "not recorded")+'</code>. '
+        'A skip is abstention, an approved private proposal is not a '
+        'queued public action, and a saved friend is not a platform follow.'
+        '</p><p><a href="/moltbook/social-memory">Social timeline</a>'
+        '</p></section>')
 
 
 def _bob(data):
@@ -269,7 +310,7 @@ def _diagnostics(data):
 def content(panel:str,data:dict,csrf:str) -> str:
     if panel not in PANEL.values():
         raise ValueError("r4_unknown_panel")
-    blocks={"now":_now,"inbox":_inbox,"bob":_bob,
+    blocks={"now":_now,"inbox":lambda s:_inbox(s,csrf),"bob":_bob,
             "controls":lambda s:_controls(s,csrf),
             "diagnostics":_diagnostics,
             "chat":lambda s:('<section class="panel"><h3>Chat · future CH1</h3>'
@@ -311,7 +352,8 @@ class R4HandlerMixin:
         path=urlsplit(self.path).path
         action=ACTION_URL.fullmatch(path)
         pause=path=="/r4/controls/pause"
-        if not action and not pause:
+        decision=REVIEW_URL.fullmatch(path)
+        if not action and not pause and not decision:
             return super().do_POST()
         if not self._valid_host():
             self._send(403,"Unexpected Host header")
@@ -328,8 +370,9 @@ class R4HandlerMixin:
             if not 0<length<=512:
                 raise ValueError("r4_invalid_form_length")
             params=parse_qs(self.rfile.read(length).decode("utf-8"),
-                            keep_blank_values=True,max_num_fields=3)
-            if len(params)!=3 or any(len(values)!=1 for values in params.values()):
+                            keep_blank_values=True,max_num_fields=4)
+            if len(params)!=3 or any(
+                    len(values)!=1 for values in params.values()):
                 raise ValueError("r4_invalid_form_fields")
             if not hmac.compare_digest(params.get("csrf",[""])[0],
                                        self.R4_CSRF_TOKEN):
@@ -350,6 +393,15 @@ class R4HandlerMixin:
                         raise ValueError("r4_unexpected_form_fields")
                     set_mode(db,action.group(1),params["mode"][0],
                              phrase,trusted=True)
+                elif decision:
+                    if set(params)!={"csrf","seal","confirmation"}:
+                        raise ValueError("r4_unexpected_review_fields")
+                    from bob_publish_common import DATA
+                    from bob_r4_ledger import review
+                    from datetime import datetime,timezone
+                    review(db,DATA,decision.group(1),params["seal"][0],
+                           decision.group(2),phrase,trusted=True,
+                           at=datetime.now(timezone.utc))
                 else:
                     if set(params)!={"csrf","paused","confirmation"} or (
                             params["paused"][0] not in ("true","false")):
@@ -357,7 +409,8 @@ class R4HandlerMixin:
                     set_pause(db,params["paused"][0]=="true",
                               phrase,trusted=True)
             self.send_response(303)
-            self.send_header("Location","/r4/controls")
+            self.send_header("Location",("/r4/inbox" if decision
+                                         else "/r4/controls"))
             self.send_header("Cache-Control","no-store")
             self.send_header("Content-Length","0")
             self.end_headers()
