@@ -31,6 +31,11 @@ class R4AttestationTests(unittest.TestCase):
         self.data={"format":"bob-updater-v1","release":gate.RELEASE,
                    "files":hashes}
         self.write_registry()
+        journal=self.home/".local/state/bob-updater/transaction.json"
+        journal.write_text(json.dumps({
+            "format":"bob-updater-v1","release":gate.RELEASE,
+            "phase":"complete","restart_manager":True}))
+        journal.chmod(0o600)
 
     def write_registry(self):
         self.registry.write_text(json.dumps(self.data))
@@ -81,6 +86,11 @@ class R4AttestationTests(unittest.TestCase):
         content["phase"]="complete"
         content["release"]="v0.8.0-r3canary1"
         journal.write_text(json.dumps(content))
+        self.assertFalse(gate.verify(home=self.home))
+
+    def test_missing_completed_journal_refuses_public_source_authority(self):
+        journal=self.home/".local/state/bob-updater/transaction.json"
+        journal.unlink()
         self.assertFalse(gate.verify(home=self.home))
 
     def test_symlink_target_cannot_impersonate_installed_file(self):
