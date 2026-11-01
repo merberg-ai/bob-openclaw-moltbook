@@ -23,7 +23,7 @@ from .evidence import latest_observations
 from .r3_cutover_rehearsal import verified_source
 from .r3_unified import _validated
 from .r313c_candidate import canonical_action, MAX_ACTION_BYTES
-from .shadow import openclaw_decide
+from .shadow import openclaw_decide, _safe_error_reason
 
 MAX_SOURCE_AGE = timedelta(days=7)
 NO_PRODUCTION_DISPATCH = True
@@ -153,12 +153,22 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
                 continue
         if chosen is None:
             return ProposalResult("none","no_fresh_unseen_source")
+        # Keep transport/envelope failures distinct from strict decision
+        # validation. Only fixed, reviewed categories cross the journal
+        # boundary: never echo CLI stderr, prompt text or raw model output.
         try:
             output = model(
                 decision_prompt(chosen), "moltbook-v08-shadow-r3-propose-"+chosen.run_id)
+        except (OSError,RuntimeError,ValueError,TypeError) as exc:
+            return ProposalResult(
+                "refused","openclaw_"+_safe_error_reason(exc),
+                source_run=chosen.run_id)
+        try:
             action = parse_decision(output,chosen)
-        except (OSError,RuntimeError,ValueError,TypeError):
-            return ProposalResult("refused","openclaw_decision_invalid_or_unavailable")
+        except (OSError,RuntimeError,ValueError,TypeError) as exc:
+            return ProposalResult(
+                "refused","decision_"+_safe_error_reason(exc),
+                source_run=chosen.run_id)
         if action.kind == "skip":
             return ProposalResult("skipped","bob_chose_not_to_comment",
                                   source_run=chosen.run_id)

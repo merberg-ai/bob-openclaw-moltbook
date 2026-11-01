@@ -1,3 +1,13 @@
+## R3 first natural proposal: actionable diagnostic release (2026-10-31)
+
+- [x] **First natural timer run observed:** at 18:50:34 PDT, `bob-r3-propose.service` started on OMEN; at 18:50:39 it failed closed with `openclaw_decision_invalid_or_unavailable`. No queue, attempted send or dispatch authorization. Next timer tick was scheduled automatically, confirming the first-run timer repair.
+- [x] **OpenClaw failure taxonomy fixed in source:** R3 producer now distinguishes `openclaw_*` CLI/envelope issues from `decision_*` strict JSON/target/reason validation errors using the existing R2 allowlisted safe error categorizer. Raw model output, third-party text, credentials and stderr never appear in journal output. Synthetic input tests cover real observed failure categories, private text suppression, valid skip and fail closed.
+- [x] **Minimal signed diagnostic release prepared:** `v0.8.0-r3diag1` from installed `v0.8.0-cutover1`, three code files only (updater, bobctl, R3 ZIP); HTTPS preserved, no Activity Manager binary/restart, publisher/Scout/timers/DB schema unchanged, four real R3 public send gates still hard Off. Guarded installed-cutover and idle/timer preflight plus read-only `scripts/report_r3_diagnostic_installed.py --check` prepared. See `docs/R3-DIAG1-SAFE-ERROR-REASONS.md`.
+- [ ] **Owner install/acceptance pending:** after PR/CI approval, owner runs source updater `--check`, separately typed code-only `UPDATE`, then one installed acceptance `report_r3_diagnostic_installed.py --check`. On next natural timer tick inspect sanitized `reason`, then target the exact observed contract failure with focused source change if necessary. Never force a model run or replay public POST to collect diagnostics.
+- [ ] **Public R3 canary remains separate and unauthorised:** diagnostic release does NOT enable manual/auto dispatch, change publisher/Scout or grant external posting rights.
+
+---
+
 ## R3 first natural proposal tick: discovered missing timer anchor (2026-10-31)
 
 - [x] **Observed real OMEN symptom:** `bob-r3-propose.timer` was active after owner-approved handoff, but `systemctl --user list-timers --all bob-r3-propose.timer` showed `NEXT -`, `LAST -` on two checks, and `journalctl --user -u bob-r3-propose.service --since '1 hour ago'` returned no entries. A timer-active state was not a scheduled decision.

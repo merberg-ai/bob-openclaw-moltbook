@@ -1,0 +1,121 @@
+"""R3 sanitized OpenClaw diagnostic classification, no real model or network.
+
+All DB, observations, account identity and OpenClaw outcomes are synthetic.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+from types import SimpleNamespace
+import json
+import sqlite3
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path[:0]=[str(ROOT/"src"),str(ROOT/"src/lib/bob")]
+from bob_v08.core import Observation
+import bob_v08.r313d_producer as producer
+
+RUN="20261101T010000Z"
+ID="11111111-2222-3333-4444-555555555555"
+NOW=datetime(2026,11,1,1,50,tzinfo=timezone.utc)
+OBS=Observation(RUN,ID,"synthetic author","synthetic title",
+                "synthetic text","a"*64,"b"*64,"")
+PRIVATE="PRIVATE NEVER DISPLAY ANY OF THIS"
+
+
+class ProposalDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        temp=tempfile.TemporaryDirectory(prefix="bob-r3-diag-fixture-")
+        self.addCleanup(temp.cleanup)
+        self.home=Path(temp.name)
+        self.saved=self.home/"scout"
+        self.saved.mkdir(mode=0o700)
+        self.db=sqlite3.connect(":memory:")
+        self.addCleanup(self.db.close)
+        self.db.execute("CREATE TABLE r3_proposals(source_run TEXT,post_id TEXT)")
+        self.db.execute("CREATE TABLE publish_jobs(run_id TEXT,post_id TEXT)")
+        patched=(
+            patch("bob_publish_common.DATA",self.saved),
+            patch("bob_publish_common.connect",return_value=self.db),
+            patch("bob_r313d_owner.trusted_manager_boundary",return_value=True),
+            patch("bob_r313d_owner.schema_ready",return_value=True),
+            patch.object(producer,"latest_observations",return_value=(OBS,)),
+            patch.object(producer.os,"geteuid",return_value=1001),
+            patch.object(producer.pwd,"getpwuid",
+                         return_value=SimpleNamespace(pw_dir=str(self.home))),
+            patch.object(producer.Path,"home",return_value=self.home),
+        )
+        for ctx in patched:
+            ctx.start()
+            self.addCleanup(ctx.stop)
+
+    def run_model(self, model):
+        result=producer.run_one(model=model,clock=lambda:NOW)
+        self.assertFalse(result.attempted)
+        self.assertFalse(result.queued)
+        self.assertFalse(result.dispatch_authorized)
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM publish_jobs").fetchone()[0],0)
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM r3_proposals").fetchone()[0],0)
+        return result
+
+    def test_known_openclaw_errors_have_sanitized_specific_categories(self):
+        for original,label in (
+            ("shadow_agent_unavailable","openclaw_shadow_agent_unavailable"),
+            ("shadow_agent_cli_failed","openclaw_shadow_agent_cli_failed"),
+            ("shadow_agent_envelope_invalid","openclaw_shadow_agent_envelope_invalid"),
+            ("shadow_agent_payload_invalid","openclaw_shadow_agent_payload_invalid"),
+            ("a server error with "+PRIVATE,
+             "openclaw_invalid_or_unavailable_model_output"),
+        ):
+            with self.subTest(label=label):
+                def failed(*_):
+                    raise RuntimeError(original)
+                result=self.run_model(failed)
+                self.assertEqual(result.status,"refused")
+                self.assertEqual(result.reason,label)
+                self.assertEqual(result.source_run,RUN)
+                self.assertNotIn(PRIVATE,json.dumps(result.__dict__))
+
+    def test_bad_decision_errors_distinct_from_transport(self):
+        for output,expected in (
+            ("not a JSON response","decision_invalid_model_json"),
+            ('{"type":"skip"}',"decision_invalid_model_shape"),
+            (json.dumps({"type":"comment","source_run":RUN,"target_id":ID,
+                         "reason":"","text":"hello"}),"decision_model_reason_empty"),
+            (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
+                         "reason":"skip","text":"not-empty"}),"decision_skip_must_not_contain_text"),
+            (json.dumps({"type":"skip","source_run":RUN,
+                         "target_id":"eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                         "reason":"","text":""}),"decision_unverified_model_target"),
+        ):
+            with self.subTest(category=expected):
+                result=self.run_model(lambda *_:output)
+                self.assertEqual(result.status,"refused")
+                self.assertEqual(result.reason,expected)
+                self.assertEqual(result.source_run,RUN)
+                self.assertNotIn(PRIVATE,json.dumps(result.__dict__))
+
+    def test_valid_skip_is_accepted_without_proposal_or_public_send(self):
+        output=json.dumps({"type":"skip","source_run":RUN,
+                           "target_id":ID,"reason":"not relevant","text":""})
+        result=self.run_model(lambda *_:output)
+        self.assertEqual(result.status,"skipped")
+        self.assertEqual(result.reason,"bob_chose_not_to_comment")
+        self.assertEqual(result.source_run,RUN)
+
+    def test_unexpected_exception_text_is_never_exposed(self):
+        def unknown(*_):
+            raise ValueError(PRIVATE)
+        result=self.run_model(unknown)
+        self.assertEqual(result.reason,"openclaw_invalid_or_unavailable_model_output")
+        self.assertNotIn(PRIVATE,str(result.__dict__))
+
+
+if __name__=="__main__":
+    unittest.main()

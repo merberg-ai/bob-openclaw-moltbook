@@ -50,6 +50,7 @@ MANAGER_TRANSPORTS = {
     # R3 source candidate retains strict HTTPS on the existing private LAN port.
     # This does not enable R3 dispatch or authorize a production installation.
     "v0.8.0-cutover1": "https",
+    "v0.8.0-r3diag1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -541,6 +542,36 @@ def preflight_r3_consolidated_offfirst() -> bool:
         return False
 
 
+def preflight_r3_diagnostics_only() -> bool:
+    """Read-only live ownership gate for the signed proposal diagnostics patch.
+
+    Proposal-only service can be inactive or failed after an earlier refused
+    decision; neither is in flight. No service/timer/DB/publisher mutation.
+    """
+    try:
+        import r3_service_handoff as handoff
+        if not handoff._installed_cutover_off():
+            return False
+        st=handoff._status_all()
+        enabled=handoff.ENABLED
+        for name in (handoff.PUBLISHER_TIMER,handoff.SCOUT_TIMER,handoff.TIMER):
+            s=st[name]
+            if s.load!="loaded" or s.active!="active" or s.enabled not in enabled:
+                return False
+        if (st[handoff.PUBLISHER_SERVICE].active!="inactive"
+                or st[handoff.SHADOW_SERVICE].active!="inactive"
+                or st[handoff.SERVICE].active not in ("inactive","failed")
+                or st[handoff.SHADOW_TIMER].active!="inactive"
+                or st[handoff.SHADOW_TIMER].enabled in enabled
+                or not handoff._clear_absent(st[handoff.COMPETITOR_TIMER])
+                or not handoff._clear_absent(st[handoff.COMPETITOR_SERVICE])):
+            return False
+        return True
+    except (OSError,ValueError,RuntimeError,TypeError,KeyError,
+            ImportError,AttributeError):
+        return False
+
+
 def update(folder, current, plan, contents, *, auth):
     private_dir(STATE_DIR)
     fd = locked()
@@ -729,6 +760,8 @@ def main():
             return 0
         if plan["release"]=="v0.8.0-cutover1" and not preflight_r3_consolidated_offfirst():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
+        if plan["release"]=="v0.8.0-r3diag1" and not preflight_r3_diagnostics_only():
+            raise ValueError("r3_diagnostics_host_or_publisher_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1

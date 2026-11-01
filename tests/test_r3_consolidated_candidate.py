@@ -43,12 +43,14 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-cutover1")
+        self.assertEqual(current["release"],"v0.8.0-r3diag1")
         self.assertEqual(plan["from"],"v0.8.0-chhttps3")
-        self.assertEqual(plan["release"],current["release"])
-        self.assertEqual(current["files"],plan["files"])
+        self.assertEqual(plan["release"],current["from"])
+        self.assertEqual({row["name"] for row in current["files"]},
+                         {"bob-release-updater","bobctl","bob_r3_package.pyz"})
         self.assertTrue(candidate.inspect(build=False)["releases_current_json_modified"])
         self.assertTrue(plan["restart_manager"])
+        self.assertFalse(current["restart_manager"])
         self.assertIn("bob-moltbook-publisher",{x["name"] for x in plan["files"]})
         self.assertNotIn("bob-moltbook-publisher.timer",{x["name"] for x in plan["files"]})
         self.assertNotIn("bob-r3-publisher",{x["name"] for x in plan["files"]})

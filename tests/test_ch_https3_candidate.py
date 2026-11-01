@@ -213,16 +213,13 @@ class HTTPS3CandidateTests(unittest.TestCase):
                          {"bob_manager_tls.py","bob-activity-manager"})
         self.assertTrue(data["restart_manager"])
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-cutover1")
-        self.assertEqual(live["from"],"v0.8.0-chhttps3")
-        self.assertIn("bob-activity-manager",
-                      {x["name"] for x in live["files"]})
-        self.assertIn("bob-moltbook-publisher",
-                      {x["name"] for x in live["files"]})
-        # TLS manager remains built from the proven CH-HTTPS3 source.
-        self.assertEqual(
-            next(x for x in live["files"] if x["name"]=="bob-activity-manager")["builder"],
-            "scripts/build_ch_https3_manager_candidate.py")
+        self.assertEqual(live["release"],"v0.8.0-r3diag1")
+        self.assertEqual(live["from"],"v0.8.0-cutover1")
+        self.assertEqual({x["name"] for x in live["files"]},
+                         {"bob-release-updater","bobctl","bob_r3_package.pyz"})
+        self.assertFalse(live["restart_manager"])
+        # The historic CHHTTPS3 candidate remains unchanged. No manager
+        # binary appears in the later narrow diagnostics-only update.
         for item in data["files"]:
             if "builder" in item:
                 compile(builder.build()[0],item["name"],"exec")
