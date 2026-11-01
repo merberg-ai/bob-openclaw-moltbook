@@ -17,7 +17,9 @@ class R4AttestationTests(unittest.TestCase):
         t=tempfile.TemporaryDirectory(prefix="r4-signed-gate-")
         self.addCleanup(t.cleanup)
         self.home=Path(t.name)
-        (self.home/".local/state/bob-updater").mkdir(parents=True)
+        state=self.home/".local/state/bob-updater"
+        state.mkdir(parents=True)
+        state.chmod(0o700)
         (self.home/".local/bin").mkdir(parents=True)
         self.registry=self.home/".local/state/bob-updater/installed.json"
         hashes={}
