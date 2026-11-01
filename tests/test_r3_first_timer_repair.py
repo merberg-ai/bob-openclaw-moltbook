@@ -9,7 +9,7 @@ import repair_r3_first_timer as bootstrap
 
 class TimerTest(unittest.TestCase):
     def test_seed_preserves_original_unit(self):
-        self.assertEqual(bootstrap.BODY,b"[Timer]\\nOnActiveSec=2min\\n")
+        self.assertEqual(bootstrap.BODY,b"[Timer]\nOnActiveSec=2min\n")
         self.assertNotIn("OnActiveSec",handoff.UNIT_TEXT[handoff.TIMER])
         self.assertIn("OnUnitInactiveSec=35min",handoff.UNIT_TEXT[handoff.TIMER])
         self.assertEqual(bootstrap.F.parent,bootstrap.D)
