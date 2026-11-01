@@ -8,7 +8,7 @@ from unittest import TestCase, main
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(ROOT/"scripts"))
+sys.path[:0]=[str(ROOT/"scripts"),str(ROOT/"src")]
 import bob_release_updater as updater
 import report_r3_format_installed as report
 import build_r313d_off_package as build
