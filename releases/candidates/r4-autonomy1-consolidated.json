@@ -2,7 +2,7 @@
   "format": "bob-updater-v1",
   "release": "v0.8.0-autonomy1",
   "from": "v0.8.0-r3canary1",
-  "notes": "R4 consolidated authenticated dashboard, source-evidenced Bob memories/friends and separate Off/Propose controls. Reviewed owner-queued R4 outbox and one existing publisher integration path are staged with R4 real dispatch hard Off. No new network, migration, auto mode, or public R4 permission is authorized by installation. Final signed enablement requires distinct review.",
+  "notes": "R4 consolidated HTTPS UI, independently reviewed Bob decisions/memory/friends, owner-queued upvotes and one original publisher. Target/self fixed-host preflights, atomic counted intent, final owner barrier and exact private release attestation are source-tested. All real R4 dispatch is compiled Off with three separate gates. No live R4 API write, auto mode or production migration permitted. One future signed guarded update only.",
   "files": [
     {
       "name": "bob-release-updater",
@@ -89,6 +89,14 @@
     {
       "name": "bob_r4_remote_gate.py",
       "source": "src/lib/bob/bob_r4_remote_gate.py"
+    },
+    {
+      "name": "bob_r4_final_gate.py",
+      "source": "src/lib/bob/bob_r4_final_gate.py"
+    },
+    {
+      "name": "bob_r4_installed_gate.py",
+      "source": "src/lib/bob/bob_r4_installed_gate.py"
     }
   ],
   "restart_manager": true
