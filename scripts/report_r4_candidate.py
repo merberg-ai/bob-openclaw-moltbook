@@ -27,6 +27,7 @@ FILES=frozenset((
     "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
     "bob_r4_web.py","bob_r4_outbox.py",
     "bob_r4_publisher_adapter.py","bob-moltbook-publisher",
+    "bob_r4_budget.py","bob_r4_remote_gate.py",
 ))
 UNSAFE_WORKERS=frozenset((
     "bob-moltbook-scout","bob-r3-propose",
@@ -50,7 +51,8 @@ def inspect(root:Path=ROOT) -> dict:
         raise ValueError("r4_unsigned_release_chain")
     names=[x["name"] for x in candidate["files"]]
     if (set(names)!=FILES or len(names)!=len(FILES) or
-            set(names)&UNSAFE_WORKERS):
+            set(names)&UNSAFE_WORKERS or
+            "bob_r4_verified_send_lab.py" in names):
         raise ValueError("r4_source_scope_unreviewed")
     expected={
         "bob-activity-manager":("builder","scripts/build_r4_manager_candidate.py",0),
@@ -90,6 +92,12 @@ def inspect(root:Path=ROOT) -> dict:
     publisher=(root/"src/bin/bob-moltbook-publisher").read_text("utf-8")
     adapter=(root/"src/lib/bob/bob_r4_publisher_adapter.py").read_text("utf-8")
     outbox=(root/"src/lib/bob/bob_r4_outbox.py").read_text("utf-8")
+    remote=(root/"src/lib/bob/bob_r4_remote_gate.py").read_text("utf-8")
+    budget=(root/"src/lib/bob/bob_r4_budget.py").read_text("utf-8")
+    if ("MAX_PREFLIGHT=timedelta(seconds=90)" not in remote or
+            "R4_GLOBAL_DAILY_CAP=4" not in budget or
+            "R4_MIN_GAP=timedelta(minutes=20)" not in budget):
+        raise ValueError("r4_remote_or_counted_budget_source_drift")
     if (publisher.count("R4_SINGLE_PUBLISHER_COMPILED_OFF = True")!=1
             or "if not R4_SINGLE_PUBLISHER_COMPILED_OFF:" not in publisher
             or "R313C_INTEGRATION_COMPILED_OFF = False" not in publisher
