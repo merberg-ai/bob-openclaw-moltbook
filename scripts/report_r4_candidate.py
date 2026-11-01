@@ -62,10 +62,13 @@ def inspect(root:Path=ROOT) -> dict:
         if name in expected:
             if origin!=expected[name]:
                 raise ValueError("r4_manager_build_untrusted")
-        elif origin is None or origin[0]!="source" or not origin[1].startswith(
-                ("scripts/bob_release_updater.py","src/bin/bobctl",
-                 "src/lib/bob/bob_r4_")):
-            raise ValueError("r4_unreviewed_source_target")
+        else:
+            path=(
+                "scripts/bob_release_updater.py" if name=="bob-release-updater"
+                else "src/bin/bobctl" if name=="bobctl"
+                else "src/lib/bob/"+name)
+            if origin!=("source",path):
+                raise ValueError("r4_unreviewed_source_target")
     bundle,navigation=manager.build()
     if (not 0<len(bundle)<=524288 or
             not 0<len(navigation)<=524288 or
