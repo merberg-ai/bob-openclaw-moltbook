@@ -1,7 +1,7 @@
-"""R3 one-run public canary source pin. COMPILED OFF without a signed release.
+"""R3 one-run public canary source pin. Install and queue stay OFF until explicitly armed.
 
 No environment, dashboard bit, file or model response can populate PIN.
-A future independently reviewed signed package must embed ONE exact approved
+This reviewed signed candidate embeds ONE exact approved
 run, source seal, post target and expiry. The existing publisher still requires
 all normal owner/pause/budget/atomic-claim/final transport checks.
 """
@@ -29,8 +29,8 @@ class CanaryPin:
     expires_utc: str = ""
 
 
-# Empty pins are an intentional independent fourth-layer source-level Off.
-# Do not fill this from owner database settings or environment variables.
+# Immutable source pin is only the first gate. A separate private owner-arm
+# marker is required before this source can dispatch. Never derive from DB.
 PIN = CanaryPin(
     run="20261101T151033Z",
     seal="870a59f6bb3ccc02088bf44e8f1530c7a19a4d511f312420b609d8fa735a4bc2",
@@ -76,7 +76,7 @@ def marker_valid(*, now: datetime) -> bool:
                 or leaf.st_mode & 0o177 or not 0 < leaf.st_size < 1024):
             return False
         return json.loads(path.read_text(encoding="utf-8"))==expected_marker()
-    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError, json.JSONDecodeError):
         return False
 
 
