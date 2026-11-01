@@ -103,7 +103,7 @@ class ProposalDiagnosticTests(unittest.TestCase):
 
     def test_shape_reasons_are_structural_only_and_never_expose_model_fields(self):
         fixtures=(
-            (json.dumps({"answer":{"type":"skip"}}),"decision_shape_missing_fields"),
+            (json.dumps({"answer":{"type":"skip"}}),"decision_shape_missing_and_extra_fields"),
             (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
                          "reason":"","text":"","extra":PRIVATE}),
              "decision_shape_extra_fields"),
@@ -135,7 +135,7 @@ class ProposalDiagnosticTests(unittest.TestCase):
         self.assertIn('"target_id":"'+ID+'"',prompt)
         self.assertIn('"reason":""',prompt)
         self.assertIn('"text":""',prompt)
-        self.assertIn("EXACT",prompt)
+        self.assertIn("FINAL OUTPUT CONTRACT",prompt)
         self.assertIn("END_UNTRUSTED_MOLTBOOK_JSON",prompt)
         self.assertNotIn(PRIVATE,prompt)
 
