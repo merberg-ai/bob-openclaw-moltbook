@@ -1,3 +1,9 @@
+## R3 proposal timer initial-firing defect and prepared one-step repair (2026-10-31)
+
+The owner confirmed a successful proposal-only timer handoff, but repeated real-host `list-timers --all` showed **no next/last deadline**, with no proposal service journal entries. This exposed a source scheduling defect: the new timer used `OnUnitInactiveSec=35min` without a first activation anchor. A **source-only, separately owner-approved repair** now adds a first-run `OnActiveSec=2min` via a SHA-checked user timer drop-in, preserving the installed original unit files, their original journal hashes, legacy Scout/publisher timers and all four hard-Off R3 public send switches. See `docs/R3-FIRST-TICK-REPAIR.md`. The branch's CI may prove source safety, but it cannot establish the actual first time or that Bob successfully made a real scheduled decision. The user must explicitly approve a real timer-only restart and then verify `NEXT`; public R3 publishing remains separately gated.
+
+---
+
 ## R3 proposal scheduler successfully activated on OMEN (2026-10-31)
 
 **Real owner evidence:** after the installed Off-first `v0.8.0-cutover1` acceptance, the separate read-only R3 service-handoff preflight reported signed release hard Off true and **zero blockers**. The owner then approved `r3_service_handoff.py --apply` using exact typed `ACTIVATE R3 PROPOSALS`; returned `proposal_only_timer_active`. Verified user timer states: **R3 proposal active**, **R2 Shadow inactive**, **original credentialed Moltbook publisher active**, **Scout active**. The guarded handoff states it touched neither Moltbook nor SQLite history nor the legacy publisher. The initial attempt with a leading space before the confirmation was correctly refused; a second exact input succeeded. This completes the owner-approved **proposal-only service handoff**, NOT the first natural timer-fired agent decision and NOT an R3 public publishing cutover.
