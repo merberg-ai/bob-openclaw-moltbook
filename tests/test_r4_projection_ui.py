@@ -150,7 +150,7 @@ class R4PageTests(unittest.TestCase):
         h.path="/r4/bob"
         fake=types.ModuleType("navigation_shell")
         fake.wrap=lambda title,content,path: content
-        with patch.dict(sys.modules,{"navigation_shell":fake}), \\
+        with patch.dict(sys.modules,{"navigation_shell":fake}), \
                 patch.object(web,"snapshot",return_value=self.data()):
             h.do_GET()
         self.assertEqual(h.response,200)
