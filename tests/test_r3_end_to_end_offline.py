@@ -42,6 +42,7 @@ class RealShapeE2E(unittest.TestCase):
         t=tempfile.TemporaryDirectory(prefix="bob-r3-full-chain-synthetic-")
         self.addCleanup(t.cleanup)
         self.home=Path(t.name)
+        (self.home/".config/bob-system").mkdir(mode=0o700,parents=True)
         self.source=self.home/"scout"
         make_saved_scout(self.source)
         self.action=Action(
