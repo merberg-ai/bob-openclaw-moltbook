@@ -161,7 +161,7 @@ class ServiceHandoffTests(unittest.TestCase):
         path=self.units/r3.SERVICE
         path.write_text(path.read_text()+"\n# operator change")
         with self.assertRaisesRegex(ValueError,"handoff_unit_changed"):
-            r3.recover(control=self.mock.control,verified_owner=lambda:True)
+            r3.recover(control=self.mock.control,probe=self.mock.probe,verified_owner=lambda:True)
         self.assertTrue(path.exists())
         self.assertEqual(r3._read_journal()["phase"],"complete")
 
@@ -204,7 +204,7 @@ class ServiceHandoffTests(unittest.TestCase):
         (self.units/r3.TIMER).unlink()
         (self.units/r3.TIMER).symlink_to(self.units/r3.SERVICE)
         with self.assertRaises(ValueError):
-            r3.recover(control=self.mock.control,verified_owner=lambda:True)
+            r3.recover(control=self.mock.control,probe=self.mock.probe,verified_owner=lambda:True)
         self.assertTrue((self.units/r3.TIMER).is_symlink())
 
     def test_unit_templates_never_create_second_publisher(self):
@@ -214,7 +214,7 @@ class ServiceHandoffTests(unittest.TestCase):
         self.assertIn("--once",r3.UNIT_TEXT[r3.SERVICE])
         self.assertIn("Unit="+r3.SERVICE,r3.UNIT_TEXT[r3.TIMER])
         self.assertNotIn("Environment=",str(r3.UNIT_TEXT))
-        self.assertFalse(r3._owner.__name__=="made_up")
+        self.assertEqual(r3.TIMER, "bob-r3-propose.timer")
 
 if __name__=="__main__":
     unittest.main()
