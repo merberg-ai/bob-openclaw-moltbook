@@ -21,9 +21,12 @@ RUN="20261101T151033Z"
 POST="bf2095bd-15cf-46e9-9bf0-8aa47bea6c5a"
 
 
-def report(*, public_get=False, auditor=None):
+def report(*, public_get=False, auditor=None, _synthetic_db=None):
     from bob_publish_common import DB
-    uri="file:"+quote(str(DB),safe="/")+"?mode=ro"
+    # An in-process offline test may inject a private synthetic fixture.
+    # The CLI does not expose paths and always reads the fixed real queue.
+    db_path=Path(_synthetic_db) if _synthetic_db is not None else DB
+    uri="file:"+quote(str(db_path),safe="/")+"?mode=ro"
     def one():
         with closing(sqlite3.connect(uri,uri=True,isolation_level=None,timeout=4)) as db:
             db.execute("PRAGMA query_only=ON")
