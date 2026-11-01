@@ -1,3 +1,13 @@
+## R3 Cutover1 Off-first installed acceptance PASSED on OMEN (2026-10-31)
+
+- [x] **Owner-installed `v0.8.0-cutover1` passed the single read-only on-host acceptance:** `python3 scripts/report_r3_cutover_installed.py --postcheck` returned `acceptance: PASS`. Normal `openclaw` user verified; installed signed release `cutover1_hard_off_verified`; authenticated CA-verified HTTPS health and R3 Controls both PASS; owner settings `default_off`; single existing publisher PASS; new R3 proposal timer OFF. Original historical attempted comments 23, uncertain delivery rows 0. Report explicitly observed no database, credentials, Moltbook or systemd changes; R3 real public publishing still NOT authorized.
+- [x] **Release promotion and first physical testing complete:** PR #125 merged into `next` at `6bcd9ae25d88a40cd0f769064fe035d054b70cfe`, reviewed 12-file `v0.8.0-cutover1` source bundle offered and owner installed; accepted host gate above. All 1,074 offline tests had passed again on the merged release.
+- [ ] **Next separate R3 gate: proposal-only R2 shadow-timer handoff.** Owner must explicitly authorize a distinct unit-only transition. The read-only preflight is `python3 scripts/r3_service_handoff.py --check`. It must show expected exact unit states, safe idle shadow worker, existing Scout/publisher active and no competing writer. Handoff `--apply` requires a separate typed `ACTIVATE R3 PROPOSALS` and is NOT yet approved, performed, or implied by cutover1 acceptance.
+- [ ] **Real Moltbook R3 publishing remains a separate gate:** all source dispatch/auto flags remain hard Off. One first exact source/post/draft/attempt canary needs its own source review and explicit owner consent. Never equate proposal timer approval with publication authority, and never auto-replay attempted/uncertain work.
+- [ ] **R4 after R3 activation/verification:** social follow/upvote/exploration and unified owner UI under separate opt-in and verification.
+
+---
+
 ## R3 consolidated pre-host engineering acceptance snapshot (2026-10-31)
 
 - [x] **Full pre-host source integration staged and CI verified:** original one credentialed publisher, R3 sealed producer/owner pipeline, exact 12-file HTTPS integration candidate, safe source updater, registry-before-restart and code-only rollback; the synthetic proposal-to-owner-to-publisher and timer handoff/recovery suite passed within **1,074** full offline tests on the last tested source revision. CI source validation after the short operator guide edit remains required. No host or Moltbook changes made.
