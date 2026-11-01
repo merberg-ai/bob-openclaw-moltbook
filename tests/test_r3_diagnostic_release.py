@@ -37,9 +37,9 @@ class DiagnosticsReleaseTests(unittest.TestCase):
         current=json.loads((ROOT/"releases/current.json").read_text())
         candidate=json.loads(
             (ROOT/"releases/candidates/r3-diag1-offfirst.json").read_text())
-        self.assertEqual(current,candidate)
-        self.assertEqual(current["release"],"v0.8.0-r3diag1")
-        self.assertEqual(current["from"],"v0.8.0-cutover1")
+        self.assertEqual(current["from"],candidate["release"])
+        self.assertEqual(current["release"],"v0.8.0-r3format1")
+        self.assertEqual(candidate["from"],"v0.8.0-cutover1")
         self.assertFalse(current["restart_manager"])
         names={item["name"] for item in current["files"]}
         self.assertEqual(names,
@@ -56,7 +56,7 @@ class DiagnosticsReleaseTests(unittest.TestCase):
 
     def test_signature_gate_does_not_change_original_unit_journal_template(self):
         self.assertEqual(h.UNIT_TEXT[h.TIMER].count("OnUnitInactiveSec=35min"),1)
-        self.assertIn('("v0.8.0-cutover1","v0.8.0-r3diag1")',
+        self.assertIn('("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1")',
                       (ROOT/"scripts/r3_service_handoff.py").read_text())
         self.assertFalse(h._installed_cutover_off.__doc__ and
                          "Moltbook POST" in h._installed_cutover_off.__doc__)
