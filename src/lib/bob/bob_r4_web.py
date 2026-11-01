@@ -171,13 +171,25 @@ def _inbox(data):
 
 
 def _bob(data):
+    # Only seal-verified reasons from the actual R3 agent, never invented
+    # personality opinions or remotely confirmed social relationships.
+    thoughts=''.join(
+        '<li><b>'+e(x["topic"])+'</b> · '+e(x["reason"])+
+        ' <a href="/r3">R3 source '+e(x["source_run"])+'</a>'
+        '<span class="muted"> · Bob expressed this; not owner-confirmed fact</span>'
+        '</li>' for x in data.get("bob_reasons",[])[:8])
     friends=''.join('<li><b>@'+e(x["handle"])+'</b> · '+
            e(x["local_relationship"])+' · '+e(x["evidence"])+
            ' · remote following unknown</li>' for x in data["people"])
     memories=''.join('<li>'+e(x["title"])+' · '+e(x["category"])+
             ' · '+e(x["confidence"])+' · owner-entered, not automatically '
             'recalled</li>' for x in data["memory_titles"])
-    return ('<div class="grid"><section class="panel">'
+    return ('<section class="panel"><h3>Bob's own source-linked reasons</h3>'
+            '<p class="muted">These are previous Bob-authored reasons that '
+            'passed the sealed R3 source reader. They are tentative '
+            'interpretations, not automatically promoted memories.</p><ul>'+
+            (thoughts or '<li>No currently verified expressed reasons.</li>')+
+            '</ul></section><div class="grid"><section class="panel">'
             '<h3>Personality and memory</h3><p class="muted">Personality '
             'sliders are staged until separately applied to OpenClaw. '
             'Memory notes are owner-curated; they do not silently become '
@@ -288,6 +300,9 @@ class R4HandlerMixin:
         from navigation_shell import wrap
         data=snapshot()
         view=PANEL[path]
+        if data["available"] and view in ("bob","inbox"):
+            from bob_r4_reflections import reasons
+            data["bob_reasons"]=reasons()
         self._send(200,wrap("Bob R4 · "+view.title(),
                             content(view,data,self.R4_CSRF_TOKEN),path),
                    "text/html; charset=utf-8")
