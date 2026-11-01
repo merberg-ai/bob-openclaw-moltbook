@@ -53,6 +53,14 @@
     {
       "name": "bob_r4_web.py",
       "source": "src/lib/bob/bob_r4_web.py"
+    },
+    {
+      "name": "bob-r4-propose",
+      "source": "src/bin/bob-r4-propose"
+    },
+    {
+      "name": "bob_r4_producer.py",
+      "source": "src/lib/bob/bob_r4_producer.py"
     }
   ],
   "restart_manager": true
