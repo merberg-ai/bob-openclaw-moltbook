@@ -34,29 +34,29 @@ def states():
 
 class DiagnosticsReleaseTests(unittest.TestCase):
     def test_promoted_3_file_package_is_only_off_first_diagnostics(self):
-        current=json.loads((ROOT/"releases/current.json").read_text())
+        historical=json.loads((ROOT/"releases/candidates/r3-format1-offfirst.json").read_text())
         candidate=json.loads(
             (ROOT/"releases/candidates/r3-diag1-offfirst.json").read_text())
-        self.assertEqual(current["from"],candidate["release"])
-        self.assertEqual(current["release"],"v0.8.0-r3format1")
+        self.assertEqual(historical["from"],candidate["release"])
+        self.assertEqual(historical["release"],"v0.8.0-r3format1")
         self.assertEqual(candidate["from"],"v0.8.0-cutover1")
-        self.assertFalse(current["restart_manager"])
-        names={item["name"] for item in current["files"]}
+        self.assertFalse(historical["restart_manager"])
+        names={item["name"] for item in historical["files"]}
         self.assertEqual(names,
                          {"bob-release-updater","bobctl","bob_r3_package.pyz"})
-        self.assertEqual(upd.manager_transport(current["release"]),"https")
-        self.assertEqual(upd.manager_transport(current["from"]),"https")
+        self.assertEqual(upd.manager_transport(historical["release"]),"https")
+        self.assertEqual(upd.manager_transport(historical["from"]),"https")
         for forbidden in ("bob-moltbook-publisher","bob-activity-manager",
                           "bob-r3-propose","bob-r3-publisher"):
             self.assertNotIn(forbidden,names)
         import build_r313d_off_package as builder
         blob,_=builder.build()
         self.assertTrue(blob)
-        self.assertTrue(upd.release_bytes(ROOT,current["files"][2]))
+        self.assertTrue(upd.release_bytes(ROOT,historical["files"][2]))
 
     def test_signature_gate_does_not_change_original_unit_journal_template(self):
         self.assertEqual(h.UNIT_TEXT[h.TIMER].count("OnUnitInactiveSec=35min"),1)
-        self.assertIn('("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1")',
+        self.assertIn('("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1")',
                       (ROOT/"scripts/r3_service_handoff.py").read_text())
         self.assertFalse(h._installed_cutover_off.__doc__ and
                          "Moltbook POST" in h._installed_cutover_off.__doc__)
