@@ -125,7 +125,8 @@ class ServiceHandoffTests(unittest.TestCase):
             r3.PUBLISHER_TIMER in op or r3.PUBLISHER_SERVICE in op
             or r3.SCOUT_TIMER in op for op in self.mock.calls))
         self.assertEqual(r3.recover(
-            control=self.mock.control,verified_owner=lambda:True),
+            control=self.mock.control,probe=self.mock.probe,
+            verified_owner=lambda:True),
             "shadow_schedule_restored")
         self.assertEqual(self.mock.states[r3.SHADOW_TIMER].active,"active")
         self.assertEqual(self.mock.states[r3.TIMER].active,"inactive")
@@ -148,7 +149,8 @@ class ServiceHandoffTests(unittest.TestCase):
         self.assertEqual(r3._read_journal()["phase"],"shadow_disabled")
         self.mock.interrupt_on=None
         self.assertEqual(r3.recover(
-            control=self.mock.control,verified_owner=lambda:True),
+            control=self.mock.control,probe=self.mock.probe,
+            verified_owner=lambda:True),
             "shadow_schedule_restored")
         self.assertEqual(self.mock.states[r3.SHADOW_TIMER].active,"active")
         self.assertEqual(self.mock.states[r3.PUBLISHER_TIMER].active,"active")
