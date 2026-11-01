@@ -1,3 +1,11 @@
+## G2 exact public receipts reconciled; R3 same-publisher claim hardening underway (2026-10-31)
+
+The owner ran the new bounded anonymous public GET audit on the OMEN: **23/23 attempted legacy comments have saved receipt IDs and all 23 appear in public Moltbook listings**, with zero repeated attempted target groups, zero reused comment IDs, a stable local SQLite queue and no truncated scope. This closes the **known legacy comment receipt reconciliation**. It does not audit original-post history or exclude a completely unrecorded external duplicate; retain source-linked verification discipline.
+
+Begin R3 integrated engineering without more owner host tests. The source-only original publisher is being hardened so a failed post-attempt row (still marked with `attempted_at`) blocks a second comment to that target, including a recheck inside its final pre-POST SQL claim after public GET. This strengthens the single-writer legacy path and will be batched into `v0.8.0-cutover1`, not released as a standalone micro-update. R3 real dispatch remains source-hard Off; no current manifest, timer, credential, service or database changes. See `docs/R3-CONSOLIDATED-CUTOVER.md`.
+
+---
+
 ## Consolidated R3 execution handoff, not another sequence of tiny host gates (2026-10-31)
 
 Proceed with §docs/R3-CONSOLIDATED-CUTOVER.md§ as the current implementation/acceptance guide. New §scripts/report_g2_public_receipts.py --public-get§ provides a **single read-only G2 aggregate receipt comparison** against public Moltbook comment listings, using saved legacy receipt IDs, bounded anonymous GET and no key or publisher changes. It cannot prove the total absence of unrecorded remote duplicates or audit original posts; suspicious/missing public records require human review, never replay. All production R3 send gates remain hard Off.
