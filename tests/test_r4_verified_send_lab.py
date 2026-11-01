@@ -116,25 +116,25 @@ class R4VerifiedPostTests(unittest.TestCase):
         self.assertTrue(row[1])
         return {"success":True,"message":"Upvoted!"}
 
-    def run(self):
+    def exercise(self):
         return lab.simulate_verified_attempt(
             self.db,self.data,clock=self.clock,
             post_get=self.get_post,self_get=self.me,
             post_call=self.post,global_pause=lambda:self.paused)
 
     def test_two_remote_gets_and_counted_intent_before_single_fake_post(self):
-        self.assertEqual(self.run(),"acknowledged")
+        self.assertEqual(self.exercise(),"acknowledged")
         self.assertEqual((self.gets,self.self_gets,self.posts),(2,2,1))
         self.assertTrue(self.calls.index(("POST","/posts/"+POST+"/upvote"))>3)
         self.assertEqual(self.db.execute(
             "SELECT state FROM r4_action_outbox").fetchone(),
             ("acknowledged",))
-        self.assertEqual(self.run(),"no_queued_r4_action")
+        self.assertEqual(self.exercise(),"no_queued_r4_action")
         self.assertEqual(self.posts,1)
 
     def test_self_identity_cannot_be_inferred_from_saved_local_friend(self):
         self.me=lambda:{"success":True,"agent":{"name":AUTHOR}}
-        self.assertEqual(self.run(),"remote_or_owner_preflight_refused")
+        self.assertEqual(self.exercise(),"remote_or_owner_preflight_refused")
         self.assertEqual(self.posts,0)
         self.assertEqual(self.db.execute(
             "SELECT state,attempted_at FROM r4_action_outbox").fetchone(),
@@ -156,7 +156,7 @@ class R4VerifiedPostTests(unittest.TestCase):
 
     def test_remote_identity_mismatch_or_deleted_or_unavailable_refused(self):
         self.get_post=lambda *a:RemoteReview(False,"target_deleted")
-        self.assertEqual(self.run(),"remote_or_owner_preflight_refused")
+        self.assertEqual(self.exercise(),"remote_or_owner_preflight_refused")
         self.assertEqual(self.posts,0)
         self.assertEqual(self.db.execute(
             "SELECT attempted_at FROM r4_action_outbox").fetchone(),(None,))
@@ -168,12 +168,12 @@ class R4VerifiedPostTests(unittest.TestCase):
                 return RemoteReview(False,"author_identity_mismatch")
             return first(post,author)
         self.get_post=change
-        self.assertEqual(self.run(),"uncertain")
+        self.assertEqual(self.exercise(),"uncertain")
         self.assertEqual(self.posts,0)
         self.assertEqual(self.db.execute(
             "SELECT state,attempted_at FROM r4_action_outbox").fetchone()[0],
             "uncertain")
-        self.assertEqual(self.run(),"no_queued_r4_action")
+        self.assertEqual(self.exercise(),"no_queued_r4_action")
 
     def test_late_global_pause_consumes_counted_intent_without_post(self):
         original=self.me
@@ -183,7 +183,7 @@ class R4VerifiedPostTests(unittest.TestCase):
                 self.paused=True
             return answer
         self.me=pause_after_first_profile
-        self.assertEqual(self.run(),"held_global_pause")
+        self.assertEqual(self.exercise(),"held_global_pause")
         self.assertEqual(self.posts,0)
         self.assertEqual(self.db.execute(
             "SELECT attempted_at FROM r4_action_outbox").fetchone(),(None,))
@@ -196,7 +196,7 @@ class R4VerifiedPostTests(unittest.TestCase):
                 self.paused=True
             return answer
         self.me=pause_second
-        self.assertEqual(self.run(),"uncertain")
+        self.assertEqual(self.exercise(),"uncertain")
         self.assertEqual(self.posts,0)
         self.assertEqual(self.db.execute(
             "SELECT state FROM r4_action_outbox").fetchone(),("uncertain",))
@@ -206,8 +206,8 @@ class R4VerifiedPostTests(unittest.TestCase):
                         {"success":"true"},{"success":True,"error":"boom"}):
             self.assertFalse(remote.upvote_ack(payload))
         self.post=lambda method,path:(_ for _ in ()).throw(TimeoutError())
-        self.assertEqual(self.run(),"uncertain")
-        self.assertEqual(self.run(),"no_queued_r4_action")
+        self.assertEqual(self.exercise(),"uncertain")
+        self.assertEqual(self.exercise(),"no_queued_r4_action")
 
     def test_stale_second_get_clock_consumes_once_but_sends_nothing(self):
         first=self.me
@@ -217,13 +217,13 @@ class R4VerifiedPostTests(unittest.TestCase):
                 self.tick+=timedelta(minutes=3)
             return result
         self.me=delayed
-        self.assertEqual(self.run(),"uncertain")
+        self.assertEqual(self.exercise(),"uncertain")
         self.assertEqual(self.posts,0)
 
     def test_crash_recovery_with_no_second_public_attempt(self):
         outbox.reserve_once(self.db,self.data,at=NOW)
-        self.assertEqual(self.run(),"recovered_uncertain_no_replay")
-        self.assertEqual(self.run(),"no_queued_r4_action")
+        self.assertEqual(self.exercise(),"recovered_uncertain_no_replay")
+        self.assertEqual(self.exercise(),"no_queued_r4_action")
         self.assertEqual(self.posts,0)
 
     def test_file_backed_rehearsal_refuses_even_if_callbacks_fake(self):
