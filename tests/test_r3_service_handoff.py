@@ -207,6 +207,28 @@ class ServiceHandoffTests(unittest.TestCase):
             r3.recover(control=self.mock.control,probe=self.mock.probe,verified_owner=lambda:True)
         self.assertTrue((self.units/r3.TIMER).is_symlink())
 
+    def test_active_proposal_worker_blocks_unit_rollback(self):
+        self.assertEqual(self.apply(),"proposal_only_timer_active")
+        self.mock.states[r3.SERVICE]=r3.Snapshot("loaded","active","static")
+        with self.assertRaisesRegex(ValueError,"r3_proposal_worker_in_flight"):
+            r3.recover(control=self.mock.control,probe=self.mock.probe,
+                       verified_owner=lambda:True)
+        self.assertTrue((self.units/r3.SERVICE).exists())
+        self.assertEqual(self.mock.states[r3.TIMER].active,"active")
+        self.assertEqual(r3._read_journal()["phase"],"complete")
+
+    def test_symlinked_journal_is_not_read_during_recovery(self):
+        self.assertEqual(self.apply(),"proposal_only_timer_active")
+        original=r3.JOURNAL.read_bytes()
+        reference=self.state/"fake-journal-copy.json"
+        reference.write_bytes(original)
+        r3.JOURNAL.unlink()
+        r3.JOURNAL.symlink_to(reference)
+        with self.assertRaisesRegex(ValueError,"handoff_journal_not_private_file"):
+            r3.recover(control=self.mock.control,probe=self.mock.probe,
+                       verified_owner=lambda:True)
+        self.assertEqual(self.mock.states[r3.SHADOW_TIMER].active,"inactive")
+
     def test_unit_templates_never_create_second_publisher(self):
         r3._validate_template()
         self.assertEqual(set(r3.UNIT_TEXT),{r3.SERVICE,r3.TIMER})
