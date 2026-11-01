@@ -249,6 +249,12 @@ def _journal(phase: str) -> None:
 
 
 def _read_journal() -> dict:
+    if JOURNAL.is_symlink() or not JOURNAL.is_file():
+        raise ValueError("handoff_journal_not_private_file")
+    jstat=JOURNAL.stat()
+    if (jstat.st_uid!=os.geteuid() or jstat.st_nlink!=1 or
+            jstat.st_mode & 0o077 or jstat.st_size>8192):
+        raise ValueError("handoff_journal_untrusted")
     data=json.loads(JOURNAL.read_text(encoding="utf-8"))
     if (data.get("format")!="bob-r3-proposal-handoff-v1"
         or data.get("old_shadow_timer")!="enabled_active"
@@ -346,6 +352,8 @@ def _restore(*,control=_cmd,probe=_snapshot) -> None:
     info=_read_journal()
     if info["phase"]=="rolled_back":
         return
+    if probe(SERVICE).active!="inactive":
+        raise ValueError("r3_proposal_worker_in_flight")
     # An interruption may happen before the new timer is even loaded. Only
     # stop it if running/enabled; unfamiliar states fail closed rather than
     # letting a possibly armed timer survive unit removal.
