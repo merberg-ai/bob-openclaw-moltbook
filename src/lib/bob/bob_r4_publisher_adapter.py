@@ -82,8 +82,10 @@ def _send_step(db,*,api_call,credential_loader,clock,
     first=preflight(
         db,DATA,run=run,seal=seal,at=clock(),
         post_get=public_get,self_get=get_self)
-    if not first.verified or not freshness(first,at=clock()):
-        return "R4 held: exact remote/self preflight refused"
+    if not first.verified:
+        return "R4 held: "+first.reason
+    if not freshness(first,at=clock()):
+        return "R4 held: preflight_clock_expired"
     if global_pause():
         return "R4 held: global pause"
     try:
