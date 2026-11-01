@@ -79,26 +79,20 @@ def _db_review() -> dict:
 
 
 def _authenticated_r3_https() -> bool:
-    """Read only authenticated local route with pinned private CA; no HTTP."""
-    connection=None
+    """Reuse independently tested TLS acceptance, pinned CA and anon 401.
+
+    The original CH-HTTPS3 checker verifies the immutable approved CA
+    fingerprint, valid material, authenticated /r3, refusal of unauthenticated
+    access and that plaintext HTTP is not served on the same port.
+    Its low-level checks do NOT rely on the old installed release name.
+    """
     try:
-        auth=updater.authorization()
-        connection=updater._manager_connection(
-            release="v0.8.0-cutover1",timeout=8)
-        connection.request("GET","/r3",headers={
-            "Host":"127.0.0.1:18790","Authorization":auth})
-        response=connection.getresponse()
-        body=response.read(131073)
-        return (response.status==200 and 0<len(body)<=131072
-                and b"R3" in body and b"Bob" in body)
-    except (OSError,ValueError,TypeError,KeyError,RuntimeError):
+        import report_ch_https3_cutover as tls
+        return (tls._ca_verified()
+                and tls._authenticated_r3_https()
+                and tls._plaintext_refused())
+    except (OSError,ValueError,TypeError,KeyError,RuntimeError,ImportError):
         return False
-    finally:
-        if connection is not None:
-            try:
-                connection.close()
-            except OSError:
-                pass
 
 
 def _unit_gate(probe=handoff._snapshot) -> dict:
@@ -174,7 +168,7 @@ def inspect(*,operator=_owner,installed=handoff._installed_cutover_off,
                 and result["single_existing_publisher"]=="PASS"
                 and result["r3_proposal_timer"]=="OFF"
                 and type(result["historical_attempts"]) is int
-                and type(result["uncertain_delivery_rows"]) is int):
+                and result["uncertain_delivery_rows"]==0):
             result["acceptance"]="PASS"
     except (OSError,ValueError,TypeError,KeyError,sqlite3.Error,RuntimeError):
         return result
