@@ -1,3 +1,13 @@
+## Signed R3 package activation and rollback rehearsal (source engineering)
+
+The versioned Activity Manager imports R3 code only after checking that the **installed updater registry** records its SHA-256. The previous updater stored the candidate registry *after* restarting Activity Manager; for a changed signed ZIP that order can cause a legitimate startup to fail because the new package bytes do not match the old registry. The R3 integration source updater now verifies every candidate file and atomically publishes the new signed registry **while the transaction journal is still incomplete**, **before** restarting the manager. A completed release is recorded only after CA-verified HTTPS health passes. On any failed restart or health check, rollback restores original code and previous signed registry, then restarts the old manager. SQLite is never reverted.
+
+The offline test `tests/test_r3_candidate_registry_order.py` runs the real versioned updater `update` and `rollback` functions against disposable binaries, registry/journal, private dirs and a synthetic SQLite database. Systemd, backup invocation and HTTPS health are mocked. It proves: signed candidate archive validates during simulated restart; failed health rolls back code+registry; interrupted restart leaves a recoverable journal; restart exceptions roll back; and a synthetic `attempted` event created *after* upgrade persists across code rollback. This is a source-only simulation, **not** owner acceptance of the actual Windows/WSL host or a license to send.
+
+Both source updater versions remain pinned to HTTPS for `v0.8.0-cutover1`, and no new R3 dispatch permission has been granted. The final deployment gate still needs integration of the managed single-writer timer handoff, authenticated owner permissions, actual installed-code rehearsal and separately authorized canary.
+
+---
+
 ## Single-writer verified-package boundary (source candidate)
 
 The source-only R3 publisher adapter now verifies the installed, registry-pinned **R3 ZIP before importing any Bob v0.8 modules**, including those referenced by the private-host schema review. This closes a subtle module-loading gap in the future one-writer path: the existing legacy publisher is not launched with the new R3 archive on its Python path by default. The loader checks exact installed hash, regular-file/private ownership and a trusted cached Shadow/R3 namespace; it creates **no second sender** and neither opens credentials nor performs network activity. When the installed hard-Off gate is in force, even the package loader is not invoked. Offline tests exercise both hard-Off short-circuit and fail-closed invalid archive/host cases.
