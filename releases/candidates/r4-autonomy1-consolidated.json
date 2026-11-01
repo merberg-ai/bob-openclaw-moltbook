@@ -2,7 +2,7 @@
   "format": "bob-updater-v1",
   "release": "v0.8.0-autonomy1",
   "from": "v0.8.0-r3canary1",
-  "notes": "R4 consolidated HTTPS UI, independently reviewed Bob decisions/memory/friends, owner-queued upvotes and one original publisher. Target/self fixed-host preflights, atomic counted intent, final owner barrier and exact private release attestation are source-tested. All real R4 dispatch is compiled Off with three separate gates. No live R4 API write, auto mode or production migration permitted. One future signed guarded update only.",
+  "notes": "R4 consolidated authenticated HTTPS workspace, source-sealed Bob proposals, owner-reviewed PM2/FM suggestions and private owner-queued upvotes. One original publisher; every real R4 API send remains compiled Off. One signed updater transaction is prepared to verify private SQLite backup/restore, migrate additive R4 schema, journal migrated phase and preserve R3 receipts on code-only rollback. No database change on source pull, no automatic approval, real R4 send or second publisher. Requires separate owner release promotion and typed UPDATE.",
   "files": [
     {
       "name": "bob-release-updater",
