@@ -195,6 +195,17 @@ class ManifestAndCommandTests(unittest.TestCase):
             self.assertNotIn("bob-moltbook-publisher",
                              {i["name"] for i in obj["files"]})
             self.assertNotIn("bobctl", {i["name"] for i in obj["files"]})
+        elif obj["release"] == "v0.8.0-cutover1":
+            self.assertEqual(obj["from"],"v0.8.0-chhttps3")
+            self.assertTrue(obj["restart_manager"])
+            names={i["name"] for i in obj["files"]}
+            self.assertEqual(len(names),12)
+            self.assertIn("bob-activity-manager",names)
+            self.assertIn("bob-moltbook-publisher",names)
+            self.assertIn("bob_r3_package.pyz",names)
+            self.assertIn("bob-release-updater",names)
+            self.assertIn("bobctl",names)
+            self.assertNotIn("bob-r3-publisher",names)
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:

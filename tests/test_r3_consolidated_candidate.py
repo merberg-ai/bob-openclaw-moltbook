@@ -43,9 +43,11 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-chhttps3")
-        self.assertEqual(plan["from"],current["release"])
-        self.assertNotEqual(plan["release"],current["release"])
+        self.assertEqual(current["release"],"v0.8.0-cutover1")
+        self.assertEqual(plan["from"],"v0.8.0-chhttps3")
+        self.assertEqual(plan["release"],current["release"])
+        self.assertEqual(current["files"],plan["files"])
+        self.assertTrue(candidate.inspect(build=False)["releases_current_json_modified"])
         self.assertTrue(plan["restart_manager"])
         self.assertIn("bob-moltbook-publisher",{x["name"] for x in plan["files"]})
         self.assertNotIn("bob-moltbook-publisher.timer",{x["name"] for x in plan["files"]})
@@ -142,7 +144,8 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
             "source_gates":"four_hard_off",
             "single_existing_credentialed_publisher":True,
             "publisher_atomic_duplicate_guard_present":True,
-            "dashboard_transport":"https_only"}):
+            "dashboard_transport":"https_only",
+            "releases_current_json_modified":True}):
             self.assertEqual(candidate.main(["--check"]),0)
 
 

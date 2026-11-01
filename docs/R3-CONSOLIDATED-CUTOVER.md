@@ -1,3 +1,9 @@
+## Pre-host release promotion staged in an unmerged draft
+
+A separate **draft PR** stages exact source promotion of `v0.8.0-cutover1` with its reviewed 12 files and `from: v0.8.0-chhttps3` chain. It does NOT install a release, change running Windows/WSL, activate the proposal timer or confer publishing rights. Tests verify promotion source content, strict HTTPS mapping, compiled-off publisher gates and reusable signed archive. Do not merge the draft solely because offline CI passes; the owner must explicitly choose the physical testing and installer window. Until then `next` remains `v0.8.0-chhttps3`, and the relevant source candidate remains uninstalled.
+
+---
+
 ## Single owner-installed Off-first acceptance and drift gate (source complete, host pending)
 
 The final **source-only** acceptance report `scripts/report_r3_cutover_installed.py --postcheck` is already implemented for the future OMEN installation. It consolidates installed signed release/hash validation, preserved HTTPS CA trust and authenticated `/r3` route, R3 schema and **four real-send gates compiled Off**, default-Off owner settings, active publisher and Scout timers, inactive/uninstalled proposal timer, no competing publisher and aggregate historical attempted/uncertain outcomes. The report only reads systemd metadata, SQLite with `mode=ro`, local private CA/auth and fixed HTTPS GETs to the Activity Manager; no external Moltbook requests or writes. Its output is intentionally sanitized.

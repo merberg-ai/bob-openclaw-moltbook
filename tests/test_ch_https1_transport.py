@@ -137,15 +137,19 @@ class UpdaterTransportTests(unittest.TestCase):
 
     def test_promoted_https_cutover_reuses_prepared_transport_no_updater_change(self):
         plan=upd.manifest(ROOT)
-        self.assertEqual(plan["release"],"v0.8.0-chhttps3")
-        self.assertEqual(plan["from"],"v0.8.0-chhttps1")
+        self.assertEqual(plan["release"],"v0.8.0-cutover1")
+        self.assertEqual(plan["from"],"v0.8.0-chhttps3")
         self.assertTrue(plan["restart_manager"])
-        self.assertEqual({item["name"] for item in plan["files"]},
-                         {"bob_manager_tls.py","bob-activity-manager"})
-        self.assertNotIn("bob-release-updater",
-                         {item["name"] for item in plan["files"]})
+        self.assertEqual(upd.manager_transport(plan["release"]),"https")
+        self.assertEqual(len(plan["files"]),12)
+        self.assertIn("bob-release-updater",
+                     {item["name"] for item in plan["files"]})
+        self.assertIn("bob-moltbook-publisher",
+                     {item["name"] for item in plan["files"]})
         for item in plan["files"]:
-            compile(upd.release_bytes(ROOT,item),item["name"],"exec")
+            payload=upd.release_bytes(ROOT,item)
+            if not item["name"].endswith(".pyz"):
+                compile(payload,item["name"],"exec")
 
 
 class BobctlTransportTests(unittest.TestCase):
