@@ -35,6 +35,10 @@
       "source": "src/lib/bob/bob_r4_projection.py"
     },
     {
+      "name": "bob_r4_agent.py",
+      "source": "src/lib/bob/bob_r4_agent.py"
+    },
+    {
       "name": "bob_r4_decision.py",
       "source": "src/lib/bob/bob_r4_decision.py"
     },
