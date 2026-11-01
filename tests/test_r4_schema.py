@@ -27,8 +27,11 @@ class R4SchemaTests(unittest.TestCase):
             '870a59f6bb3ccc02088bf44e8f1530c7a19a4d511f312420b609d8fa735a4bc2');
         """)
 
-    def test_source_migration_gate_stays_hard_off(self):
-        self.assertTrue(schema.INSTALL_HOOK_COMPILED_OFF)
+    def test_migration_requires_explicit_signed_updater_guard_flags(self):
+        # Source schema primitive is now staged for the eventual signed
+        # updater. The updater itself must independently prove backup, host,
+        # installed hashes and publisher inactivity before calling it.
+        self.assertFalse(schema.INSTALL_HOOK_COMPILED_OFF)
         self.assertEqual(schema.inspect(self.db),"missing")
         for kwargs in (
             {"trusted_owner":False,"backup_verified":True,
@@ -36,7 +39,7 @@ class R4SchemaTests(unittest.TestCase):
             {"trusted_owner":True,"backup_verified":False,
              "installed_release":schema.RELEASE},
             {"trusted_owner":True,"backup_verified":True,
-             "installed_release":schema.RELEASE}
+             "installed_release":"v0.8.0-r3canary1"},
         ):
             with self.subTest(kwargs=kwargs):
                 with self.assertRaisesRegex(ValueError,
