@@ -37,7 +37,7 @@ def _exact_package() -> bool:
                     and b"def r3_decision_prompt(" in body
                     and b"def _shape_reason(" in body
                     and b"r3_decision_prompt(chosen)" in body
-                    and b"decision_"+b"classification" in body)
+                    and b'"decision_"+classification' in body)
     except (OSError,ValueError,KeyError,zipfile.BadZipFile):
         return False
 
