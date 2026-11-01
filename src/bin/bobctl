@@ -41,6 +41,7 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-cutover1": "https",
     "v0.8.0-r3diag1": "https",
     "v0.8.0-r3format1": "https",
+    "v0.8.0-r3skip1": "https",
 }
 TLS_DIR=HOME/".config/bob-system/manager-tls"
 TLS_CA=TLS_DIR/"ca.crt"
