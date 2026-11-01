@@ -58,6 +58,7 @@ def empty():
         "publisher_jobs":0,"attempted":0,"r3_proposed_recorded":0,
         "saved_memories":0,"saved_friends":0,"originals":0,
         "r4_proposed":0,"r4_total_decisions":0,"r4_recent":[],
+        "r4_suggestions":[],"r4_pending_suggestions":0,
         "recent_jobs":[],"recent_events":[],"people":[],"memory_titles":[],
         "controls":{kind:"off" for kind in ACTIONS},
         "r4_paused":True, "latest_r3_source":None,
@@ -98,6 +99,14 @@ def project_db(db: sqlite3.Connection) -> dict:
         # Source+seal independently checked, never render unchecked DB text.
         from bob_publish_common import DATA
         result["r4_recent"]=recent(db,DATA,limit=12)
+        from bob_r4_suggestions import recent as recent_suggestions
+        from bob_r4_suggestions import schema_ready as suggestions_ready
+        if not suggestions_ready(db):
+            raise ValueError("r4_evidence_suggestion_schema_unverified")
+        result["r4_suggestions"]=recent_suggestions(db,DATA,limit=12)
+        result["r4_pending_suggestions"]=db.execute(
+            "SELECT COUNT(*) FROM r4_evidence_suggestions "
+            "WHERE state='pending'").fetchone()[0]
     recent=db.execute(
         "SELECT run_id,state,mode,attempted_at,comment_id FROM publish_jobs "
         "ORDER BY created_at DESC,run_id DESC LIMIT ?",(MAX_QUEUE,)).fetchall()
