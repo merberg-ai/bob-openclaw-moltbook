@@ -84,9 +84,9 @@ class R4OwnerReviewWebTests(unittest.TestCase):
         @contextmanager
         def mock_conn():
             yield "synthetic_db"
-        with patch.object(web,"publish_conn",mock_conn), \\
-             patch("bob_r313d_package.load_verified",return_value="verified_registry_archive"), \\
-             patch("bob_r313d_owner.trusted_manager_boundary",return_value=True), \\
+        with patch.object(web,"publish_conn",mock_conn), \
+             patch("bob_r313d_package.load_verified",return_value="verified_registry_archive"), \
+             patch("bob_r313d_owner.trusted_manager_boundary",return_value=True), \
              patch.object(ledger,"review",return_value="approved") as reviewed:
             self.h.do_POST()
         self.assertEqual(self.h.response,303)
