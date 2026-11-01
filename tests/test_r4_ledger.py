@@ -52,6 +52,8 @@ class R4LedgerTests(unittest.TestCase):
           CREATE TABLE r3_proposals(source_run TEXT PRIMARY KEY,post_id TEXT);
         """)
         ledger.initialize(self.db)
+        from bob_r4_suggestions import initialize as initialize_suggestions
+        initialize_suggestions(self.db)
         self.assertTrue(ledger.schema_ready(self.db))
         self.save_run(RUN,POST)
         self.save_run(SECOND,OTHER_POST)
@@ -72,7 +74,8 @@ class R4LedgerTests(unittest.TestCase):
         document={"schema":2,"run_id":run,
                   "snapshot_file":"scout-feed-"+run+".json",
                   "snapshot_sha256":digest,
-                  "chosen_post_id":post,"draft_comment":comment,
+                  "chosen_post_id":post,"chosen_author":author,
+                  "draft_comment":comment,
                   "draft_sha256":hashlib.sha256(comment.encode()).hexdigest(),
                   "approval_sha256":hashlib.sha256(
                     (post+"\n"+comment+"\n"+digest).encode()).hexdigest()}
