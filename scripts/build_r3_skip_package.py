@@ -27,7 +27,9 @@ def build() -> tuple[bytes,bytes]:
     memory = BytesIO()
     with ZipFile(memory,"w",compression=ZIP_STORED) as archive:
         for name in MODULES:
-            path = ROOT/"src"/"bob_v08"/name
+            path = (ROOT/"release_baselines"/"v08-r3skip1"/name
+                    if name in ("r313d_producer.py","r313c_candidate.py")
+                    else ROOT/"src"/"bob_v08"/name)
             if path.is_symlink() or not path.is_file():
                 raise ValueError("r3_missing_reviewed_module")
             content=path.read_bytes()
