@@ -28,6 +28,8 @@ ACTION_URL=re.compile(
     r"/r4/controls/(comment|reply|post|upvote|follow|unfollow)\Z")
 REVIEW_URL=re.compile(
     r"/r4/review/(\d{8}T\d{6}Z)/(approve|reject)\Z")
+OUTBOX_URL=re.compile(
+    r"/r4/outbox/(\d{8}T\d{6}Z)/(queue|cancel)\Z")
 SUGGEST_URL=re.compile(
     r"/r4/suggestion/(\d{8}T\d{6}Z)/(memory|relationship)/(approve|reject)\Z")
 CSS="""<style>
@@ -233,6 +235,37 @@ def _inbox(data,csrf):
         parts.append('<p class="muted">Exact seal <code>'+seal+
                      '</code>. R4 approval records owner review only. '
                      'It does not queue a post or enable public dispatch.</p>')
+        # A second separately typed owner decision is required to stage even
+        # an approved R4 upvote in the private queue. R4 public sends remain
+        # compiled Off; this button is not a publish button.
+        outbox_state=item.get("outbox_state","none")
+        if item["state"]=="approved" and item["kind"]=="upvote":
+            if outbox_state=="none":
+                phrase="QUEUE R4 UPVOTE "+item["run"]
+                parts.append(
+                    '<form method="post" action="/r4/outbox/'+run+'/queue">'
+                    '<input type="hidden" name="csrf" value="'+e(csrf)+'">'
+                    '<input type="hidden" name="seal" value="'+seal+'">'
+                    '<label>Type '+e(phrase)+'<input name="confirmation" '
+                    'autocomplete="off" maxlength="60" required></label>'
+                    '<button type="submit">Queue privately (R4 send Off)</button>'
+                    '</form>')
+            elif outbox_state=="queued":
+                phrase="CANCEL R4 "+item["run"]
+                parts.append(
+                    '<p class="muted">Queued privately. No API send is '
+                    'authorized by this release.</p>'
+                    '<form method="post" action="/r4/outbox/'+run+'/cancel">'
+                    '<input type="hidden" name="csrf" value="'+e(csrf)+'">'
+                    '<input type="hidden" name="seal" value="'+seal+'">'
+                    '<label>Type '+e(phrase)+'<input name="confirmation" '
+                    'autocomplete="off" maxlength="60" required></label>'
+                    '<button type="submit">Cancel untouched queue</button>'
+                    '</form>')
+            else:
+                parts.append('<p class="muted">R4 outbox state: '+
+                             e(outbox_state)+'. Already processed or cancelled; '
+                             'no automatic retry.</p>')
         if item["state"]=="proposed":
             for operation,label in (("approve","Approve private proposal"),
                                     ("reject","Reject private proposal")):
@@ -413,7 +446,8 @@ class R4HandlerMixin:
         pause=path=="/r4/controls/pause"
         decision=REVIEW_URL.fullmatch(path)
         suggestion=SUGGEST_URL.fullmatch(path)
-        if not action and not pause and not decision and not suggestion:
+        outbox=OUTBOX_URL.fullmatch(path)
+        if not action and not pause and not decision and not suggestion and not outbox:
             return super().do_POST()
         if not self._valid_host():
             self._send(403,"Unexpected Host header")
@@ -441,7 +475,8 @@ class R4HandlerMixin:
                 return
             # Verify the installed signed code and exact private manager DB.
             from bob_r313d_package import load_verified
-            load_verified()
+            if load_verified()!="verified_registry_archive":
+                raise ValueError("r4_unsigned_saved_source_archive")
             from bob_r313d_owner import trusted_manager_boundary
             with publish_conn() as db:
                 trusted=trusted_manager_boundary(db)
@@ -472,6 +507,20 @@ class R4HandlerMixin:
                                       suggestion.group(2),params["seal"][0],
                                       suggestion.group(3),phrase,trusted=True,
                                       at=datetime.now(timezone.utc))
+                elif outbox:
+                    if set(params)!={"csrf","seal","confirmation"}:
+                        raise ValueError("r4_unexpected_outbox_fields")
+                    from bob_publish_common import DATA
+                    from bob_r4_outbox import queue,cancel
+                    from datetime import datetime,timezone
+                    if outbox.group(2)=="queue":
+                        queue(db,DATA,outbox.group(1),params["seal"][0],
+                              phrase,trusted=True,
+                              at=datetime.now(timezone.utc))
+                    else:
+                        cancel(db,outbox.group(1),phrase,trusted=True,
+                               at=datetime.now(timezone.utc),
+                               provided_seal=params["seal"][0])
                 else:
                     if set(params)!={"csrf","paused","confirmation"} or (
                             params["paused"][0] not in ("true","false")):
@@ -479,7 +528,7 @@ class R4HandlerMixin:
                     set_pause(db,params["paused"][0]=="true",
                               phrase,trusted=True)
             self.send_response(303)
-            self.send_header("Location",("/r4/inbox" if decision or suggestion
+            self.send_header("Location",("/r4/inbox" if decision or suggestion or outbox
                                          else "/r4/controls"))
             self.send_header("Cache-Control","no-store")
             self.send_header("Content-Length","0")
