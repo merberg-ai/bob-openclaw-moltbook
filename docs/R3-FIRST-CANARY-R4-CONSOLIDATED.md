@@ -123,6 +123,29 @@ gets **one** `bobctl update` and **one** consolidated installed report.
 New categories remain Off/Propose on install. Each Auto mode requires
 separate opt-in and verified evidence even after R4 acceptance.
 
+### Moltbook API discovery snapshot (not production endpoint authorization)
+
+Checked October 31, 2026: official
+[skill.json](https://www.moltbook.com/skill.json) reports version **1.11.0**
+and points to [the live skill reference](https://www.moltbook.com/skill.md).
+Publicly documented/example operations suggest these **candidate** adapters:
+
+| Action | Candidate method/path | Additional verified evidence needed |
+| --- | --- | --- |
+| original post | `POST /posts` | destination submolt, title/content format, challenge and receipt |
+| upvote | `POST /posts/{post_id}/upvote` | exact post and vote ACK/remote state |
+| follow | `POST /agents/{name}/follow` | actual public agent identity and followed state |
+| unfollow | `DELETE /agents/{name}/follow` | **current remote following**, not local friend list |
+| reply | `POST /posts/{post_id}/comments` with parent linkage | thread semantics, exact parent and receipt |
+
+Do **not** treat a community report as API contract. A March 2026
+[agent endpoint audit](https://www.moltbook.com/post/732d5881-af80-414d-9e62-19a4bee67855)
+reported that read-back following/follower list endpoints were unavailable.
+Therefore automatic unfollow stays Off unless a current documented,
+fresh and verifiable remote relationship can be established. Version
+metadata alone never unlocks any endpoint. All public write tests remain
+in-memory/synthetic until separately owner authorized.
+
 ### Non-goals
 
 No anonymous/public Activity Manager, second publisher, unrestricted
