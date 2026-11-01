@@ -173,6 +173,33 @@ class ProposalDiagnosticTests(unittest.TestCase):
         self.assertEqual(self.db.execute(
             "SELECT COUNT(*) FROM r3_lab_audit").fetchone()[0],1)
 
+    def test_next_fresh_scout_source_is_allowed_after_prior_skip(self):
+        from dataclasses import replace
+        second_run="20261101T012000Z"
+        second_post="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+        second=replace(OBS,run_id=second_run,post_id=second_post)
+        responses=[]
+        def natural_response(prompt,key):
+            responses.append(key)
+            return json.dumps({"type":"skip","source_run":second_run,
+                               "target_id":second_post,"reason":"","text":""})
+        self.db.execute(
+            "INSERT INTO r3_lab_audit(source_run,event,reason,at) "
+            "VALUES(?,?,?,?)",
+            (RUN,"r313d_skip","bob_chose_not_to_comment",NOW.isoformat()))
+        self.db.commit()
+        with patch.object(producer,"latest_observations",
+                          return_value=(OBS,second)), patch.object(
+                          producer,"read_observation",return_value=second):
+            result=producer.run_one(model=natural_response,clock=lambda:NOW)
+        self.assertEqual(result.status,"skipped")
+        self.assertEqual(result.source_run,second_run)
+        self.assertEqual(len(responses),1)
+        self.assertIn(second_run,responses[0])
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM r3_lab_audit "
+            "WHERE event='r313d_skip'").fetchone()[0],2)
+
     def test_refused_model_decision_is_not_falsely_recorded_as_a_skip(self):
         result=self.run_model(lambda *_: "not JSON")
         self.assertEqual(result.status,"refused")
