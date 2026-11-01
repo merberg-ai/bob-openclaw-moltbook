@@ -1,3 +1,11 @@
+## R3 Format1 successfully accepted on real OMEN, first valid natural agent decision (2026-10-31)
+
+**Host evidence:** installed signed `v0.8.0-r3format1` passed read-only acceptance: account, private-CA HTTPS health, R3 owner Controls, signed diagnostics archive and active proposal-only timer all PASS. At **20:01:41 PDT** systemd naturally started the R3 producer; **20:01:54 PDT** it returned `status: skipped`, `reason: bob_chose_not_to_comment`, sealed Scout source run `20261101T024801Z`, `queued=false`, `attempted=false`, `dispatch_authorized=false`, and systemd logged a successful **Finished** result. This closes the **first successful valid R3 OpenClaw decision** gate, demonstrating strict JSON response handling under the Format1 prompt, without any public Moltbook interaction.
+
+**Still distinct:** a real `proposed` sealed draft has not yet been observed, so neither R3 proposal creation nor owner review of a generated R3 draft is established by this skipped result. Await another natural scheduled decision rather than manual forced execution. The sole legacy publisher and Scout remain preserved, R2 Shadow timer disabled, all R3 real public send gates hard Off. Public canary requires independently reviewed source and exact owner authorization. No network, timer or installation changes follow from this record.
+
+---
+
 ## R3 OpenClaw decision schema remediation (2026-10-31)
 
 The new R3 timer is functioning and first two natural ticks were observed. The second produced specific diagnostic `decision_invalid_model_shape`, confirming successful JSON decoding but failure of the required strict five-field action schema. We cannot determine the exact mismatch without logging unsafe model text, which is intentionally forbidden. R3 source now explicitly instructs Bob with an exact-ID five-field JSON example outside untrusted third-party data and classifies only sanitized structural failure categories. A three-file, HTTPS-preserving, hard-Off, **no-manager-restart** signed `v0.8.0-r3format1` source upgrade from `v0.8.0-r3diag1` is prepared, along with a one-step owner installed acceptance report. See `docs/R3-FORMAT1-STRICT-JSON-REPAIR.md`. This does not guarantee that Bob will obey the revised schema; next natural timer evidence is still required. The independent public Moltbook canary remains unauthorized.
