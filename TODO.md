@@ -1,3 +1,13 @@
+## G2 accepted on OMEN; consolidated R3 single-writer source hardening in progress (2026-10-31)
+
+- [x] **Owner's G2 bounded public receipt report PASS:** 23 historical legacy comment attempts, all 23 inspected, 23 valid saved receipt IDs, all 23 exact IDs observed in public comment listings, no truncation, no repeated attempted target groups, no reused receipt IDs, and local database unchanged across the public GET checks. The report returned `known_receipts_visible`; this is strong **all known receipts reconciled** evidence, not absolute proof that an unrecorded remote duplicate could not exist. Original posts were not included.
+- [x] **R3 pre-cutover duplicate-target publisher hardening (source only):** improve the *existing* credentialed legacy publisher's duplicate check to include every row with `attempted_at IS NOT NULL`, regardless of a later state of `failed`, and recheck that same target rule atomically in the final original `publish_jobs` claim after public GET. Synthetic regression covers a prior post-attempt failure, an attempted duplicate inserted during GET, and a safe historical unattempted failure. Existing three R3 compiled-Off source gates untouched.
+- [ ] **Full consolidated R3 release engineering still required:** single versioned `v0.8.0-cutover1` candidate from installed `v0.8.0-chhttps3`, reviewed publisher package import, unified timer ownership, protected dashboard owner controls, source/approval/pause/limits hard barriers, API acknowledgement vs independently verified public receipt, interrupted send recovery and code-only rollback. No `releases/current.json` promotion or OMEN changes just because the source tests pass.
+- [ ] **One owner acceptance at end, not now:** offline CI and isolated rehearsal first; then a separately authorized guarded update with one integrated health review. First genuine public canary requires separate exact target/draft/attempt consent; R3 Off remains in effect.
+- [ ] **Residual G1:** allow one naturally scheduled source-linked shadow decision when new verified Scout sources arrive. Do not force replay.
+
+---
+
 ## Active execution plan: ONE G2 reconciliation, ONE consolidated R3 cutover (2026-10-31)
 
 - [x] **G2 source-only aggregate public receipt audit implemented:** §scripts/report_g2_public_receipts.py§ reads exact legacy comment attempts via read-only SQLite and optionally checks locally saved receipt IDs through the existing bounded anonymous Moltbook public HTTPS GET reader. Scope at most 40 jobs, two pages each, detects missing/unverified receipts, attempted target/ID reuse, unresolved/unknown states and database changes during GET. Always says external no-duplicate posting unproven; does not POST or print private content. CI synthetic regressions included.

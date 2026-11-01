@@ -1,3 +1,13 @@
+## Owner-accepted G2 receipt baseline and R3 first integrated source fix (2026-10-31)
+
+The owner reported `G2 LEGACY COMMENT RECEIPTS` with 23 historical attempts/23 inspected, all 23 saved comment IDs confirmed visible in their corresponding public listings, no duplicate attempted target groups, no reused receipt IDs, no truncate, and a stable DB during the GET review. This completes the **known public-comment receipt matching** gate. It is not a universal negative proof for unrecorded remote posts and does not cover original posts; none of the public GETs performed writes.
+
+**First R3 integrated source improvement:** The existing production-shaped credentialed publisher's old local duplicate check did not protect all rows with a past `attempted_at` once a job ended in `failed`. In the cutover development branch, that check now matches `attempted_at IS NOT NULL` regardless of final job state. The same protection is embedded atomically into both manual and auto final SQLite pre-POST claims, guarding against a duplicate attempt recorded after the earlier GET began. Offline source tests require a prior failed attempt and a newly appearing attempted duplicate to prevent a second POST, while an unattempted historical failure does not automatically block the legitimate exact approved job.
+
+**Not deployed:** The current release registry stays `v0.8.0-chhttps3` and original installed publisher remains unchanged. This source hardening is part of the later **one integrated cutover** engineering batch, not a request for an incremental host install. Remaining integration must verify actual versioned ZIP imports, single publisher timer/process ownership, independent owner approvals/auto opt-in, source pinning, pause/limits, crash/uncertain states, public verification vs API ACK and code-only rollback. Keep every real R3 send gate Off until explicit separate release and canary authorization.
+
+---
+
 # Consolidated v0.8 R3 cutover: G2 receipts and one guarded release
 
 **Status:** source and acceptance plan. The installed v0.8.0-chhttps3 release is unchanged.
