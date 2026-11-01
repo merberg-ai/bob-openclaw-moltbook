@@ -65,6 +65,24 @@ class R4AttestationTests(unittest.TestCase):
         self.registry.chmod(0o644)
         self.assertFalse(gate.verify(home=self.home))
 
+    def test_completed_exact_install_journal_is_valid_but_inflight_is_not(self):
+        journal=self.home/".local/state/bob-updater/transaction.json"
+        content={"format":"bob-updater-v1","release":gate.RELEASE,
+                 "phase":"complete","restart_manager":True}
+        journal.write_text(json.dumps(content))
+        journal.chmod(0o600)
+        self.assertTrue(gate.verify(home=self.home))
+        for phase in ("prepared","installed","migrated","restarted",
+                      "incident","rolled_back"):
+            with self.subTest(phase=phase):
+                content["phase"]=phase
+                journal.write_text(json.dumps(content))
+                self.assertFalse(gate.verify(home=self.home))
+        content["phase"]="complete"
+        content["release"]="v0.8.0-r3canary1"
+        journal.write_text(json.dumps(content))
+        self.assertFalse(gate.verify(home=self.home))
+
     def test_symlink_target_cannot_impersonate_installed_file(self):
         target=self.home/".local/bin/bob_r4_outbox.py"
         original=self.home/".local/bin/outbox-copy"
