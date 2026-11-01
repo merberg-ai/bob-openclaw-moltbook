@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT/"scripts"))
+sys.path[:0] = [str(ROOT/"scripts"), str(ROOT/"src/lib/bob")]
 import report_r3_consolidated_candidate as candidate
 import bob_release_updater as updater
 
