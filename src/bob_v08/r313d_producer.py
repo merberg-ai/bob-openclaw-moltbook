@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 import hashlib
+import json
 import os
 from pathlib import Path
 import pwd
@@ -27,6 +28,62 @@ from .shadow import openclaw_decide, _safe_error_reason
 
 MAX_SOURCE_AGE = timedelta(days=7)
 NO_PRODUCTION_DISPATCH = True
+
+# A schema example is deliberately OUTSIDE the delimited third-party data.
+# The post content never becomes formatting instructions. No guessed defaults
+# or permissive envelope parsing; Bob still supplies all five exact fields.
+_DECISION_FIELDS=frozenset(("type","source_run","target_id","reason","text"))
+
+
+def r3_decision_prompt(observed) -> str:
+    """Clarify R3's rigid JSON response without changing R2 Shadow prompts."""
+    skip={
+        "type":"skip",
+        "source_run":observed.run_id,
+        "target_id":observed.post_id,
+        "reason":"",
+        "text":"",
+    }
+    example=json.dumps(skip,ensure_ascii=True,separators=(",",":"))
+    return (decision_prompt(observed) +
+            "\nFINAL OUTPUT CONTRACT (trusted, outside untrusted post data): "
+            "Return exactly ONE top-level JSON object; no array, wrappers, "
+            "markdown fences, metadata, introductions or extra keys. "
+            "Every value must be a STRING, including empty strings. "
+            "The five required keys are exactly: "
+            'type, source_run, target_id, reason, text. '
+            "Copy the source_run and target_id strings from this exact "
+            "safe skip example: "+example+
+            "\nIf you skip, output that exact object (optionally explain in reason). "
+            "If you comment, change ONLY type to comment and fill in a "
+            "specific original reason and original safe comment text. "
+            "Never alter either ID. Your entire answer must be JSON only.\n")
+
+
+def _shape_reason(raw: str) -> str:
+    """Classify structural failures without revealing untrusted field names."""
+    if not isinstance(raw,str) or len(raw)>8192:
+        return "invalid_model_shape"
+    try:
+        value=json.loads(raw.strip())
+    except (TypeError,ValueError):
+        return "invalid_model_shape"
+    if not isinstance(value,dict):
+        return "shape_not_object"
+    keys=set(value)
+    if keys!=_DECISION_FIELDS:
+        missing=_DECISION_FIELDS-keys
+        extra=keys-_DECISION_FIELDS
+        if missing and extra:
+            return "shape_missing_and_extra_fields"
+        if missing:
+            return "shape_missing_fields"
+        return "shape_extra_fields"
+    if (value["type"] not in ("comment","skip") or
+            not all(isinstance(value[key],str) for key in _DECISION_FIELDS)):
+        return "shape_invalid_field_values"
+    # No source, target, response or field-name text leaves this function.
+    return "invalid_model_shape"
 
 
 @dataclass(frozen=True)
@@ -158,7 +215,7 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
         # boundary: never echo CLI stderr, prompt text or raw model output.
         try:
             output = model(
-                decision_prompt(chosen), "moltbook-v08-shadow-r3-propose-"+chosen.run_id)
+                r3_decision_prompt(chosen), "moltbook-v08-shadow-r3-propose-"+chosen.run_id)
         except (OSError,RuntimeError,ValueError,TypeError) as exc:
             return ProposalResult(
                 "refused","openclaw_"+_safe_error_reason(exc),
@@ -166,8 +223,11 @@ def run_one(*, model=openclaw_decide, clock=None) -> ProposalResult:
         try:
             action = parse_decision(output,chosen)
         except (OSError,RuntimeError,ValueError,TypeError) as exc:
+            classification=_safe_error_reason(exc)
+            if classification=="invalid_model_shape":
+                classification=_shape_reason(output)
             return ProposalResult(
-                "refused","decision_"+_safe_error_reason(exc),
+                "refused","decision_"+classification,
                 source_run=chosen.run_id)
         if action.kind == "skip":
             return ProposalResult("skipped","bob_chose_not_to_comment",
