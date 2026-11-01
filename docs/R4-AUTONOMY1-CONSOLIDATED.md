@@ -46,10 +46,27 @@ the saved comment is not proof of global absence of every external duplicate.
       A known endpoint is an API *shape*, not a grant to send.
 - [x] Future single-release, **non-current** candidate
       `releases/candidates/r4-autonomy1-consolidated.json`.
-- [ ] Real R4 decision/reflector loop using the actual OpenClaw Bob, strict
-      schema and provenance; source-linked action proposal ledger and
-      owner-reviewed memory/relationship suggestions; no fabricated likes
-      or persistent recall.
+- [x] Source-only, one-shot **real OpenClaw main-agent R4 producer**,
+      `bob-r4-propose --once`, consuming fixed sealed Scout observations,
+      exact strict eight-field decisions, natural skips and owner mode/pause.
+      It is NOT installed, scheduled or allowed to send. Its model transport
+      fails closed, and a verified failed response never consumes a source.
+- [x] Additive, independently source-sealed **R4 social decisions ledger**:
+      one record per source, immutable canonical action hash, duplicate
+      action-target protection, durable abstentions, source/author rechecks
+      inside `BEGIN IMMEDIATE`, terminal owner approve/reject with typed
+      exact source/seal confirmation, and a bounded verified /r4/inbox.
+      Approval never queues or grants publication; R3 original queue is
+      untouched. Rendering never creates schema. Synthetic source tampering,
+      pause, revocation, changed follow evidence, expiry, old R3/legacy
+      target collision and auth/CSRF review paths are covered.
+- [ ] **Additive schema installation gate:** before the R4 worker/UI can run
+      on OMEN, perform the versioned, backup-verified, idempotent migration of
+      `r4_social_*` tables as part of the one guarded final installer.
+      No live host or database has been migrated in this source stage.
+- [ ] Owner-reviewed PM2 memory and FM5 relationship suggestions;
+      source-linked experience digest, optional real Bob reflection loop,
+      no fabricated liked posts, permanent memory or fake friendship.
 - [ ] Same existing credentialed publisher, transactional per-action
       once-only attempt and uncertainty ledger, per-category caps/cooldowns,
       explicit Auto opt-in only after signed worker review, owner revocation,
@@ -62,6 +79,35 @@ the saved comment is not proof of global absence of every external duplicate.
       rollback with previous attempted history left intact.
 - [ ] One owner-confirmed OMEN installation + one integrated acceptance.
       **Do not promote the candidate or alter `releases/current.json` now.**
+
+### R4 social-ledger implementation status (November 1)
+
+The proposal-only source is now `src/lib/bob/bob_r4_producer.py` behind
+`src/bin/bob-r4-propose --once`. It calls the **existing OpenClaw** decision
+transport only after verified private account, exact owner-controlled DB,
+separately signed R3 source archive, installed R4 schema, R4-only pause
+released, and at least one specifically enabled `Propose` category. It
+does not accept a model-provided path/URL, invoke publisher, create public
+jobs or install a timer. Real deployment requires a new R4 schema migration,
+which **has not happened**.
+
+The `bob_r4_ledger` maintains separate additive
+`r4_social_decisions`, `r4_social_reviews` and `r4_social_events`
+tables. A decision must match the canonical eight-field model contract
+and original hash-verified Scout result; skips consume their own source
+once, failed model responses do not; accepted reasons and content remain
+private. Each record is sealed to source-run, exact selected post and
+snapshot SHA-256. Owner review re-verifies evidence and accepts the exact
+seal plus `APPROVE R4 <source_run>` or `REJECT R4 <source_run>`
+through inherited HTTPS Host/Auth/Origin/CSRF gates. Approval changes
+**only private R4 state**, never `publish_jobs`, public API, or the
+R3 canary marker. Stale, changed, tampered or duplicate sources stay
+unreviewable. The Inbox only renders source-reverified records; reading
+a page never adds schema or invokes a model.
+
+The R4 candidate manifest is **still not current**. These are isolated
+feature modules in draft PR #137 and tests, not a production migration
+or a public action permit.
 
 ## API evidence and conservative semantics
 
