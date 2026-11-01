@@ -88,7 +88,11 @@ def schema_ready(db: sqlite3.Connection) -> bool:
 def _serialize(decision: Decision) -> str:
     if type(decision) is not Decision:
         raise ValueError("r4_invalid_decision_type")
-    return json.dumps(asdict(decision),ensure_ascii=False,
+    fields=asdict(decision)
+    # The immutable Decision dataclass deliberately uses `kind`, while
+    # OpenClaw's exact eight-field wire contract requires `type`.
+    fields["type"]=fields.pop("kind")
+    return json.dumps(fields,ensure_ascii=False,
                       sort_keys=True,separators=(",",":"))
 
 
