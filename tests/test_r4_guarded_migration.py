@@ -146,9 +146,13 @@ class R4GuardedMigrationTests(unittest.TestCase):
 
     def test_updater_https_and_migration_journal_are_known(self):
         self.assertEqual(updater.MANAGER_TRANSPORTS[guard.RELEASE],"https")
-        self.assertIn("migrated",
-            updater.read_journal.__code__.co_consts[1]
-            if False else ("prepared","installed","migrated"))
+        journal=self.root/"transaction.json"
+        journal.write_text(json.dumps({
+            "format":updater.FORMAT,"phase":"migrated",
+            "release":guard.RELEASE,"restart_manager":True}))
+        journal.chmod(0o600)
+        with patch.object(updater,"JOURNAL",journal):
+            self.assertEqual(updater.read_journal()["phase"],"migrated")
         self.assertTrue(guard.reviewed_scope(
             self.current,self.plan,self.contents))
         self.assertFalse(guard.reviewed_scope(
