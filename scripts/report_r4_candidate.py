@@ -23,6 +23,7 @@ FILES=frozenset((
     "bob-release-updater","bobctl","bob-activity-manager","navigation_shell.py",
     "bob_r4_policy.py","bob_r4_controls.py","bob_r4_projection.py",
     "bob_r4_reflections.py","bob_r4_decision.py","bob_r4_ledger.py",
+    "bob_r4_suggestions.py",
     "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
     "bob_r4_web.py",
 ))
