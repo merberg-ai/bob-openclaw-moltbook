@@ -60,13 +60,26 @@ the saved comment is not proof of global absence of every external duplicate.
       untouched. Rendering never creates schema. Synthetic source tampering,
       pause, revocation, changed follow evidence, expiry, old R3/legacy
       target collision and auth/CSRF review paths are covered.
-- [ ] **Additive schema installation gate:** before the R4 worker/UI can run
-      on OMEN, perform the versioned, backup-verified, idempotent migration of
-      `r4_social_*` tables as part of the one guarded final installer.
-      No live host or database has been migrated in this source stage.
-- [ ] Owner-reviewed PM2 memory and FM5 relationship suggestions;
-      source-linked experience digest, optional real Bob reflection loop,
-      no fabricated liked posts, permanent memory or fake friendship.
+- [x] **Owner-reviewed, source-sealed PM2/FM suggestions:** one verified
+      social decision atomically stages a private memory suggestion; a
+      source-linked Follow decision also stages a separate relationship
+      suggestion. Authenticated R4 Inbox shows only seal-reverified items,
+      exact typed owner approval/rejection and provenance. Memory approval
+      creates an explicit low-confidence `opinion` via existing PM2 with
+      source run and post; relationship approval creates only a pending
+      existing Friend Discovery candidate, requiring another owner review
+      and fresh profile proof before a local Friend exists. Nothing
+      automatically follows users or writes OpenClaw memory.
+- [x] **Additive schema rehearsal, production Off:** `bob_r4_schema.py`
+      validates exact R4 social/suggestion schema plus a version marker.
+      Isolated offline `rehearsal()` is transactional/idempotent and
+      preserves existing R3 public receipt rows. Missing/future/partial
+      schemas refuse rather than auto-repair. The real installation hook
+      remains `INSTALL_HOOK_COMPILED_OFF=True`.
+- [ ] **Production schema installation:** the eventual single signed R4
+      installer must integrate migration only after verified private host,
+      tested backup and release journal. No OMEN schema has been migrated;
+      opening R4 pages never creates tables.
 - [ ] Same existing credentialed publisher, transactional per-action
       once-only attempt and uncertainty ledger, per-category caps/cooldowns,
       explicit Auto opt-in only after signed worker review, owner revocation,
@@ -108,6 +121,36 @@ a page never adds schema or invokes a model.
 The R4 candidate manifest is **still not current**. These are isolated
 feature modules in draft PR #137 and tests, not a production migration
 or a public action permit.
+
+### Bob's personal experience and friendship boundaries
+
+A private, source-linked R4 decision may produce one immutable suggestion
+to remember what Bob **said**, rather than claim an objective fact.
+An owner must explicitly approve `APPROVE R4 MEMORY <run>`; the resulting
+PM2 note is stored as `category=opinion`, `confidence=low`,
+`source_kind=operator`, with the original run and post recorded.
+It is not automatically injected into OpenClaw's `SOUL.md`, system prompt
+or long-term agent recall. The existing PM2 editor remains available for
+correction/archival.
+
+For Follow decisions, Bob can separately suggest considering the
+source-observed author as a contact, but this is **not** evidence of an
+authenticated Moltbook friendship or remote follow. The exact
+`APPROVE R4 RELATIONSHIP <run>` review only stages a candidate in the
+existing FM Friend Discovery workflow. That workflow still requires
+source verification, a fresh matching public profile, and a separate
+owner review before creating a **local** Friends entry. Neither approval
+sends `POST /agents/{name}/follow`.
+
+All review changes share a single SQLite transaction with their
+local PM2/FM destination. Failed downstream verification rolls back the
+review as well as the proposed destination. R4 Inbox GET only reads
+sealed records, discarding tampered or missing source snapshots.
+New `r4_evidence_suggestions` and `r4_evidence_reviews` tables are
+additive and do not replace R3 proposal, approval, attempted, or receipt
+history. CI covers explicit owner consent, malformed seals, rejected
+parent decisions, stale source, duplicate review, backend failures and
+synthetic migration preservation.
 
 ## API evidence and conservative semantics
 
