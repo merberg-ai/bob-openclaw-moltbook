@@ -1,3 +1,12 @@
+## R3 proposal-only scheduler handoff: owner-accepted activation (2026-10-31)
+
+- [x] **Read-only service handoff preflight PASS:** the real OMEN reported `installed signed cutover1 hard Off: True`, `preflight blockers: none`, original publisher/Scout untouched, R3 proposal timer not yet enabled and real R3 publishing unauthorized.
+- [x] **Owner-authorized proposal timer activation succeeded:** `python3 scripts/r3_service_handoff.py --apply` accepted exact typed confirmation `ACTIVATE R3 PROPOSALS` and returned `R3 HANDOFF: proposal_only_timer_active`. The first confirmation was rejected because of a leading extra space; the exact second entry succeeded. Subsequent `systemctl --user is-active` showed `bob-r3-propose.timer: active`, `bob-v08-shadow.timer: inactive`, `bob-moltbook-publisher.timer: active`, `bob-moltbook-scout.timer: active`. The handoff reported publisher, Moltbook, and SQLite history untouched.
+- [ ] **R3 next acceptance:** observe a **natural timer-fired** `bob-r3-propose.service` run and its sanitized outcome. An active timer is NOT proof of successful scheduled agent proposal or that fresh source material exists; Bob may choose `skip` or find no eligible source. Prefer read-only `systemctl --user list-timers --all bob-r3-propose.timer` and `journalctl --user -u bob-r3-propose.service --since '1 hour ago' --no-pager -n 50` without starting services manually.
+- [ ] **First real R3 public canary still NOT authorized:** all four R3 send gates remain hard Off. A separately reviewed future source release, exact owner-approved target and comment draft, one limited attempt and remote receipt verification are required; no automatic publication or replay.
+
+---
+
 ## R3 Cutover1 Off-first installed acceptance PASSED on OMEN (2026-10-31)
 
 - [x] **Owner-installed `v0.8.0-cutover1` passed the single read-only on-host acceptance:** `python3 scripts/report_r3_cutover_installed.py --postcheck` returned `acceptance: PASS`. Normal `openclaw` user verified; installed signed release `cutover1_hard_off_verified`; authenticated CA-verified HTTPS health and R3 Controls both PASS; owner settings `default_off`; single existing publisher PASS; new R3 proposal timer OFF. Original historical attempted comments 23, uncertain delivery rows 0. Report explicitly observed no database, credentials, Moltbook or systemd changes; R3 real public publishing still NOT authorized.

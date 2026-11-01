@@ -1,3 +1,11 @@
+## R3 proposal scheduler successfully activated on OMEN (2026-10-31)
+
+**Real owner evidence:** after the installed Off-first `v0.8.0-cutover1` acceptance, the separate read-only R3 service-handoff preflight reported signed release hard Off true and **zero blockers**. The owner then approved `r3_service_handoff.py --apply` using exact typed `ACTIVATE R3 PROPOSALS`; returned `proposal_only_timer_active`. Verified user timer states: **R3 proposal active**, **R2 Shadow inactive**, **original credentialed Moltbook publisher active**, **Scout active**. The guarded handoff states it touched neither Moltbook nor SQLite history nor the legacy publisher. The initial attempt with a leading space before the confirmation was correctly refused; a second exact input succeeded. This completes the owner-approved **proposal-only service handoff**, NOT the first natural timer-fired agent decision and NOT an R3 public publishing cutover.
+
+**Next R3 gate:** observe an actual scheduled `bob-r3-propose.service` execution and distinguish `proposed`, `skipped`, `none` and `refused` from timer existence. A fresh Scout source and available OpenClaw decision may be needed. Existing four source-level real R3 dispatch gates remain **hard Off**; no R3 comment may be sent without a separate canary source release and exact owner consent. Sections earlier in the roadmap describing the timer handoff as pending are superseded by this host acceptance. No LAN/Hyper-V networking modifications were part of this handoff.
+
+---
+
 ## R3 Cutover1 accepted on the real OMEN, Off-first (2026-10-31)
 
 **Accepted host evidence:** owner ran `python3 scripts/report_r3_cutover_installed.py --postcheck` after installing the reviewed `v0.8.0-cutover1` release promoted through PR #125. Report: normal account verified; installed signed release `cutover1_hard_off_verified`; authenticated private-CA HTTPS health PASS; authenticated R3 owner Controls PASS; R3 owner settings `default_off`; sole existing credentialed publisher PASS; new proposal timer OFF; 23 historical attempted comment jobs; zero uncertain delivery rows; overall `acceptance: PASS`. The report was **read-only** and performed no Moltbook requests or state changes. This closes the **first real Off-first R3 installation** milestone, not the full R3 publication cutover.
