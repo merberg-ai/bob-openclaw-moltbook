@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-r3format1",
-  "from": "v0.8.0-r3diag1",
-  "notes": "R3 strict five-field JSON format repair: pinned ID skip example, sanitized missing/extra/typed shape diagnosis, signed ZIP. Preserves existing HTTPS manager, R3 proposal-only schedule, legacy Scout and sole publisher. Real R3 posting remains hard Off.",
+  "release": "v0.8.0-r3skip1",
+  "from": "v0.8.0-r3format1",
+  "notes": "R3 proposal-only skip ledger repair: persist independently validated Bob abstentions in the existing private R3 audit, advance to next unreviewed Scout observation, preserve already sealed proposals and approved controls. Three code files only; authenticated HTTPS, Scout, single legacy publisher and hard-Off real R3 dispatch unchanged. No DB migration, automatic approval, queued action or public API write.",
   "files": [
     {
       "name": "bob-release-updater",
@@ -14,7 +14,7 @@
     },
     {
       "name": "bob_r3_package.pyz",
-      "builder": "scripts/build_r313d_off_package.py",
+      "builder": "scripts/build_r3_skip_package.py",
       "index": 0
     }
   ],
