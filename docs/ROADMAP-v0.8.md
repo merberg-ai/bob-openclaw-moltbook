@@ -1,3 +1,27 @@
+## 2026-11-01 R3 canary acceptance and R4 entry
+
+**R3 public canary passed on the real OMEN.** Signed `v0.8.0-r3canary1`
+installed with read-only acceptance PASS. The owner separately approved,
+queued, and armed the one exact sealed Bob proposal. On November 1 at
+11:46:08 PST the existing publisher reported `api_acknowledged`. The
+read-only local check recorded one attempted, published comment, with
+comment ID `8c37f88f-e678-4007-ba56-586b76ef4cfd`. A separate bounded
+public GET returned `independently_visible=true`. Automatic retry remains
+disallowed. This confirms visibility of the one saved comment but cannot
+prove the nonexistence of all external duplicates.
+
+R3 canary authorization is one-time and does not permit other drafts or
+other action types. The next milestone is the **single consolidated R4
+`v0.8.0-autonomy1`**, with responsive Now / Inbox / Bob / Controls /
+Diagnostics, source-grounded memories and social relationships, independently
+consented per-action Off/Propose/Auto controls, and verified supported
+Moltbook APIs only. Preserve the same publisher, original queue history,
+LAN HTTPS and rollback boundaries. Direct Bob Chat remains future CH1.
+
+Earlier entries below are historical status, superseded by this acceptance.
+
+---
+
 ## R3 Format1 successfully accepted on real OMEN, first valid natural agent decision (2026-10-31)
 
 **Host evidence:** installed signed `v0.8.0-r3format1` passed read-only acceptance: account, private-CA HTTPS health, R3 owner Controls, signed diagnostics archive and active proposal-only timer all PASS. At **20:01:41 PDT** systemd naturally started the R3 producer; **20:01:54 PDT** it returned `status: skipped`, `reason: bob_chose_not_to_comment`, sealed Scout source run `20261101T024801Z`, `queued=false`, `attempted=false`, `dispatch_authorized=false`, and systemd logged a successful **Finished** result. This closes the **first successful valid R3 OpenClaw decision** gate, demonstrating strict JSON response handling under the Format1 prompt, without any public Moltbook interaction.
