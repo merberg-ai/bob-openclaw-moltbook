@@ -99,6 +99,27 @@ def project_db(db: sqlite3.Connection) -> dict:
         # Source+seal independently checked, never render unchecked DB text.
         from bob_publish_common import DATA
         result["r4_recent"]=recent(db,DATA,limit=12)
+        # Independently join existing approved R4 social decisions to the
+        # private action outbox. Never infer an attempt from social approval.
+        from bob_r4_outbox import schema_ready as outbox_ready
+        if not outbox_ready(db):
+            raise ValueError("r4_action_outbox_schema_unverified")
+        outbox_rows=db.execute(
+            "SELECT source_run,decision_seal,kind,target_id,state,"
+            "attempted_at FROM r4_action_outbox "
+            "ORDER BY queued_at DESC LIMIT 24").fetchall()
+        by_source={row[0]:row for row in outbox_rows}
+        for item in result["r4_recent"]:
+            out=by_source.get(item["run"])
+            if out is not None:
+                if (out[1]!=item["seal"] or out[2]!=item["kind"]
+                        or out[3]!=item["target"]):
+                    raise ValueError("r4_queue_owner_decision_changed")
+                item["outbox_state"]=out[4]
+                item["outbox_attempted"]=bool(out[5])
+            else:
+                item["outbox_state"]="none"
+                item["outbox_attempted"]=False
         from bob_r4_suggestions import recent as recent_suggestions
         from bob_r4_suggestions import schema_ready as suggestions_ready
         if not suggestions_ready(db):
