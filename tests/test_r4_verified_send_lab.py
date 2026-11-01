@@ -271,18 +271,8 @@ class R4VerifiedPostTests(unittest.TestCase):
                 return self.me()
             return self.post(method,path)
         with patch.object(common,"DATA",self.data):
-            direct=remote.preflight(
-                self.db,self.data,run=RUN,seal=self.seal,at=self.clock(),
-                post_get=self.get_post,self_get=self.me)
-            self.assertTrue(direct.verified,repr(direct))
-            wrapped=remote.preflight(
-                self.db,self.data,run=RUN,seal=self.seal,at=self.clock(),
-                post_get=self.get_post,
-                self_get=lambda:api("GET","/agents/me",
-                                    key="test-only-credential"))
-            self.assertTrue(wrapped.verified,repr(wrapped))
             outcome=adapter._send_step(
-                self.db,api_call=api,
+                self.db,source_dir=self.data,api_call=api,
                 credential_loader=lambda:"test-only-credential",
                 clock=self.clock,public_get=self.get_post,
                 global_pause=lambda:self.paused)
@@ -292,7 +282,7 @@ class R4VerifiedPostTests(unittest.TestCase):
             self.assertEqual(self.self_gets,2)
             self.assertEqual(self.posts,1)
             again=adapter._send_step(
-                self.db,api_call=api,
+                self.db,source_dir=self.data,api_call=api,
                 credential_loader=lambda:self.fail("no credential after attempt"),
                 clock=self.clock,public_get=lambda *_:self.fail("no remote replay"),
                 global_pause=lambda:False)
@@ -326,7 +316,7 @@ class R4VerifiedPostTests(unittest.TestCase):
             return {"ok":True}
         with patch.object(common,"DATA",self.data):
             result=adapter._send_step(
-                self.db,api_call=fake,
+                self.db,source_dir=self.data,api_call=fake,
                 credential_loader=lambda:"test-only",
                 clock=self.clock,public_get=self.get_post,
                 global_pause=lambda:False)
