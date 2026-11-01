@@ -49,8 +49,7 @@ def parse(raw:str, observed, *, now:datetime,
             type(v) is not str for v in obj.values()):
         raise ValueError("r4_invalid_exact_eight_field_schema")
     kind=obj["type"]
-    if kind not in ACTIONS | {"skip"} if isinstance(ACTIONS,set) else (
-            kind not in set(ACTIONS)|{"skip"}):
+    if kind not in set(ACTIONS) | {"skip"}:
         raise ValueError("r4_unknown_action_type")
     source=getattr(observed,"run_id",None)
     post=getattr(observed,"post_id",None)
