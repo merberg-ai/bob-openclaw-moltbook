@@ -525,12 +525,13 @@ def preflight_r3_consolidated_offfirst() -> bool:
     try:
         import report_g2_recovery as g2
         import report_r3_cutover_inventory as inventory
+        import report_r38_effective_units as publisher_units
         host=g2.inspect("baseline")
         if host.get("host_gate")!="PASS" or (
                 host.get("historical_uncertain") is None):
             return False
         current=inventory.unit_facts(
-            "user","bob-moltbook-publisher.service")
+            "user",publisher_units.SERVICE)
         if (current.get("load")!="loaded" or
                 current.get("active")!="inactive"):
             return False
