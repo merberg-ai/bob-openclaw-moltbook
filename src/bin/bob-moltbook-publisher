@@ -19,6 +19,25 @@ from bob_r312_adapter import legacy_queue_head, held_r3_count
 # into a clean installed v0.7 publisher until a reviewed versioned release.
 R313C_INTEGRATION_COMPILED_OFF = True
 
+# R3 cutover preparation: preserve the existing single credentialed sender.
+# All legacy attempts at the same target must block a second POST, regardless
+# of the final job state (for example, failed AFTER an API timeout). This
+# predicate is also evaluated inside the last pre-POST UPDATE, so a competing
+# claim that appears during public GET cannot slip through the earlier check.
+# This source change is NOT included in the installed release manifest.
+DUPLICATE_ATTEMPT_STATES = (
+    "'sending','uncertain','published','verified_unconfirmed',"
+    "'awaiting_verification','verifying','verification_expired',"
+    "'verification_failed'"
+)
+FINAL_NO_DUPLICATE_CLAIM = (
+    " AND NOT EXISTS(SELECT 1 FROM publish_jobs prior "
+    "WHERE prior.run_id<>publish_jobs.run_id "
+    "AND prior.post_id=publish_jobs.post_id "
+    "AND (prior.attempted_at IS NOT NULL OR prior.state IN ("
+    + DUPLICATE_ATTEMPT_STATES + ")))"
+)
+
 API='https://www.moltbook.com/api/v1'
 CREDS=DATA/'credentials.json'
 MAX_DAILY=2
@@ -179,7 +198,11 @@ def publisher_step(db):
         checkpoint('publisher',rid,'failed')
         record_publisher_skip(db,'DRAFT_EXPIRED',rid)
         return 'old draft blocked'
-    duplicate=db.execute("SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? AND state IN ('sending','uncertain','published','verified_unconfirmed','awaiting_verification','verifying') LIMIT 1",(pid,rid)).fetchone()
+    duplicate=db.execute(
+        "SELECT run_id FROM publish_jobs WHERE post_id=? AND run_id<>? "
+        "AND (attempted_at IS NOT NULL OR state IN ("
+        + DUPLICATE_ATTEMPT_STATES + ")) LIMIT 1", (pid, rid)
+    ).fetchone()
     if duplicate:
         db.execute("UPDATE publish_jobs SET state='failed',last_error='Already attempted comment on this post',updated_at=? WHERE run_id=?",(now(),rid));db.commit()
         checkpoint('publisher',rid,'failed')
@@ -217,13 +240,14 @@ def publisher_step(db):
         "AND attempted_at IS NULL AND EXISTS("
         "SELECT 1 FROM decisions WHERE decisions.run_id=publish_jobs.run_id "
         "AND decisions.draft_sha256=publish_jobs.approval_sha256 "
-        "AND decisions.status='approved')",
+        "AND decisions.status='approved')" + FINAL_NO_DUPLICATE_CLAIM,
         (tnow,tnow,rid,mode,digest,pid,draft)) if mode=='manual' else db.execute(
         "UPDATE publish_jobs SET state='sending',attempted_at=?,updated_at=? "
         "WHERE run_id=? AND state='queued' AND mode='auto' "
         "AND approval_sha256=? AND post_id=? AND draft_comment=? "
         "AND attempted_at IS NULL AND NOT EXISTS("
-        "SELECT 1 FROM decisions WHERE decisions.run_id=publish_jobs.run_id)",
+        "SELECT 1 FROM decisions WHERE decisions.run_id=publish_jobs.run_id)"
+        + FINAL_NO_DUPLICATE_CLAIM,
         (tnow,tnow,rid,digest,pid,draft))
     if claimed.rowcount!=1:
         # In particular an owner-approved auto->manual handoff invalidates
