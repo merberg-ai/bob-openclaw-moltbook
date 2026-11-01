@@ -20,7 +20,7 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
         self.assertEqual(result["source_candidate"],"verified")
         self.assertEqual(result["files_built"],12)
         self.assertEqual(len(result["source_hashes"]),12)
-        self.assertEqual(result["source_gates"],"four_hard_off")
+        self.assertEqual(result["source_gates"],"one_exact_manual_owner_arm_only")
         self.assertEqual(result["dashboard_transport"],"https_only")
         self.assertFalse(result["ready_to_install_or_cutover"])
         self.assertFalse(result["r3_real_publishing_authorized"])
@@ -43,12 +43,14 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-r3skip1")
+        self.assertEqual(current["release"],"v0.8.0-r3canary1")
         self.assertEqual(plan["from"],"v0.8.0-chhttps3")
         self.assertEqual(plan["release"],"v0.8.0-cutover1")
-        self.assertEqual(current["from"],"v0.8.0-r3format1")
+        self.assertEqual(current["from"],"v0.8.0-r3skip1")
         self.assertEqual({row["name"] for row in current["files"]},
-                         {"bob-release-updater","bobctl","bob_r3_package.pyz"})
+                         {"bob-release-updater","bobctl","bob_r3_package.pyz",
+                          "bob_r3_canary_lock.py","bob_r313c_adapter.py",
+                          "bob-moltbook-publisher","bob-r3-canary-arm"})
         self.assertTrue(candidate.inspect(build=False)["releases_current_json_modified"])
         self.assertTrue(plan["restart_manager"])
         self.assertFalse(current["restart_manager"])
@@ -61,9 +63,10 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
         self.assertFalse(bob_r312_adapter.R312_REAL_DISPATCH)
         self.assertFalse(bob_r313c_adapter.R313C_REAL_DISPATCH)
         self.assertFalse(bob_r313c_adapter.production_dispatch_enabled())
+        self.assertTrue(bob_r313c_adapter.R3_EXACT_CANARY_COMPILED)
         self.assertFalse(candidate._literal_constant(
             ROOT/"src/lib/bob/bob_r312_adapter.py","R312_REAL_DISPATCH"))
-        self.assertTrue(candidate._literal_constant(
+        self.assertFalse(candidate._literal_constant(
             ROOT/"src/bin/bob-moltbook-publisher",
             "R313C_INTEGRATION_COMPILED_OFF"))
 
