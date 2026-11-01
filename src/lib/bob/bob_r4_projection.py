@@ -86,6 +86,9 @@ def project_db(db: sqlite3.Connection) -> dict:
     result["originals"]=_count(db,"original_posts")
     result["r4_total_decisions"]=_count(db,"r4_social_decisions")
     if _exists(db,"r4_social_decisions"):
+        from bob_r313d_package import load_verified
+        if load_verified()!="verified_registry_archive":
+            raise ValueError("r4_saved_source_package_untrusted")
         from bob_r4_ledger import recent,schema_ready
         if not schema_ready(db):
             raise ValueError("r4_social_schema_unverified")
@@ -167,5 +170,6 @@ def snapshot(path: Path=DB) -> dict:
                 path.absolute().as_uri()+"?mode=ro",uri=True,timeout=3)) as db:
             db.execute("PRAGMA query_only=ON")
             return project_db(db)
-    except (sqlite3.Error,OSError,ValueError,TypeError,KeyError):
+    except (sqlite3.Error,OSError,ValueError,TypeError,KeyError,
+            ImportError,AttributeError):
         return empty()
