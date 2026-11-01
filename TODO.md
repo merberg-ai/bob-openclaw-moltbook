@@ -1,3 +1,17 @@
+## R4 autonomy1 consolidated development, one eventual installation (2026-11-01)
+
+- [x] **R3 public canary accepted:** exact approved comment was acknowledged by the original publisher, recorded as attempted/published, and independently found in the public listing. No automatic retry or second local attempt. Preserve its ledger, release and original HTTPS service.
+- [x] **Unified R4 UI source:** HTTPS-authenticated, 380px responsive Now, Inbox, Bob, Controls, Diagnostics and reserved inert Chat; existing PM2, personality, FM friends and FM4.1 social history linked rather than duplicated.
+- [x] **R4 controls / pause source:** independent per-action Off/Propose/Auto contract and typed owner controls, all Off by default. Auto deliberately cannot be selected before corresponding source-verified worker is approved. Separate R4 pause does not flip legacy Scout or old R3 canary permissions.
+- [x] **R4 observed evidence source:** bounded SQLite read-only projections, owner-staged notes versus Bob-expressed sealed R3 reasons versus platform follow status, exact existing attempt provenance, no invented external verification.
+- [x] **Agent/social contract source:** strict eight-field model output against verified Scout source ID/post/author, genuine skip, minimum two observed posts before a follow proposal, unverified reply/unfollow refused. Fixed official API method/paths but no direct external writer. Full fake-model tests.
+- [x] **Single non-current candidate / CI:** `v0.8.0-autonomy1` candidate under `releases/candidates/`, exact HTTPS Manager generated over accepted R3/R2/legacy stack, one read-only source audit. `releases/current.json` stays `v0.8.0-r3canary1`; no OMEN install.
+- [ ] **Actionable R4 proposal ledger:** source-sealed agent decisions, reviewable per-category owner approval, distinct memory/relationship suggestions, correct skip/denial/uncertainty tracking and sustained experience digest.
+- [ ] **Single-publisher verified actions:** real supported social actions through original credentialed process only, durable atomic intent, per-action budgets, owner revocation, pause, no-replay uncertainty, remote verification and identity/following checks. Must not let existing canary arm authorize R4.
+- [ ] **One final integrated signed release + host acceptance:** complete CI including synthetic API faults/races, TLS authenticated routes and rollback, single owner-confirmed `v0.8.0-autonomy1` installation and read-only acceptance. No interim OMEN release. Direct Bob Chat remains later CH1.
+
+---
+
 ## R3 public canary VERIFIED and accepted on real OMEN (2026-11-01)
 
 - [x] **Signed R3 canary installed:** `v0.8.0-r3canary1` upgraded from `v0.8.0-r3skip1` with typed `UPDATE`; `report_r3_canary_installed.py --check` reported `acceptance: PASS`, signed exact scope PASS, authenticated HTTPS PASS, R3 owner controls PASS, original service topology PASS. Installing did **not** arm or publish.
