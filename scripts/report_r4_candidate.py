@@ -23,7 +23,7 @@ FILES=frozenset((
     "bob-release-updater","bobctl","bob-activity-manager","navigation_shell.py",
     "bob_r4_policy.py","bob_r4_controls.py","bob_r4_projection.py",
     "bob_r4_reflections.py","bob_r4_decision.py","bob_r4_ledger.py",
-    "bob_r4_suggestions.py",
+    "bob_r4_suggestions.py","bob_r4_schema.py",
     "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
     "bob_r4_web.py",
 ))
@@ -82,6 +82,9 @@ def inspect(root:Path=ROOT) -> dict:
     controls=(root/"src/lib/bob/bob_r4_controls.py").read_text("utf-8")
     policy=(root/"src/lib/bob/bob_r4_policy.py").read_text("utf-8")
     web=(root/"src/lib/bob/bob_r4_web.py").read_text("utf-8")
+    migration=(root/"src/lib/bob/bob_r4_schema.py").read_text("utf-8")
+    if "INSTALL_HOOK_COMPILED_OFF=True" not in migration:
+        raise ValueError("r4_source_migration_host_gate_unverified")
     if (not "AUTO_ENGINE_COMPILED_OFF=True" in controls or
             not "dispatch_authorized: bool = False" in policy or
             "Authorization: Bearer" in web or
