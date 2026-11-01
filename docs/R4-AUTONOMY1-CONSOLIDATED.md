@@ -70,17 +70,25 @@ the saved comment is not proof of global absence of every external duplicate.
       existing Friend Discovery candidate, requiring another owner review
       and fresh profile proof before a local Friend exists. Nothing
       automatically follows users or writes OpenClaw memory.
-- [x] **Additive schema rehearsal, production Off:** `bob_r4_schema.py`
-      validates exact R4 social/suggestion/outbox and attempted-event schema
-      plus a version marker.
-      Isolated offline `rehearsal()` is transactional/idempotent and
-      preserves existing R3 public receipt rows. Missing/future/partial
-      schemas refuse rather than auto-repair. The real installation hook
-      remains `INSTALL_HOOK_COMPILED_OFF=True`.
-- [ ] **Production schema installation:** the eventual single signed R4
-      installer must integrate migration only after verified private host,
-      tested backup and release journal. No OMEN schema has been migrated;
-      opening R4 pages never creates tables.
+- [x] **Versioned, guarded additive migration integrated in the draft
+      signed updater:** `bob_r4_schema.py` validates exact R4
+      social/suggestion/outbox and attempt-event schema with a version
+      marker. `scripts/r4_install_guard.py` verifies the release chain,
+      four independent public-send Off markers, publisher inactivity,
+      candidate code hashes and a private SQLite backup with matching
+      SHA-256, integrity check and independently restored copy.
+      The updater calls it only inside the owner-typed, locked
+      `v0.8.0-autonomy1` transaction after installing verified code and
+      staging its registry but **before** HTTPS manager restart. The
+      `migrated` journal phase is recognized by explicit recovery.
+      Synthetic tests prove additive/idempotent DDL, partial-schema
+      refusal, preserved R3 receipt and code-only rollback.
+- [ ] **Actual OMEN schema installation and acceptance:** No R4 tables
+      have been migrated on the live host. `releases/current.json` still
+      names the R3 canary. The prepared migration cannot run until that
+      release is separately reviewed, promoted and installed with the
+      owner's explicit terminal confirmation. Dashboard GET never
+      creates or repairs tables.
 - [x] **Source-staged single original publisher R4 branch (Off):**
       added one narrow R4 hook to the original `bob-moltbook-publisher`,
       entered only when the legacy queue has no job and no earlier R3
@@ -229,6 +237,46 @@ response, rate refusal, changed author/own identity, expired source
 or crash becomes a held/uncertain state without retry. Platform vote
 visibility cannot be independently asserted absent a verified
 authoritative voter-state endpoint.
+
+### Locked updater and code-only rollback (source acceptance)
+
+The established updater creates and independently restore-tests a private
+online SQLite backup **before** replacing any tracked release file. For
+this one R4 candidate, `scripts/bob_release_updater.py` now also
+requires the accepted R3 canary release, existing publisher/timer topology,
+registered candidate hashes, the original publisher idle at migration,
+exact signed R4 source and intact restored-backup hash. It performs
+`BEGIN IMMEDIATE` additive DDL, verifies exact schema/version and database
+integrity, writes a distinct `migrated` transaction phase, restarts the
+existing TLS manager and checks the same authenticated HTTPS transport.
+An updater interruption or failed health check invokes the **same
+code/registry-only rollback** as existing releases.
+
+**Never restore a stale SQLite snapshot automatically.** New R4 tables
+may remain after rolled-back code because even a future system could
+record an attempted public action between migration and recovery. Such
+tables are additive and inert to earlier R3 code; a later signed retry
+checks the exact version and leaves them intact. Incomplete, unknown
+or foreign R4 tables cause refusal and human review, not a silent repair.
+The source tests execute `updater.rollback()` with a fake migrated
+journal and exact synthetic file hashes, verify restored R3 code/registry,
+and compare the original R3 canary's recorded comment before/after.
+
+`scripts/report_r4_installed.py --check` is a future **read-only**
+owner acceptance for the final signed install. It requires the exact
+private installed hash registry, completed (not in-flight) updater
+journal, versioned database, existing inactive publisher, and GET-only
+authenticated HTTPS checks across the R4 dashboard. It does not send,
+approve, migrate, arm or start services. Do not run it as a migration
+command or treat passing source CI as host acceptance.
+
+The installed `v0.8.0-r3canary1` updater does not yet know the
+`autonomy1` HTTPS transport. When the future promotion is approved,
+use the trusted, updated `next` checkout's
+`python3 scripts/bob_release_updater.py` for this **one bridge hop**,
+not an older installed `bobctl update`. This is a release-transport
+compatibility precaution, not a security bypass; the owner-typed
+`UPDATE` and all normal rollback guards still apply.
 
 ### R4 publisher and first action outbox (development only)
 
