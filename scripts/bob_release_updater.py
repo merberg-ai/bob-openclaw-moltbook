@@ -557,19 +557,26 @@ def update(folder, current, plan, contents, *, auth):
                     raise ValueError("unmanaged destination exists")
                 write_target(name, payload)
             store_journal({**journal, "phase": "installed"})
-            if plan["restart_manager"]:
-                step = "restarting Activity Manager"
-                restart_manager()
-            store_journal({**journal, "phase": "restarted"})
-            step = "checking file hashes and authenticated dashboard"
+            step = "verifying candidate hashes and staging signed registry"
             next_files = dict(current["files"])
             next_files.update({name: digest(blob) for name, blob in contents.items()})
             next_state = {"format": FORMAT, "release": plan["release"], "files": next_files}
             if not live_ok(next_state):
                 raise RuntimeError("updated installation file hash mismatch")
+            # The R3 verified-package loader checks the private installed
+            # registry DURING manager startup. Publish the exact new hashes
+            # atomically before restarting; the transaction journal remains
+            # incomplete until postflight passes, so --recover or automatic
+            # failed-health rollback can restore the old code AND registry.
+            # This is code-only recovery: never restore SQLite after a send.
+            save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
+            if plan["restart_manager"]:
+                step = "restarting Activity Manager"
+                restart_manager()
+            store_journal({**journal, "phase": "restarted"})
+            step = "checking candidate HTTPS health"
             if not wait_for_health(auth,release=plan["release"]):
                 raise RuntimeError("dashboard failed bounded post-restart health checks")
-            save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
             store_journal({**journal, "phase": "complete"})
             return "updated"
         except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
