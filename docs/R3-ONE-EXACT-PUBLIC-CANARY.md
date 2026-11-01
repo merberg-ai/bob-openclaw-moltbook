@@ -1,3 +1,34 @@
+## 2026-11-01 real host acceptance: one public canary PASSED
+
+The owner installed the exact seven-file signed `v0.8.0-r3canary1` from
+`v0.8.0-r3skip1`, then confirmed authenticated HTTPS, R3 controls, original
+service topology and signed exact-scope installation checks all PASS. In the
+original /r3 owner UI they separately approved and queued the exact Bob draft;
+the signed `bob-r3-canary-arm --check` returned READY_TO_ARM; interactive
+`--arm` with the exact source run returned ARMED. No API request was made by
+the arm command itself.
+
+At **Nov 1, 2026, 11:46:08 PST** the *existing* publisher's natural
+systemd service logged `R3 candidate outcome: api_acknowledged`, completing
+the one allowed attempt. The fixed read-only local receipt report returned
+`state=published`, `attempt_recorded=true`, stable queue record, no other
+attempted local job at this target and exact saved comment ID
+`8c37f88f-e678-4007-ba56-586b76ef4cfd`. The independent bounded public
+GET returned `public_observation=visible_in_public_listing` and
+`independently_visible=true`. User-shared subsequent publisher ticks showed
+no queued work. `retry_authorized=false`,
+`external_duplicate_excluded=false` and
+`api_ack_is_public_receipt=false` are correctly preserved.
+
+**R3 first genuine public canary is accepted.** This does not enable broad
+R3 or R4 automatic publication, nor imply globally proven nonduplication.
+The attempted source must remain consumed; do not reset it or rearm. The
+one-run pin expires at the original UTC deadline, and the R4 release must
+preserve historical attempted/receipt states while defaulting new
+permissions Off or Propose.
+
+---
+
 # R3 first genuine, owner-approved, one-comment public canary
 
 Status: **source candidate only** until GitHub CI and separate owner-confirmed
