@@ -126,11 +126,14 @@ class LegacySingleWriterSafetyTests(unittest.TestCase):
         self.assertEqual(self.state()[0],"published")
         self.assertIsNotNone(self.state()[1])
 
-    def test_r3_real_dispatch_source_remains_hard_off(self):
-        self.assertTrue(self.p.R313C_INTEGRATION_COMPILED_OFF)
-        import bob_r312_adapter, bob_r313c_adapter
+    def test_r3_wide_dispatch_flags_still_off_and_canary_not_armed(self):
+        # The single publisher can import the scoped canary adapter, but
+        # without a private owner-arm it must follow original legacy behavior.
+        self.assertFalse(self.p.R313C_INTEGRATION_COMPILED_OFF)
+        import bob_r312_adapter, bob_r313c_adapter, bob_r3_canary_lock
         self.assertFalse(bob_r312_adapter.R312_REAL_DISPATCH)
         self.assertFalse(bob_r313c_adapter.R313C_REAL_DISPATCH)
+        self.assertTrue(bob_r313c_adapter.R3_EXACT_CANARY_COMPILED)
         self.assertFalse(bob_r313c_adapter.production_dispatch_enabled())
 
 
