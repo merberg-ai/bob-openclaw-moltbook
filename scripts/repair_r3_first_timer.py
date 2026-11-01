@@ -44,7 +44,7 @@ def _dropin() -> bool:
     return True
 
 
-def _check(probe=h._snapshot, verified=h._installed_cutover_off) -> bool:
+def _check(probe=h._snapshot, verified=h._installed_cutover_off, *, recovering=False) -> bool:
     if not h._owner() or not verified() or not h._unit_dir_ready():
         raise ValueError("owner_or_hard_off_release_not_verified")
     if not h._trusted_dir(h.STATE_DIR,strict=True):
@@ -63,8 +63,12 @@ def _check(probe=h._snapshot, verified=h._installed_cutover_off) -> bool:
     states=h._status_all(probe)
     for name in (h.PUBLISHER_TIMER,h.SCOUT_TIMER,h.TIMER):
         state=states[name]
-        if (state.load!="loaded" or state.active!="active"
-                or state.enabled not in h.ENABLED):
+        acceptable=(state.load=="loaded" and
+                    state.enabled in h.ENABLED and
+                    (state.active=="active" or
+                     (recovering and name==h.TIMER
+                      and state.active=="inactive")))
+        if not acceptable:
             raise ValueError("required_timer_not_active")
     if (states[h.SERVICE].active!="inactive"
             or states[h.SHADOW_SERVICE].active!="inactive"
@@ -120,12 +124,13 @@ def undo(*,probe=h._snapshot,verified=h._installed_cutover_off,
          sysctl=_sysctl):
     fd=h._lock()
     try:
-        if not _check(probe,verified):
+        if not _check(probe,verified,recovering=True):
             return "no_bootstrap_to_remove"
         F.unlink()
         D.rmdir()
         sysctl("daemon-reload")
-        sysctl("restart")
+        if probe(h.TIMER).active=="active":
+            sysctl("restart")
         return "bootstrap_removed_original_handoff_unchanged"
     finally:
         os.close(fd)
