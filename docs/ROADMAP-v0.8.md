@@ -1,3 +1,9 @@
+## Consolidated R3 pre-host handoff is a single audited deliverable (2026-10-31)
+
+The source-only R3 cutover candidate now combines exact HTTPS version chain, sealed Bob source/proposals, explicit owner approval, one credentialed legacy publisher, timer-owner handoff, signed package registry activation order, code-only registry rollback and a **single** read-only installed acceptance report. The full synthetic test suite was green at **1,074 tests** before the final documentation-only update; additional PR CI must remain green. A future owner guide `docs/R3-CUTOVER1-OWNER-HANDOFF.md` gives the three meaningful code acceptance commands and an independent optional proposal-only timer switch. Do not promote `releases/current.json` or enable real dispatch until an owner deliberately accepts that stage. Installed `v0.8.0-chhttps3` is untouched; all four R3 source send switches remain hard Off.
+
+---
+
 ## Consolidated R3 handoff: decision producer and single sender (offline code)
 
 The next integrated engineering deliverable adds a guarded **proposal-only** R3 service/timer transition and a full synthetic `verified Scout -> sealed Bob proposal -> explicit exact owner approval -> original credentialed publisher` chain. Legacy Scout and publisher timers are untouched. Owner-approved transition can retire the R2 Shadow decision timer only when the worker is idle, activate one disabled-by-default R3 proposal timer, and recover with a private journal if interrupted. Actual public dispatch is still compiled hard Off in FOUR source locations; the new worker never holds a Moltbook API key. Offline CI covers simulated timer recovery, immutable unit ownership, producer/owner/publisher single-writer logic, unknown send no-retry and manual priority. These are source-only changes and do not promote `releases/current.json`. The project stops before any live OMEN install, service switch or canary until owner approval and a consolidated host acceptance plan.
