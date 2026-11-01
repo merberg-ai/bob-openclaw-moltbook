@@ -18,15 +18,15 @@ MAX=8
 def reasons(*,path:Path=DB,source:Path=DATA,limit:int=MAX) -> list[dict]:
     if type(limit) is not int or not 1<=limit<=MAX:
         raise ValueError("r4_invalid_reason_limit")
-    from bob_r313d_package import load_verified
-    if load_verified()!="verified_registry_archive":
-        return []
-    from bob_r313d_owner import (
-        recent_proposals, trusted_manager_boundary, control_state)
     path=Path(path)
     if path.is_symlink() or not path.is_file():
         return []
     try:
+        from bob_r313d_package import load_verified
+        if load_verified()!="verified_registry_archive":
+            return []
+        from bob_r313d_owner import (
+            recent_proposals, trusted_manager_boundary, control_state)
         with closing(sqlite3.connect(path.absolute().as_uri()+"?mode=ro",
                                      uri=True,timeout=3)) as db:
             db.execute("PRAGMA query_only=ON")
