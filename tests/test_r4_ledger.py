@@ -14,6 +14,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/"src"),str(ROOT/"src/lib/bob")]
@@ -222,6 +223,36 @@ class R4LedgerTests(unittest.TestCase):
                         (SECOND,OTHER_POST,NOW.isoformat()))
         with self.assertRaisesRegex(ValueError,"r4_legacy_source_already_used"):
             self.record(serialized("upvote",run=SECOND,target=OTHER_POST))
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM r4_social_decisions").fetchone()[0],0)
+
+    def test_comment_r3_target_collision_and_late_legacy_send_refused(self):
+        # A DIFFERENT R3 source may already have claimed the same post.
+        self.db.execute("INSERT INTO r3_proposals VALUES(?,?)",(SECOND,POST))
+        with self.assertRaisesRegex(ValueError,
+                                    "r4_comment_target_already_proposed_in_r3"):
+            self.record(serialized("comment",body="A different original thought"))
+        self.db.execute("DELETE FROM r3_proposals")
+        self.record(serialized("comment",body="A different original thought"))
+        seal=ledger.recent(self.db,self.directory)[0]["seal"]
+        self.db.execute("INSERT INTO publish_jobs VALUES(?,?,?)",
+                        (SECOND,POST,NOW.isoformat()))
+        with self.assertRaisesRegex(ValueError,
+                                    "r4_target_consumed_since_proposal"):
+            ledger.review(self.db,self.directory,RUN,seal,"approve",
+                          "APPROVE R4 "+RUN,trusted=True,at=NOW)
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM r4_social_reviews").fetchone()[0],0)
+
+    def test_follow_requires_author_repeat_at_transaction_commit(self):
+        decision=serialized("follow",target=AUTHOR)
+        # The first check sees two signed author observations; second
+        # check inside BEGIN IMMEDIATE observes only one. This must not
+        # create a private proposal with already revoked provenance.
+        with patch.object(ledger,"author_count",side_effect=[2,1]):
+            with self.assertRaisesRegex(ValueError,
+                                        "r4_repeat_author_evidence_revoked"):
+                self.record(decision)
         self.assertEqual(self.db.execute(
             "SELECT COUNT(*) FROM r4_social_decisions").fetchone()[0],0)
 
