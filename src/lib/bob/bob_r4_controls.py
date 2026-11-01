@@ -78,6 +78,32 @@ def set_mode(db: sqlite3.Connection, action: str, mode: str, confirmation: str,
     return read_modes(db)
 
 
+
+def set_pause(db: sqlite3.Connection, paused: bool, confirmation: str,
+              *, trusted: bool) -> bool:
+    """Strictly separate R4 pause from legacy Scout and the consumed R3 canary."""
+    if not trusted or type(paused) is not bool:
+        raise ValueError("r4_pause_owner_boundary_unverified")
+    phrase="PAUSE R4" if paused else "RESUME R4"
+    if type(confirmation) is not str or confirmation!=phrase:
+        raise ValueError("r4_pause_confirmation_required")
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        before=pause_state(db)
+        db.execute("INSERT INTO publish_settings(name,value) VALUES(?,?) "
+                   "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+                   (SETTING_PAUSE,"1" if paused else "0"))
+        db.execute(
+            "INSERT INTO publish_events(at,kind,details) VALUES(?,?,?)",
+            (datetime.now(timezone.utc).isoformat(),"r4_pause",
+             str(before).lower()+"->"+str(paused).lower()))
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+    return pause_state(db)
+
+
 def api_contract(action: str, target: str) -> tuple[str,str]:
     """Strict fixed-host METHOD/path contract; no user-originated URLs.
 
