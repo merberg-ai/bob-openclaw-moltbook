@@ -9,7 +9,7 @@ required before a model is called, and a proposal never enqueues a public job.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 from pathlib import Path
 import os
 import pwd
@@ -76,7 +76,7 @@ def run_one(*,model=None,clock=None,observations=None) -> Result:
                     created=datetime.strptime(item.run_id,"%Y%m%dT%H%M%SZ").replace(
                         tzinfo=timezone.utc)
                     age=now.astimezone(timezone.utc)-created
-                    if not 0<=age<=SOURCE_AGE:
+                    if not timedelta(0)<=age<=SOURCE_AGE:
                         continue
                     if db.execute(
                         "SELECT 1 FROM r4_social_decisions WHERE source_run=?",
