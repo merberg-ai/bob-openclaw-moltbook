@@ -179,11 +179,13 @@ def _suggestion_cards(data,csrf):
             'candidate to the existing Friend Discovery review, not the '
             'Friends directory or Moltbook following.</p>'
         ]
-        if item["state"]=="pending" and item["social_state"]!="rejected":
-            for operation,label in (("approve","Approve suggestion"),
-                                    ("reject","Reject suggestion")):
-                phrase=operation.upper()+" R4 "+item["kind"].upper()+
-                       " "+item["source_run"]
+        if item["state"]=="pending":
+            operations=[("reject","Reject suggestion")]
+            if item["social_state"]!="rejected":
+                operations.insert(0,("approve","Approve suggestion"))
+            for operation,label in operations:
+                phrase=(operation.upper()+" R4 "+item["kind"].upper()+
+                        " "+item["source_run"])
                 parts.append(
                     '<form method="post" action="/r4/suggestion/'+run+'/'+
                     kind+'/'+operation+'">'
@@ -193,9 +195,9 @@ def _suggestion_cards(data,csrf):
                     '<input name="confirmation" autocomplete="off" '
                     'maxlength="64" required></label>'
                     '<button type="submit">'+e(label)+'</button></form>')
-        elif item["state"]=="pending":
-            parts.append('<p class="muted">Original social proposal was '
-                         'rejected; approval is blocked.</p>')
+        if item["state"]=="pending" and item["social_state"]=="rejected":
+            parts.append('<p class="muted">Original social proposal rejected; '
+                         'this suggestion may only be rejected, not approved.</p>')
         if item["applied_ref"]:
             parts.append('<p class="muted">Saved local reference: <code>'+
                          e(item["applied_ref"])+'</code></p>')
