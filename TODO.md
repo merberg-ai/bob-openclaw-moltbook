@@ -1,3 +1,14 @@
+## Active execution plan: ONE G2 reconciliation, ONE consolidated R3 cutover (2026-10-31)
+
+- [x] **G2 source-only aggregate public receipt audit implemented:** §scripts/report_g2_public_receipts.py§ reads exact legacy comment attempts via read-only SQLite and optionally checks locally saved receipt IDs through the existing bounded anonymous Moltbook public HTTPS GET reader. Scope at most 40 jobs, two pages each, detects missing/unverified receipts, attempted target/ID reuse, unresolved/unknown states and database changes during GET. Always says external no-duplicate posting unproven; does not POST or print private content. CI synthetic regressions included.
+- [ ] **ONE owner G2 receipt check after green reviewed merge:** §cd ~/bob-next && git pull --ff-only && python3 scripts/report_g2_public_receipts.py --public-get§. The prior 23 attempted/0 uncertain local historical results are not full external proof. A truthful §review_required§ result is a category-based audit outcome; do not blind-retry anything. Original posts and potentially unrecorded remote duplicates are out of scope.
+- [x] **R3 consolidated release contract written:** §docs/R3-CONSOLIDATED-CUTOVER.md§ plans integrated §v0.8.0-cutover1§ based on installed §v0.8.0-chhttps3§, one legacy credentialed publisher, source-sealed Bob approval, shared ledger, atomic intent/unknown locks, exact managed timer handoff and code-only rollback. R3 still HARD OFF; this documentation does not install or authorize real Moltbook writes.
+- [ ] **NEXT engineering batch (not another owner test marathon):** implement the R3 source integration and offline fault/rollback CI, package one single candidate with one acceptance report. Only after owner approval: one update and one installed health check. Exact optional public canary separately approved. Do not change §releases/current.json§, running timers, private database or permissions while the candidate is incomplete.
+- [ ] **R2 G1 opportunistic scheduled model-decision evidence:** timer execution is confirmed; a naturally source-linked decision remains unconfirmed. Allow normal Scout/Shadow operation to produce it without forced replay.
+- [ ] **G2 privacy scope:** post-reboot both LAN clients reachable, owner's outside-network inaccessibility observation and default-block/source-limited Hyper-V firewall accepted. A fresh warning-free new-password browser challenge and exhaustive WAN/IPv6/router proof remain separately unverified; they are not reasons to repeat G2 reboot tests.
+
+---
+
 ## G2.5 owner reports no external reachability; network scope accepted by observation (2026-10-31)
 
 - [x] **Owner-reported internet-side observation:** “nothing is reachable from the outside.” Record this as the owner's statement that their network is not externally reachable, not a verified independent WAN/IPv6/UPnP port scan or exhaustive audit of all exposure paths. Do not infer the testing method, router model or precise external address.
