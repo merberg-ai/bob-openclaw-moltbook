@@ -29,14 +29,14 @@ DIGEST=re.compile(r"[a-f0-9]{64}\Z")
 MAX_SIZE=524288
 
 
-def _private(path:Path,directory:bool)->bool:
+def _owned(path:Path,directory:bool,*,private:bool=False)->bool:
     try:
         st=path.lstat()
     except OSError:
         return False
     return (st.st_uid==os.geteuid() and
             bool(stat.S_ISDIR(st.st_mode))==directory and
-            (stat.S_IMODE(st.st_mode)&0o077)==0 and
+            (stat.S_IMODE(st.st_mode)&(0o077 if private else 0o022))==0 and
             not path.is_symlink())
 
 
@@ -48,9 +48,12 @@ def verify(*,home:Path|None=None)->bool:
         installed=state/"installed.json"
         journal=state/"transaction.json"
         bindir=base/".local/bin"
-        if (not _private(base,True) or not _private(state,True)
-                or not _private(bindir,True)
-                or not _private(installed,False)
+        if (not _owned(base,True) or
+                not _owned(base/".local",True) or
+                not _owned(base/".local/state",True) or
+                not _owned(state,True,private=True)
+                or not _owned(bindir,True)
+                or not _owned(installed,False,private=True)
                 or journal.exists() or journal.is_symlink()):
             return False
         if not 0<installed.stat().st_size<=65536:
@@ -69,7 +72,7 @@ def verify(*,home:Path|None=None)->bool:
             expected=hashes[name]
             p=bindir/name
             if (type(expected) is not str or not DIGEST.fullmatch(expected)
-                    or not _private(p,False) or
+                    or not _owned(p,False) or
                     not 0<p.stat().st_size<=MAX_SIZE or
                     hashlib.sha256(p.read_bytes()).hexdigest()!=expected):
                 return False
