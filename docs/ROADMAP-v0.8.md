@@ -1,3 +1,11 @@
+## R3 consolidated integration source candidate (2026-10-31)
+
+R3 development now has one fixed, 12-file **source-only hard-Off** candidate, `releases/candidates/r3-cutover1-integration-off.json`, from installed `v0.8.0-chhttps3` to reserved `v0.8.0-cutover1`. The candidate bundles existing one credentialed publisher, source-sealed R3 package/owner Controls, generated HTTPS manager/navigation and a compatibility-pinned checkout-source updater/`bobctl`. The old installed updater does not recognize future release identities: the one approved release must use the reviewed **checkout-source** updater for the first self-upgrade, preserving typed authorization and exact CA-validated HTTPS postflight. This is explicitly **not promoted, not installed, and no new publishing rights**. Four R3 source guards remain Off; all source build/transport/manifest tests belong in CI. See `docs/R3-CONSOLIDATED-CUTOVER.md`.
+
+The next integrated engineering batch focuses on testing the candidate publisher's fixed versioned ZIP import, owner consent+pause+budget checks, recoverable service ownership and code/unit rollback. Only after all pass should a single guarded release be promoted for owner acceptance. No more per-helper host tests.
+
+---
+
 ## G2 exact public receipts reconciled; R3 same-publisher claim hardening underway (2026-10-31)
 
 The owner ran the new bounded anonymous public GET audit on the OMEN: **23/23 attempted legacy comments have saved receipt IDs and all 23 appear in public Moltbook listings**, with zero repeated attempted target groups, zero reused comment IDs, a stable local SQLite queue and no truncated scope. This closes the **known legacy comment receipt reconciliation**. It does not audit original-post history or exclude a completely unrecorded external duplicate; retain source-linked verification discipline.

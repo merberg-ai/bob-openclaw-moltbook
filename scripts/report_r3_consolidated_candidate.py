@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Source-only v0.8 R3 integration bundle audit. Never installs or publishes.
+
+Checks a tightly allowlisted candidate manifest, installed-release CHHTTPS3
+CHAIN in the repo, four hard-Off dispatch gates, HTTPS for updater/bobctl,
+and builds the 12 declared files from reviewed local source. No credentials,
+SQLite, systemd, Moltbook API, service restart or public POST.
+This is NOT live host readiness or cutover authorization.
+"""
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/"scripts"))
+import bob_release_updater as updater
+
+CANDIDATE = ROOT/"releases/candidates/r3-cutover1-integration-off.json"
+EXPECTED = {
+    "bob-release-updater": ("source", "scripts/bob_release_updater.py"),
+    "bobctl": ("source", "src/bin/bobctl"),
+    "bob_r312_adapter.py": ("source", "src/lib/bob/bob_r312_adapter.py"),
+    "bob_r313c_adapter.py": ("source", "src/lib/bob/bob_r313c_adapter.py"),
+    "bob_r313d_package.py": ("source", "src/lib/bob/bob_r313d_package.py"),
+    "bob_r313d_owner.py": ("source", "src/lib/bob/bob_r313d_owner.py"),
+    "bob_r313d_web.py": ("source", "src/lib/bob/bob_r313d_web.py"),
+    "bob_r3_package.pyz": ("builder", "scripts/build_r313d_off_package.py", 0),
+    "bob-r3-propose": ("builder", "scripts/build_r313d_off_package.py", 1),
+    "bob-moltbook-publisher": ("source", "src/bin/bob-moltbook-publisher"),
+    "bob-activity-manager": ("builder", "scripts/build_ch_https3_manager_candidate.py", 0),
+    "navigation_shell.py": ("builder", "scripts/build_r313d_manager_candidate.py", 1),
+}
+OFF_CONSTANTS = {
+    "src/bin/bob-moltbook-publisher": ("R313C_INTEGRATION_COMPILED_OFF", True),
+    "src/lib/bob/bob_r312_adapter.py": ("R312_REAL_DISPATCH", False),
+    "src/lib/bob/bob_r313c_adapter.py": ("R313C_REAL_DISPATCH", False),
+    "src/lib/bob/bob_r313d_owner.py": ("R3_AUTO_UI_COMPILED_OFF", True),
+}
+
+
+def _literal_constant(path: Path, name: str):
+    """Read the single top-level assignment; never import the publisher."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    values=[]
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            if any(isinstance(t,ast.Name) and t.id==name for t in node.targets):
+                values.append(node.value)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target,ast.Name) and node.target.id==name:
+            values.append(node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+    if len(values)!=1 or not isinstance(values[0],ast.Constant):
+        raise ValueError("R3 compiled safety constant missing or nonliteral")
+    value=values[0].value
+    if type(value) is not bool:
+        raise ValueError("R3 compiled safety constant is not boolean")
+    return value
+
+
+def inspect(*, root=ROOT, build=True) -> dict:
+    """All data from explicit reviewed source paths; no caller-supplied path CLI."""
+    current_path=root/"releases/current.json"
+    manifest_path=root/"releases/candidates/r3-cutover1-integration-off.json"
+    if current_path.is_symlink() or manifest_path.is_symlink():
+        raise ValueError("symlinked release manifest")
+    current=json.loads(current_path.read_text(encoding="utf-8"))
+    proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
+    if current.get("release")!="v0.8.0-chhttps3":
+        raise ValueError("installed source release changed before cutover review")
+    if (proposed.get("format")!="bob-updater-v1"
+            or proposed.get("release")!="v0.8.0-cutover1"
+            or proposed.get("from")!="v0.8.0-chhttps3"
+            or proposed.get("restart_manager") is not True
+            or type(proposed.get("notes")) is not str
+            or type(proposed.get("files")) is not list
+            or len(proposed["files"])!=len(EXPECTED)):
+        raise ValueError("unexpected cutover candidate contract")
+    targets={}
+    for item in proposed["files"]:
+        if not isinstance(item,dict) or not isinstance(item.get("name"),str):
+            raise ValueError("unexpected candidate file entry")
+        name=item["name"]
+        if name not in EXPECTED or name in targets:
+            raise ValueError("unexpected duplicate or extra release target")
+        actual=(("source",item["source"]) if set(item)=={"name","source"}
+                else ("builder",item["builder"],item["index"]) if
+                set(item)=={"name","builder","index"} and type(item["index"]) is int
+                else None)
+        if actual != EXPECTED[name]:
+            raise ValueError("candidate changed reviewed build or source path")
+        targets[name]=item
+    if set(targets)!=set(EXPECTED):
+        raise ValueError("required source candidate file absent")
+    if updater.manager_transport("v0.8.0-cutover1")!="https":
+        raise ValueError("candidate HTTPS transport refused")
+    # bobctl is source-verified here, not loaded (would probe host process env).
+    controller=(root/"src/bin/bobctl").read_text(encoding="utf-8")
+    if '"v0.8.0-cutover1": "https"' not in controller:
+        raise ValueError("bobctl candidate HTTPS mode unavailable")
+    for name,(variable,expected) in OFF_CONSTANTS.items():
+        if _literal_constant(root/name,variable) is not expected:
+            raise ValueError("R3 actual source send gate is not Off")
+    if "FINAL_NO_DUPLICATE_CLAIM" not in (root/"src/bin/bob-moltbook-publisher").read_text(encoding="utf-8"):
+        raise ValueError("single-publisher final duplicate guard is absent")
+
+    sha={}
+    if build:
+        # We deliberately use the exact same reviewed builder as the updater.
+        # It only imports reviewed local builders and does not touch the host.
+        for name,item in targets.items():
+            data=updater.release_bytes(root,item)
+            if not 0 < len(data)<=524288:
+                raise ValueError("candidate file size refused")
+            sha[name]=hashlib.sha256(data).hexdigest()
+    return {
+        "format":"bob-r3-cutover-integration-off-audit-v1",
+        "source_candidate":"verified" if build else "manifest_verified",
+        "from":"v0.8.0-chhttps3",
+        "release":"v0.8.0-cutover1",
+        "files_built":len(sha),
+        "source_gates":"four_hard_off",
+        "single_existing_credentialed_publisher":True,
+        "publisher_atomic_duplicate_guard_present":True,
+        "dashboard_transport":"https_only",
+        "releases_current_json_modified":False,
+        "installed_files_or_systemd_modified":False,
+        "private_db_or_credentials_read":False,
+        "moltbook_requests":0,
+        "r3_real_publishing_authorized":False,
+        "ready_to_install_or_cutover":False,
+        "source_hashes":sha,
+    }
+
+
+def main(argv=None):
+    if (sys.argv[1:] if argv is None else argv) != ["--check"]:
+        print("Usage: python3 scripts/report_r3_consolidated_candidate.py --check")
+        return 2
+    try:
+        result=inspect()
+    except (OSError,ValueError,TypeError,KeyError,ImportError,SyntaxError) as exc:
+        print("R3 CONSOLIDATED CANDIDATE: REFUSED ("+type(exc).__name__+")")
+        return 1
+    print("R3 CONSOLIDATED SOURCE CANDIDATE (NO INSTALL)")
+    for key in ("source_candidate","from","release","files_built",
+                "source_gates","single_existing_credentialed_publisher",
+                "publisher_atomic_duplicate_guard_present",
+                "dashboard_transport"):
+        print(key.replace("_"," ")+":",result[key])
+    print("Current release manifest and installed host changed: NO")
+    print("Private DB, credentials, systemd or Moltbook touched: NO")
+    print("R3 real publishing authorized: NO")
+    print("Ready for an owner cutover update: NO")
+    return 0
+
+
+if __name__=="__main__":
+    raise SystemExit(main())
