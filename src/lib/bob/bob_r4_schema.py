@@ -28,6 +28,8 @@ def inspect(db:sqlite3.Connection) -> str:
         names={row[0] for row in db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' "
             "AND name LIKE 'r4_%'").fetchall()}
+        if names-TABLES:
+            return "partial_or_untrusted"
         have=TABLES & names
         if not have:
             return "missing"
