@@ -129,14 +129,26 @@ def queue(db,source_dir,run,seal,confirmation,*,trusted:bool,at:datetime):
         raise
 
 
-def cancel(db,run,confirmation,*,trusted:bool,at:datetime):
+def cancel(db,run,confirmation,*,trusted:bool,at:datetime,
+           provided_seal=None):
     """Revoke only an untouched queue row. Attempting is never replayable."""
     if (not trusted or not isinstance(run,str) or not RUN.fullmatch(run)
             or confirmation!="CANCEL R4 "+run):
         raise ValueError("r4_outbox_cancel_owner_boundary_refused")
     stamp=_utc(at)
+    if provided_seal is not None and (
+            not isinstance(provided_seal,str) or
+            not SHA.fullmatch(provided_seal)):
+        raise ValueError("r4_outbox_cancel_bad_seal")
     db.execute("BEGIN IMMEDIATE")
     try:
+        if provided_seal is not None:
+            saved=db.execute(
+                "SELECT decision_seal FROM r4_action_outbox "
+                "WHERE source_run=?",(run,)).fetchone()
+            if saved is None or not hmac.compare_digest(
+                    saved[0],provided_seal):
+                raise ValueError("r4_outbox_cancel_seal_changed")
         row=db.execute(
             "UPDATE r4_action_outbox SET state='cancelled',updated_at=?,"
             "last_code='owner_cancelled' WHERE source_run=? AND "
