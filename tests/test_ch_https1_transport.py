@@ -137,8 +137,8 @@ class UpdaterTransportTests(unittest.TestCase):
 
     def test_diagnostic_only_release_keeps_strict_https_without_manager_restart(self):
         plan=upd.manifest(ROOT)
-        self.assertEqual(plan["release"],"v0.8.0-r3format1")
-        self.assertEqual(plan["from"],"v0.8.0-r3diag1")
+        self.assertEqual(plan["release"],"v0.8.0-r3skip1")
+        self.assertEqual(plan["from"],"v0.8.0-r3format1")
         self.assertFalse(plan["restart_manager"])
         self.assertEqual(upd.manager_transport(plan["release"]),"https")
         self.assertEqual({i["name"] for i in plan["files"]},
