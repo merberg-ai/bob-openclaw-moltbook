@@ -22,6 +22,9 @@ import bob_r4_suggestions as suggestions
 import bob_r4_outbox as outbox
 import bob_r4_remote_gate as remote
 import bob_r4_verified_send_lab as lab
+import bob_r4_publisher_adapter as adapter
+import bob_publish_common as common
+from unittest.mock import patch
 
 RUN="20261101T151033Z"
 POST="bf2095bd-15cf-46e9-9bf0-8aa47bea6c5a"
@@ -257,6 +260,69 @@ class R4VerifiedPostTests(unittest.TestCase):
         self.assertEqual(self.db.execute(
             "SELECT state FROM r4_action_outbox").fetchone(),("uncertain",))
         self.assertEqual(self.exercise(),"no_queued_r4_action")
+
+    def test_original_publisher_adapter_full_fake_transport_and_once_only(self):
+        calls=[]
+        def api(method,path,payload=None,*,key=None):
+            calls.append((method,path,key))
+            self.assertEqual(key,"test-only-credential")
+            if method=="GET":
+                self.assertEqual(path,"/agents/me")
+                return self.me()
+            return self.post(method,path)
+        with patch.object(common,"DATA",self.data):
+            outcome=adapter._send_step(
+                self.db,api_call=api,
+                credential_loader=lambda:"test-only-credential",
+                clock=self.clock,public_get=self.get_post,
+                global_pause=lambda:self.paused)
+            self.assertEqual(outcome,
+                "R4 upvote: api_acknowledged_not_public_receipt")
+            self.assertEqual(self.gets,2)
+            self.assertEqual(self.self_gets,2)
+            self.assertEqual(self.posts,1)
+            again=adapter._send_step(
+                self.db,api_call=api,
+                credential_loader=lambda:self.fail("no credential after attempt"),
+                clock=self.clock,public_get=lambda *_:self.fail("no remote replay"),
+                global_pause=lambda:False)
+        self.assertIsNone(again)
+        self.assertEqual(calls[-1][:2],
+                         ("POST","/posts/"+POST+"/upvote"))
+
+    def test_original_publisher_public_hook_is_completely_compiled_off(self):
+        self.assertTrue(adapter.R4_REAL_DISPATCH_COMPILED_OFF)
+        self.assertTrue(adapter.R4_EXACT_OWNER_SEND_COMPILED_OFF)
+        self.assertTrue(outbox.PUBLIC_DISPATCH_COMPILED_OFF)
+        self.assertIsNone(adapter.maybe_r4_publisher_step(
+            self.db,
+            api_call=lambda *_:self.fail("public send gate bypass"),
+            credential_loader=lambda:self.fail("creds gate bypass")))
+
+    def test_adapter_refuses_when_signed_release_host_not_attested(self):
+        with patch.object(adapter,"R4_REAL_DISPATCH_COMPILED_OFF",False), \
+             patch.object(adapter,"R4_EXACT_OWNER_SEND_COMPILED_OFF",False), \
+             patch.object(adapter,"_host_verified",return_value=False):
+            result=adapter.maybe_r4_publisher_step(
+                self.db,
+                api_call=lambda *_:self.fail("unverified host must not request"),
+                credential_loader=lambda:self.fail("unverified credential access"))
+        self.assertEqual(result,"R4 refused: exact installed host/source gate")
+
+    def test_adapter_malformed_api_ack_yields_uncertain_not_public_proof(self):
+        def fake(method,path,payload=None,*,key=None):
+            if method=="GET":
+                return self.me()
+            return {"ok":True}
+        with patch.object(common,"DATA",self.data):
+            result=adapter._send_step(
+                self.db,api_call=fake,
+                credential_loader=lambda:"test-only",
+                clock=self.clock,public_get=self.get_post,
+                global_pause=lambda:False)
+        self.assertEqual(result,"R4 upvote: uncertain_no_replay")
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM r4_action_outbox").fetchone(),("uncertain",))
 
     def test_file_backed_rehearsal_refuses_even_if_callbacks_fake(self):
         with tempfile.TemporaryDirectory() as t:
