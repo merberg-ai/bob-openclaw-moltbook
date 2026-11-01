@@ -27,7 +27,11 @@ def build() -> tuple[bytes,bytes]:
     memory = BytesIO()
     with ZipFile(memory,"w",compression=ZIP_STORED) as archive:
         for name in MODULES:
-            path = ROOT/"src"/"bob_v08"/name
+            # Freeze the historical producer exactly as signed in format1.
+            # New source belongs only in the separately reviewed skip1 ZIP.
+            path = (ROOT/"release_baselines"/"v08-r3format1"/name
+                    if name == "r313d_producer.py"
+                    else ROOT/"src"/"bob_v08"/name)
             if path.is_symlink() or not path.is_file():
                 raise ValueError("r3_missing_reviewed_module")
             content=path.read_bytes()
