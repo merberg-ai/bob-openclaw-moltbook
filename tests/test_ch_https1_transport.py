@@ -135,17 +135,16 @@ class UpdaterTransportTests(unittest.TestCase):
             probe.assert_called_once_with("Basic synthetic",
                                           release="v0.8.0-chhttps3")
 
-    def test_promoted_https_cutover_reuses_prepared_transport_no_updater_change(self):
+    def test_diagnostic_only_release_keeps_strict_https_without_manager_restart(self):
         plan=upd.manifest(ROOT)
-        self.assertEqual(plan["release"],"v0.8.0-cutover1")
-        self.assertEqual(plan["from"],"v0.8.0-chhttps3")
-        self.assertTrue(plan["restart_manager"])
+        self.assertEqual(plan["release"],"v0.8.0-r3diag1")
+        self.assertEqual(plan["from"],"v0.8.0-cutover1")
+        self.assertFalse(plan["restart_manager"])
         self.assertEqual(upd.manager_transport(plan["release"]),"https")
-        self.assertEqual(len(plan["files"]),12)
-        self.assertIn("bob-release-updater",
-                     {item["name"] for item in plan["files"]})
-        self.assertIn("bob-moltbook-publisher",
-                     {item["name"] for item in plan["files"]})
+        self.assertEqual({i["name"] for i in plan["files"]},
+                         {"bob-release-updater","bobctl","bob_r3_package.pyz"})
+        self.assertNotIn("bob-activity-manager",{i["name"] for i in plan["files"]})
+        self.assertNotIn("bob-moltbook-publisher",{i["name"] for i in plan["files"]})
         for item in plan["files"]:
             payload=upd.release_bytes(ROOT,item)
             if not item["name"].endswith(".pyz"):
