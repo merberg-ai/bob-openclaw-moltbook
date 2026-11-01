@@ -1,0 +1,22 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r3diag1",
+  "from": "v0.8.0-cutover1",
+  "notes": "OFF-first R3 proposal decision diagnostics only: reviewed allowlisted OpenClaw transport and JSON validation reason categories; signed package, HTTPS updater and controller. No Activity Manager restart, timer changes, new publisher, Moltbook API call, or real R3 dispatch permission.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r3_package.pyz",
+      "builder": "scripts/build_r313d_off_package.py",
+      "index": 0
+    }
+  ],
+  "restart_manager": false
+}
