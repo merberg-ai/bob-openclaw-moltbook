@@ -830,8 +830,10 @@ def main():
             return 0
         if plan["release"]=="v0.8.0-cutover1" and not preflight_r3_consolidated_offfirst():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
-        if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1") and not preflight_r3_diagnostics_only():
+        if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1") and not preflight_r3_diagnostics_only():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
+        if plan["release"]=="v0.8.0-autonomy1" and not preflight_r3_diagnostics_only():
+            raise ValueError("r4_preinstall_r3_publisher_or_timer_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
