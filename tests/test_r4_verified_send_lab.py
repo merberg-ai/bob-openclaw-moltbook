@@ -275,6 +275,12 @@ class R4VerifiedPostTests(unittest.TestCase):
                 self.db,self.data,run=RUN,seal=self.seal,at=self.clock(),
                 post_get=self.get_post,self_get=self.me)
             self.assertTrue(direct.verified,repr(direct))
+            wrapped=remote.preflight(
+                self.db,self.data,run=RUN,seal=self.seal,at=self.clock(),
+                post_get=self.get_post,
+                self_get=lambda:api("GET","/agents/me",
+                                    key="test-only-credential"))
+            self.assertTrue(wrapped.verified,repr(wrapped))
             outcome=adapter._send_step(
                 self.db,api_call=api,
                 credential_loader=lambda:"test-only-credential",
