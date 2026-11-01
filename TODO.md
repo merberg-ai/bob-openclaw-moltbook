@@ -1,3 +1,12 @@
+## R3 first valid real OpenClaw decision ACCEPTED on OMEN (2026-10-31)
+
+- [x] **Installed signed R3 Format1 release acceptance PASS:** Owner ran `scripts/report_r3_format_installed.py --check` and observed account verified, signed diagnostic package PASS, authenticated HTTPS health PASS, authenticated R3 Controls PASS, proposal-only timer ACTIVE, overall `acceptance: PASS`. No database, service schedule, publisher or credential changes; real R3 public publishing remains unauthorized.
+- [x] **First valid natural scheduled model decision:** On 2026-10-31 20:01:41 PDT, `bob-r3-propose.service` started on the real OMEN. At 20:01:54 it returned `{"attempted":false,"dispatch_authorized":false,"queued":false,"reason":"bob_chose_not_to_comment","source_run":"20261101T024801Z","status":"skipped"}`; systemd then logged **Finished** (not failed). This proves an actual scheduled OpenClaw main-agent reply was accepted by the unchanged strict five-field contract under R3 Format1. A skip is a valid abstention, **not** a generated draft or an external comment.
+- [ ] **Next distinct R3 producer gate:** Observe an independently chosen `status: proposed` on a future natural tick, verify a source-linked, sealed draft appears for authenticated owner review without any public send, or a legitimate `none`/new `skipped` outcome. Do not force a model outcome, manually start the service, replay old sources or weaken the validator to fabricate a proposal.
+- [ ] **Public canary remains separate:** current signed release has all R3 real dispatch gates hard Off; first public R3 comment requires another reviewed source-level release, exact target/draft owner approval, single guarded attempt and remote receipt verification. No timer or publisher changes authorized by this acceptance.
+
+---
+
 ## R3 strict five-field decision format repair (2026-10-31)
 
 - [x] **Second natural proposal worker attempt confirmed:** 19:26:02 PDT service started and 19:26:09 returned `decision_invalid_model_shape` for verified source run `20261101T014755Z`. No proposal queued or public send attempted; next systemd run scheduled ~20:01 PDT. Exact raw model fields are not logged, so the cause is shape mismatch, not proven missing-vs-extra fields.
