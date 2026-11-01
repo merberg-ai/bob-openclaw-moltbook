@@ -226,6 +226,38 @@ class R4VerifiedPostTests(unittest.TestCase):
         self.assertEqual(self.exercise(),"no_queued_r4_action")
         self.assertEqual(self.posts,0)
 
+    def test_late_legacy_attempt_during_remote_get_blocks_counted_claim(self):
+        first=self.get_post
+        def create_competing_attempt(post,author):
+            answer=first(post,author)
+            if self.gets==1:
+                self.db.execute(
+                    "INSERT INTO publish_jobs VALUES(?,?,?,?)",
+                    ("20261101T161900Z",
+                     "a9ccf436-c5d5-4849-af92-843670ab8271",
+                     (NOW-timedelta(minutes=1)).isoformat(),"published"))
+            return answer
+        self.get_post=create_competing_attempt
+        self.assertEqual(self.exercise(),"private_claim_refused_no_send")
+        self.assertEqual(self.posts,0)
+        self.assertEqual(self.db.execute(
+            "SELECT state,attempted_at FROM r4_action_outbox").fetchone(),
+            ("queued",None))
+
+    def test_self_identity_changed_after_counted_claim_never_posts(self):
+        original=self.me
+        def second_identity():
+            answer=original()
+            if self.self_gets==2:
+                return {"success":True,"agent":{"name":"Different_Bob"}}
+            return answer
+        self.me=second_identity
+        self.assertEqual(self.exercise(),"uncertain")
+        self.assertEqual(self.posts,0)
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM r4_action_outbox").fetchone(),("uncertain",))
+        self.assertEqual(self.exercise(),"no_queued_r4_action")
+
     def test_file_backed_rehearsal_refuses_even_if_callbacks_fake(self):
         with tempfile.TemporaryDirectory() as t:
             db=sqlite3.connect(Path(t)/"never-send.sqlite3")
