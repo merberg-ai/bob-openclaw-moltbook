@@ -1,0 +1,22 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r3format1",
+  "from": "v0.8.0-r3diag1",
+  "notes": "R3 strict five-field JSON format repair: pinned ID skip example, sanitized missing/extra/typed shape diagnosis, signed ZIP. Preserves existing HTTPS manager, R3 proposal-only schedule, legacy Scout and sole publisher. Real R3 posting remains hard Off.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r3_package.pyz",
+      "builder": "scripts/build_r313d_off_package.py",
+      "index": 0
+    }
+  ],
+  "restart_manager": false
+}
