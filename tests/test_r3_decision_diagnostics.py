@@ -85,7 +85,7 @@ class ProposalDiagnosticTests(unittest.TestCase):
     def test_bad_decision_errors_distinct_from_transport(self):
         for output,expected in (
             ("not a JSON response","decision_invalid_model_json"),
-            ('{"type":"skip"}',"decision_invalid_model_shape"),
+            ('{"type":"skip"}',"decision_shape_missing_fields"),
             (json.dumps({"type":"comment","source_run":RUN,"target_id":ID,
                          "reason":"","text":"hello"}),"decision_model_reason_empty"),
             (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
@@ -100,6 +100,44 @@ class ProposalDiagnosticTests(unittest.TestCase):
                 self.assertEqual(result.reason,expected)
                 self.assertEqual(result.source_run,RUN)
                 self.assertNotIn(PRIVATE,json.dumps(result.__dict__))
+
+    def test_shape_reasons_are_structural_only_and_never_expose_model_fields(self):
+        fixtures=(
+            (json.dumps({"answer":{"type":"skip"}}),"decision_shape_missing_fields"),
+            (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
+                         "reason":"","text":"","extra":PRIVATE}),
+             "decision_shape_extra_fields"),
+            (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
+                         "reason":"","text":"","extra":PRIVATE,
+                         "unknown":True}),"decision_shape_extra_fields"),
+            (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
+                         "reason":0,"text":""}),"decision_shape_invalid_field_values"),
+            (json.dumps({"type":"skip","source_run":RUN,"target_id":ID,
+                         "reason":"","text":""},ensure_ascii=True),
+             "not_a_failure"),
+            ("[]","decision_shape_not_object"),
+        )
+        for reply,category in fixtures:
+            with self.subTest(reason=category):
+                result=self.run_model(lambda *_:reply)
+                if category=="not_a_failure":
+                    self.assertEqual(result.status,"skipped")
+                else:
+                    self.assertEqual(result.status,"refused")
+                    self.assertEqual(result.reason,category)
+                self.assertNotIn(PRIVATE,json.dumps(result.__dict__))
+
+    def test_r3_prompt_includes_exact_pinned_ids_and_no_unsafe_example_text(self):
+        from bob_v08.r313d_producer import r3_decision_prompt
+        prompt=r3_decision_prompt(OBS)
+        self.assertIn('"type":"skip"',prompt)
+        self.assertIn('"source_run":"'+RUN+'"',prompt)
+        self.assertIn('"target_id":"'+ID+'"',prompt)
+        self.assertIn('"reason":""',prompt)
+        self.assertIn('"text":""',prompt)
+        self.assertIn("EXACT",prompt)
+        self.assertIn("END_UNTRUSTED_MOLTBOOK_JSON",prompt)
+        self.assertNotIn(PRIVATE,prompt)
 
     def test_valid_skip_is_accepted_without_proposal_or_public_send(self):
         output=json.dumps({"type":"skip","source_run":RUN,
