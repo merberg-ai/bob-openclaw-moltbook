@@ -10,6 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 import sqlite3
+import shutil
 import sys
 import tempfile
 import unittest
@@ -102,6 +103,47 @@ class R4CodeOnlyRollbackTests(unittest.TestCase):
         self.assertEqual((self.bin/"bobctl").read_bytes(),
                          self.old["bobctl"])
         self.assertFalse((self.bin/"bob_r4_schema.py").exists())
+        self.assertEqual(json.loads(self.registry.read_text())["release"],
+                         "v0.8.0-r3canary1")
+        self.assertEqual(self.snapshot(),before)
+
+    def test_updater_sqlite_migration_exception_auto_rolls_back_code(self):
+        # Exercise the real update() exception handler: a SQLite lock or
+        # migration failure must not strand new binaries with the old DB.
+        from unittest.mock import patch
+        import backup_live_sqlite
+        before=self.snapshot()
+        shutil.rmtree(self.tx)
+        (self.bin/"bobctl").write_bytes(self.old["bobctl"])
+        (self.bin/"bob_r4_schema.py").unlink()
+        old_state={"format":updater.FORMAT,
+                   "release":"v0.8.0-r3canary1",
+                   "files":{"bobctl":sha(self.old["bobctl"])}}
+        self.registry.write_text(json.dumps(old_state))
+        self.registry.chmod(0o600)
+        with patch.object(updater,"BIN",self.bin), \
+             patch.object(updater,"STATE_DIR",self.state), \
+             patch.object(updater,"REGISTRY",self.registry), \
+             patch.object(updater,"JOURNAL",self.journal_file), \
+             patch.object(updater,"DB",self.db_file), \
+             patch.object(updater,"BACKUP_DIR",self.root/"backups"), \
+             patch.object(updater,"healthy",return_value=True), \
+             patch.object(updater,"restart_manager"), \
+             patch.object(updater,"wait_for_health",return_value=True), \
+             patch.object(backup_live_sqlite,"create_verified_backup",
+                          return_value={"restore_rehearsal":"passed"}), \
+             patch.object(updater,"r4_apply_guarded_schema",
+                          side_effect=sqlite3.OperationalError("synthetic lock")):
+            outcome=updater.update(
+                self.root,old_state,
+                {"release":"v0.8.0-autonomy1",
+                 "restart_manager":True},
+                {"bobctl":self.new["bobctl"]},
+                auth="synthetic")
+            self.assertEqual(outcome,"rolled_back")
+            self.assertEqual(updater.read_journal()["phase"],"rolled_back")
+        self.assertEqual((self.bin/"bobctl").read_bytes(),
+                         self.old["bobctl"])
         self.assertEqual(json.loads(self.registry.read_text())["release"],
                          "v0.8.0-r3canary1")
         self.assertEqual(self.snapshot(),before)
