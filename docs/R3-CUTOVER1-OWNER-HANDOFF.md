@@ -1,3 +1,9 @@
+## DRAFT release-promotion review, NOT an owner installation
+
+This draft release branch proposes moving `releases/current.json` from `v0.8.0-chhttps3` to `v0.8.0-cutover1`, using the exact reviewed 12-file source-only hard-Off candidate. Until this draft is independently approved and merged into `next`, the actual `next` release manifest and the OMEN installation remain `v0.8.0-chhttps3`. Even after merging, installation still requires the owner's separate typed `UPDATE` through the reviewed checkout-source updater, followed by the single Off-first postcheck. No timer switch or real public R3 dispatch is authorized by source promotion alone.
+
+---
+
 # R3 cutover1 owner handoff: one code acceptance, no publishing
 
 **STOP: prepared for a future OMEN acceptance, NOT authorized for installation now.** The current release manifest still advertises `v0.8.0-chhttps3`, and `releases/candidates/r3-cutover1-integration-off.json` is a **source candidate**, not promoted. An owner must approve any promotion, code installation and later systemd handoff. All four real R3 send gates remain hard Off.
