@@ -28,6 +28,8 @@ ACTION_URL=re.compile(
     r"/r4/controls/(comment|reply|post|upvote|follow|unfollow)\Z")
 REVIEW_URL=re.compile(
     r"/r4/review/(\d{8}T\d{6}Z)/(approve|reject)\Z")
+SUGGEST_URL=re.compile(
+    r"/r4/suggestion/(\d{8}T\d{6}Z)/(memory|relationship)/(approve|reject)\Z")
 CSS="""<style>
 .r4{max-width:1120px;margin:0 auto;display:grid;gap:15px;color:#ebf4ff}
 .r4 *{box-sizing:border-box;min-width:0}
@@ -158,6 +160,56 @@ def _jobs(data):
     return '<div class="tablewrap"><table><thead><tr><th>Source</th><th>Local state</th><th>Attempt</th><th>Public</th></tr></thead><tbody>'+''.join(items)+'</tbody></table></div>'
 
 
+def _suggestion_cards(data,csrf):
+    cards=[]
+    for item in data.get("r4_suggestions",[])[:12]:
+        run=e(item["source_run"])
+        kind=e(item["kind"])
+        state=e(item["state"])
+        parts=[
+            '<article class="panel"><h3>Bob suggested '+kind+': '+
+            e(item["title"])+'</h3>',
+            '<p class="muted">Sealed source <code>'+run+
+            '</code> · original @'+e(item["source_author"])+
+            ' · review '+state+'</p>',
+            '<p>'+e(item["detail"])+'</p>',
+            '<p class="muted">This is a Bob-authored interpretation, not '
+            'an established fact. Memory approval creates a low-confidence '
+            'owner-reviewed PM2 opinion. Relationship approval sends a '
+            'candidate to the existing Friend Discovery review, not the '
+            'Friends directory or Moltbook following.</p>'
+        ]
+        if item["state"]=="pending" and item["social_state"]!="rejected":
+            for operation,label in (("approve","Approve suggestion"),
+                                    ("reject","Reject suggestion")):
+                phrase=operation.upper()+" R4 "+item["kind"].upper()+
+                       " "+item["source_run"]
+                parts.append(
+                    '<form method="post" action="/r4/suggestion/'+run+'/'+
+                    kind+'/'+operation+'">'
+                    '<input type="hidden" name="csrf" value="'+e(csrf)+'">'
+                    '<input type="hidden" name="seal" value="'+e(item["seal"])+
+                    '"><label>Type '+e(phrase)+
+                    '<input name="confirmation" autocomplete="off" '
+                    'maxlength="64" required></label>'
+                    '<button type="submit">'+e(label)+'</button></form>')
+        elif item["state"]=="pending":
+            parts.append('<p class="muted">Original social proposal was '
+                         'rejected; approval is blocked.</p>')
+        if item["applied_ref"]:
+            parts.append('<p class="muted">Saved local reference: <code>'+
+                         e(item["applied_ref"])+'</code></p>')
+        parts.append('</article>')
+        cards.append(''.join(parts))
+    return ('<section class="panel"><h3>Bob&#39;s memory and relationship '
+            'suggestions</h3><p class="muted">Owner confirmation is required '
+            'before any local PM2 memory or Friend Discovery candidate '
+            'is created. No direct network follow or publication.</p></section>'+
+            (''.join(cards) if cards else
+             '<section class="panel"><p>No independently verified R4 '
+             'evidence suggestions available.</p></section>'))
+
+
 def _inbox(data,csrf):
     cards=[]
     for item in data.get("r4_recent",[])[:12]:
@@ -206,6 +258,7 @@ def _inbox(data,csrf):
         (''.join(cards) if cards else
          '<section class="panel"><p>No independently verified R4 decisions '
          'in the current bounded source window.</p></section>')+
+        _suggestion_cards(data,csrf)+
         '<section class="panel"><h3>Evidence digest</h3>'
         '<p class="muted">Most recent verified R3 audit source: <code>'+
         e(data.get("latest_r3_source") or "not recorded")+'</code>. '
@@ -357,7 +410,8 @@ class R4HandlerMixin:
         action=ACTION_URL.fullmatch(path)
         pause=path=="/r4/controls/pause"
         decision=REVIEW_URL.fullmatch(path)
-        if not action and not pause and not decision:
+        suggestion=SUGGEST_URL.fullmatch(path)
+        if not action and not pause and not decision and not suggestion:
             return super().do_POST()
         if not self._valid_host():
             self._send(403,"Unexpected Host header")
@@ -406,6 +460,16 @@ class R4HandlerMixin:
                     review(db,DATA,decision.group(1),params["seal"][0],
                            decision.group(2),phrase,trusted=True,
                            at=datetime.now(timezone.utc))
+                elif suggestion:
+                    if set(params)!={"csrf","seal","confirmation"}:
+                        raise ValueError("r4_unexpected_suggestion_fields")
+                    from bob_publish_common import DATA
+                    from bob_r4_suggestions import review as review_suggestion
+                    from datetime import datetime,timezone
+                    review_suggestion(db,DATA,suggestion.group(1),
+                                      suggestion.group(2),params["seal"][0],
+                                      suggestion.group(3),phrase,trusted=True,
+                                      at=datetime.now(timezone.utc))
                 else:
                     if set(params)!={"csrf","paused","confirmation"} or (
                             params["paused"][0] not in ("true","false")):
@@ -413,7 +477,7 @@ class R4HandlerMixin:
                     set_pause(db,params["paused"][0]=="true",
                               phrase,trusted=True)
             self.send_response(303)
-            self.send_header("Location",("/r4/inbox" if decision
+            self.send_header("Location",("/r4/inbox" if decision or suggestion
                                          else "/r4/controls"))
             self.send_header("Cache-Control","no-store")
             self.send_header("Content-Length","0")
