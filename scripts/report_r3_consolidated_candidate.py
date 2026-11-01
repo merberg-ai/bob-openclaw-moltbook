@@ -70,9 +70,9 @@ def inspect(*, root=ROOT, build=True) -> dict:
         raise ValueError("symlinked release manifest")
     current=json.loads(current_path.read_text(encoding="utf-8"))
     proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
-    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1")
+    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1")
     if current.get("release") not in (
-            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1"):
+            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1"):
         raise ValueError("unreviewed_source_release_or_promotion")
     if current.get("release")=="v0.8.0-cutover1" and any(current.get(key)!=proposed.get(key) for key in (
             "format","release","from","files","restart_manager")):

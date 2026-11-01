@@ -51,6 +51,7 @@ MANAGER_TRANSPORTS = {
     # This does not enable R3 dispatch or authorize a production installation.
     "v0.8.0-cutover1": "https",
     "v0.8.0-r3diag1": "https",
+    "v0.8.0-r3format1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -760,7 +761,7 @@ def main():
             return 0
         if plan["release"]=="v0.8.0-cutover1" and not preflight_r3_consolidated_offfirst():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
-        if plan["release"]=="v0.8.0-r3diag1" and not preflight_r3_diagnostics_only():
+        if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1") and not preflight_r3_diagnostics_only():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")

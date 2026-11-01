@@ -40,7 +40,8 @@ def _diagnostic_package_present() -> bool:
             code=archive.read("bob_v08/r313d_producer.py")
             return (len(code)<=65536
                     and b'"openclaw_"+_safe_error_reason(exc)' in code
-                    and b'"decision_"+_safe_error_reason(exc)' in code)
+                    and (b'"decision_"+_safe_error_reason(exc)' in code
+                         or b'"decision_"+classification' in code))
     except (OSError,ValueError,KeyError,zipfile.BadZipFile):
         return False
 

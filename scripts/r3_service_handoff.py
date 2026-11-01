@@ -128,7 +128,7 @@ def _installed_cutover_off() -> bool:
     """Only source-untrusted installed bytes are inspected, never imported."""
     try:
         state=updater.registry()
-        if state["release"] not in ("v0.8.0-cutover1","v0.8.0-r3diag1") or not updater.live_ok(state):
+        if state["release"] not in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1") or not updater.live_ok(state):
             return False
         if updater.manager_transport(state["release"])!="https":
             return False
