@@ -51,6 +51,10 @@
       "source": "src/lib/bob/bob_r4_suggestions.py"
     },
     {
+      "name": "bob_r4_schema.py",
+      "source": "src/lib/bob/bob_r4_schema.py"
+    },
+    {
       "name": "bob_r4_reflections.py",
       "source": "src/lib/bob/bob_r4_reflections.py"
     },
