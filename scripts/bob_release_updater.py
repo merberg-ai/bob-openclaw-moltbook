@@ -19,6 +19,7 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 import ssl
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -707,7 +708,9 @@ def update(folder, current, plan, contents, *, auth):
                 raise RuntimeError("dashboard failed bounded post-restart health checks")
             store_journal({**journal, "phase": "complete"})
             return "updated"
-        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        except (OSError, ValueError, RuntimeError, sqlite3.Error,
+                ImportError, AttributeError, TypeError, SyntaxError,
+                subprocess.TimeoutExpired) as exc:
             # Safe stage only, never print HTTP responses, credentials or payloads.
             print("BOB UPDATE: failed at " + step + " (" + type(exc).__name__ + ")")
             try:
@@ -840,8 +843,9 @@ def main():
         outcome = update(folder, current, plan, contents, auth=authorization())
         print("BOB UPDATE:", outcome)
         return 0 if outcome == "updated" else 1
-    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
-            json.JSONDecodeError, ImportError, AttributeError) as exc:
+    except (OSError, ValueError, RuntimeError, sqlite3.Error,
+            subprocess.TimeoutExpired, json.JSONDecodeError,
+            ImportError, AttributeError, SyntaxError, TypeError) as exc:
         print("BOB UPDATE: REFUSED (" + type(exc).__name__ + ")")
         reason = str(exc)
         # Only release IDs validated by the manifest/registry or fixed messages
