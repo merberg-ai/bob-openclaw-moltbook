@@ -45,6 +45,7 @@ def summarize(state: dict, entries: list[dict]) -> dict:
         "public_canary_authorized": False,
         "schema_and_host_verified": ready,
         "manual_owner_mode": bool(state.get("manual")) if ready else False,
+        "scope": "most_recent_20_source_verified_proposals_only",
         "verified_proposals": len(records),
         "unreviewed": len(proposed),
         "approved_not_queued": len(approved),
