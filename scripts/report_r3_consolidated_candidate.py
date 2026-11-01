@@ -70,8 +70,13 @@ def inspect(*, root=ROOT, build=True) -> dict:
         raise ValueError("symlinked release manifest")
     current=json.loads(current_path.read_text(encoding="utf-8"))
     proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
-    if current.get("release")!="v0.8.0-chhttps3":
-        raise ValueError("installed source release changed before cutover review")
+    promoted=current.get("release")=="v0.8.0-cutover1"
+    if current.get("release") not in (
+            "v0.8.0-chhttps3","v0.8.0-cutover1"):
+        raise ValueError("unreviewed_source_release_or_promotion")
+    if promoted and any(current.get(key)!=proposed.get(key) for key in (
+            "format","release","from","files","restart_manager")):
+        raise ValueError("promoted_r3_manifest_not_exact_reviewed_candidate")
     if (proposed.get("format")!="bob-updater-v1"
             or proposed.get("release")!="v0.8.0-cutover1"
             or proposed.get("from")!="v0.8.0-chhttps3"
@@ -127,7 +132,7 @@ def inspect(*, root=ROOT, build=True) -> dict:
         "single_existing_credentialed_publisher":True,
         "publisher_atomic_duplicate_guard_present":True,
         "dashboard_transport":"https_only",
-        "releases_current_json_modified":False,
+        "releases_current_json_modified":promoted,
         "installed_files_or_systemd_modified":False,
         "private_db_or_credentials_read":False,
         "moltbook_requests":0,
@@ -152,7 +157,8 @@ def main(argv=None):
                 "publisher_atomic_duplicate_guard_present",
                 "dashboard_transport"):
         print(key.replace("_"," ")+":",result[key])
-    print("Current release manifest and installed host changed: NO")
+    print("R3 manifest source promotion observed:", result["releases_current_json_modified"])
+    print("Installed OMEN host changed by audit: NO")
     print("Private DB, credentials, systemd or Moltbook touched: NO")
     print("R3 real publishing authorized: NO")
     print("Ready for an owner cutover update: NO")
