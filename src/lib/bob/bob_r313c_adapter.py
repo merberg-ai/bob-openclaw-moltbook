@@ -85,16 +85,30 @@ def maybe_r3_publisher_step(db, *, api_call, credential_loader):
         if not _trusted_single_publisher_db(db):
             return "R3 candidate host boundary refused; no send"
         from bob_v08.r313c_candidate import (
-            candidate_step, recover_inflight,
+            candidate_step, recover_inflight, _head,
         )
         from bob_v08.r39_publisher_review import public_get_post
         from datetime import datetime, timezone
         recovered = recover_inflight(db)
         if recovered:
             return "R3 interrupted attempted send marked uncertain; no replay"
+        head = _head(db)
+        if head is None:
+            return None  # Legacy manual/auto head remains authoritative.
+        from bob_r3_canary_lock import (
+            installed_canary_ready, still_pinned_for_send,
+        )
+        if not installed_canary_ready(
+                db, DATA, head, now=datetime.now(timezone.utc)):
+            return "R3 exact public canary source pin Off; no send"
         pause = Path.home() / ".config/bob-system/paused"
 
         def exact_publisher_post(post_id, text):
+            # Late expiry/target check after durable intent and final barrier.
+            # Refusal leaves an uncertain attempt, NEVER a requeued retry.
+            if not still_pinned_for_send(
+                    head, post_id, datetime.now(timezone.utc)):
+                raise ValueError("r3_canary_expired_or_target_changed")
             if not isinstance(post_id, str) or not UUID.fullmatch(post_id):
                 raise ValueError("invalid_single_publisher_target")
             # Credential stays in the EXISTING publisher, never passed to
@@ -106,7 +120,8 @@ def maybe_r3_publisher_step(db, *, api_call, credential_loader):
             db, DATA, pause,
             clock=lambda: datetime.now(timezone.utc),
             public_get=public_get_post,
-            post_comment=exact_publisher_post)
+            post_comment=exact_publisher_post,
+            exact_canary_run=head)
         if outcome.status == "not_selected":
             return None  # Existing legacy Scout job remains authoritative.
         return "R3 candidate outcome: " + outcome.status
