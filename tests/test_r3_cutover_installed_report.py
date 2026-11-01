@@ -86,6 +86,7 @@ class IntegratedInstalledReportTests(unittest.TestCase):
             {"new_r3_owner_controls":"requires_owner_review"},
             {"schema":"unverified"},
             {"attempted_jobs":None},
+            {"uncertain_jobs":1},
         ):
             with self.subTest(modifications=modifications):
                 r=self.good(dbreview=lambda:expected(**modifications))
