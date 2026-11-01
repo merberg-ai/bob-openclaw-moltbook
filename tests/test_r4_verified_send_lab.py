@@ -271,6 +271,10 @@ class R4VerifiedPostTests(unittest.TestCase):
                 return self.me()
             return self.post(method,path)
         with patch.object(common,"DATA",self.data):
+            direct=remote.preflight(
+                self.db,self.data,run=RUN,seal=self.seal,at=self.clock(),
+                post_get=self.get_post,self_get=self.me)
+            self.assertTrue(direct.verified,repr(direct))
             outcome=adapter._send_step(
                 self.db,api_call=api,
                 credential_loader=lambda:"test-only-credential",
