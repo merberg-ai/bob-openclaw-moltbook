@@ -1,3 +1,12 @@
+## R3 consolidated pre-host engineering acceptance snapshot (2026-10-31)
+
+- [x] **Full pre-host source integration staged and CI verified:** original one credentialed publisher, R3 sealed producer/owner pipeline, exact 12-file HTTPS integration candidate, safe source updater, registry-before-restart and code-only rollback; the synthetic proposal-to-owner-to-publisher and timer handoff/recovery suite passed within **1,074** full offline tests on the last tested source revision. CI source validation after the short operator guide edit remains required. No host or Moltbook changes made.
+- [x] **One future owner guide** at `docs/R3-CUTOVER1-OWNER-HANDOFF.md`: checkout-source updater (not old installed `bobctl update`), one authenticated/verified Off-first postcheck, and a **separate optional** proposal-only timer handoff with journal/rollback. A first real Moltbook R3 canary requires a later source-reviewed release and exact owner consent. No timed or concurrent credentialed publisher is introduced.
+- [ ] **STOP BEFORE PHYSICAL/OWNER TESTING:** release candidate `releases/candidates/r3-cutover1-integration-off.json` remains **UNPROMOTED** and `releases/current.json` continues advertising `v0.8.0-chhttps3`. The operator must deliberately authorize promotion and a guarded installation after reviewing final offline gates. No host action needed now; no `--apply` or live canary.
+- [ ] **R4 afterward:** new Moltbook social autonomy/follows/votes only with API verification and separate owner permissions.
+
+---
+
 ## R3 one-consolidated host acceptance prepared (offline only)
 
 - [x] **One post-install read-only report implemented:** `scripts/report_r3_cutover_installed.py --postcheck` is staged for the later OMEN handoff. It verifies exact installed `v0.8.0-cutover1` hashes, four compiled real-send gates Off, pinned CA-verified authenticated HTTPS manager routes including `/r3`, additive R3 schema and default-Off owner controls, one active legacy publisher timer plus active Scout timer, old R2 shadow still active, R3 proposal timer still disabled/uninstalled and no competing publisher. Outputs only safe status/aggregate attempted/uncertain counts, never private draft text, token, unit content or remote IDs. Does not call Moltbook or modify any local state.
