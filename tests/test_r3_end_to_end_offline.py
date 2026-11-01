@@ -102,6 +102,8 @@ class RealShapeE2E(unittest.TestCase):
         return "synthetic-key-only"
 
     def invoke(self, *, api=None, trusted=True, archive=True):
+        # Synthetic fake-transport rehearsal only: supply a mock exact pin.
+        # The actual source PIN remains empty, so real R3 dispatch stays Off.
         def get(post,author):
             self.assertEqual(post,ID)
             self.assertEqual(author,self.obs.author)
@@ -115,6 +117,8 @@ class RealShapeE2E(unittest.TestCase):
                  "invalid_registry"), \
              patch("bob_v08.r39_publisher_review.public_get_post",side_effect=get), \
              patch.object(adapter.Path,"home",return_value=self.home), \
+             patch("bob_r3_canary_lock.installed_canary_ready",return_value=True), \
+             patch("bob_r3_canary_lock.still_pinned_for_send",return_value=True), \
              closing(self.db()) as db:
             return adapter.maybe_r3_publisher_step(
                 db,api_call=self.callback if api is None else api,
