@@ -69,7 +69,8 @@ class R3ExactCanaryPinTests(unittest.TestCase):
             folder=home/".config/bob-system"
             folder.mkdir(mode=0o700,parents=True)
             marker=folder/lock.ARM_NAME
-            with patch.object(lock.Path,"home",return_value=home):
+            with patch.object(lock.Path,"home",return_value=home), \
+                    patch.object(lock,"signed_writer_attested",return_value=True):
                 marker.write_text(json.dumps(lock.expected_marker()))
                 marker.chmod(0o600)
                 self.assertTrue(lock.marker_valid(now=NOW))
@@ -83,6 +84,22 @@ class R3ExactCanaryPinTests(unittest.TestCase):
                 marker.write_text(json.dumps(dict(lock.expected_marker(),
                                                    run="20261101T151034Z")))
                 self.assertFalse(lock.marker_valid(now=NOW))
+
+    def test_signed_writer_attestation_required_even_after_owner_arm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home=Path(tmp)
+            folder=home/".config/bob-system"
+            folder.mkdir(parents=True,mode=0o700)
+            marker=folder/lock.ARM_NAME
+            marker.write_text(json.dumps(lock.expected_marker()))
+            marker.chmod(0o600)
+            with patch.object(lock.Path,"home",return_value=home):
+                self.assertTrue(lock.marker_valid(now=NOW))
+                # A fabricated owner marker alone NEVER grants POST.
+                self.assertFalse(lock.signed_writer_attested())
+                self.assertFalse(lock.still_pinned_for_send(
+                    lock.PIN.run,lock.PIN.target,NOW))
+
 
     def test_malformed_pin_never_matches(self):
         invalid=lock.CanaryPin(run="wrong",seal=lock.PIN.seal,
