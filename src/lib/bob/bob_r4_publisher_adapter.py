@@ -45,7 +45,7 @@ def _host_verified(db)->bool:
         return False
 
 
-def _send_step(db,*,api_call,credential_loader,clock,
+def _send_step(db,*,source_dir,api_call,credential_loader,clock,
                public_get,global_pause):
     """Publisher-owned transport only; everything else source/read checked.
 
@@ -58,7 +58,6 @@ def _send_step(db,*,api_call,credential_loader,clock,
     from bob_r4_remote_gate import preflight,freshness,upvote_ack
     from bob_r4_final_gate import post_intent_remote,final_local_barrier
     from bob_r4_controls import api_contract
-    from bob_publish_common import DATA
 
     if not all(callable(x) for x in
                (api_call,credential_loader,clock,public_get,global_pause)):
@@ -80,7 +79,7 @@ def _send_step(db,*,api_call,credential_loader,clock,
     def get_self():
         return api_call("GET","/agents/me",key=credential_loader())
     first=preflight(
-        db,DATA,run=run,seal=seal,at=clock(),
+        db,source_dir,run=run,seal=seal,at=clock(),
         post_get=public_get,self_get=get_self)
     if not first.verified:
         return "R4 held: "+first.reason
@@ -89,7 +88,7 @@ def _send_step(db,*,api_call,credential_loader,clock,
     if global_pause():
         return "R4 held: global pause"
     try:
-        intent=reserve_once(db,DATA,at=clock())
+        intent=reserve_once(db,source_dir,at=clock())
     except (OSError,ValueError,sqlite3.Error,TypeError,KeyError):
         return "R4 held: private counted claim refused"
     if intent is None:
@@ -97,14 +96,14 @@ def _send_step(db,*,api_call,credential_loader,clock,
     # All paths after counted intent must end in ACK or UNCERTAIN.
     try:
         second=post_intent_remote(
-            db,DATA,intent,clock=clock,
+            db,source_dir,intent,clock=clock,
             post_get=public_get,self_get=get_self)
         if (not second.verified or not freshness(first,at=clock())
                 or second.target!=first.target
                 or second.observed_author!=first.observed_author
                 or second.own_agent!=first.own_agent
                 or not final_local_barrier(
-                    db,DATA,intent,second,at=clock(),
+                    db,source_dir,intent,second,at=clock(),
                     global_pause=global_pause)):
             ack=False
         else:
@@ -127,7 +126,8 @@ def maybe_r4_publisher_step(db,*,api_call,credential_loader):
     if not _host_verified(db):
         return "R4 refused: exact installed host/source gate"
     from bob_v08.r39_publisher_review import public_get_post
-    return _send_step(db,api_call=api_call,
+    from bob_publish_common import DATA
+    return _send_step(db,source_dir=DATA,api_call=api_call,
                       credential_loader=credential_loader,
                       clock=lambda:datetime.now(timezone.utc),
                       public_get=public_get_post,global_pause=_global_pause)
