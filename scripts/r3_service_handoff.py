@@ -332,7 +332,7 @@ def activate(*, probe=_snapshot, control=_cmd,
             # Any normal failure attempts code/unit-only rollback; failure to
             # restore leaves a durable journal for explicit owner --recover.
             try:
-                _restore(control=control)
+                _restore(control=control,probe=probe)
                 _journal("rolled_back")
                 return "rolled_back"
             except (OSError,ValueError,subprocess.SubprocessError):
@@ -341,12 +341,20 @@ def activate(*, probe=_snapshot, control=_cmd,
         os.close(fd)
 
 
-def _restore(*,control=_cmd) -> None:
+def _restore(*,control=_cmd,probe=_snapshot) -> None:
     """Restore R2 schedule, never touch publisher, Scout, Bob DB or keys."""
     info=_read_journal()
     if info["phase"]=="rolled_back":
         return
-    control(("disable","--now",TIMER))
+    # An interruption may happen before the new timer is even loaded. Only
+    # stop it if running/enabled; unfamiliar states fail closed rather than
+    # letting a possibly armed timer survive unit removal.
+    state=probe(TIMER)
+    if state.active=="active" or state.enabled in ENABLED:
+        control(("disable","--now",TIMER))
+    elif not (state.active=="inactive" and state.load in ("loaded","not-found")
+              and state.enabled in INERT_ENABLED):
+        raise ValueError("r3_timer_state_untrusted_during_recovery")
     for name,body in UNIT_TEXT.items():
         path=UNITS_DIR/name
         if path.is_symlink():
@@ -360,7 +368,7 @@ def _restore(*,control=_cmd) -> None:
     control(("enable","--now",SHADOW_TIMER))
 
 
-def recover(*,control=_cmd,verified_owner=_owner) -> str:
+def recover(*,control=_cmd,probe=_snapshot,verified_owner=_owner) -> str:
     """Explicit owner recovery even if cutover code already rolled back."""
     if not verified_owner() or not _unit_dir_ready() or not _trusted_dir(STATE_DIR,strict=True):
         raise ValueError("untrusted_handoff_recovery_owner")
@@ -369,7 +377,7 @@ def recover(*,control=_cmd,verified_owner=_owner) -> str:
         row=_read_journal()
         if row["phase"]=="rolled_back":
             return "already_rolled_back"
-        _restore(control=control)
+        _restore(control=control,probe=probe)
         _journal("rolled_back")
         return "shadow_schedule_restored"
     finally:
