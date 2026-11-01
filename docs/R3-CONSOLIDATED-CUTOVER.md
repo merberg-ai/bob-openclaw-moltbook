@@ -1,3 +1,11 @@
+## Single owner-installed Off-first acceptance and drift gate (source complete, host pending)
+
+The final **source-only** acceptance report `scripts/report_r3_cutover_installed.py --postcheck` is already implemented for the future OMEN installation. It consolidates installed signed release/hash validation, preserved HTTPS CA trust and authenticated `/r3` route, R3 schema and **four real-send gates compiled Off**, default-Off owner settings, active publisher and Scout timers, inactive/uninstalled proposal timer, no competing publisher and aggregate historical attempted/uncertain outcomes. The report only reads systemd metadata, SQLite with `mode=ro`, local private CA/auth and fixed HTTPS GETs to the Activity Manager; no external Moltbook requests or writes. Its output is intentionally sanitized.
+
+For the eventual code-only install, the updated checkout-source updater now refuses a `v0.8.0-cutover1` installation before typed `UPDATE` if the previous accepted G2 host baseline no longer passes or the existing credentialed publisher oneshot is currently running. It **does not** start/stop the publisher to force a pass, and cannot guarantee a timer will not fire later. The install action remains an explicit owner approval and preserves code-only rollback. The separate R3 proposal timer handoff is only after the Off-first code/HTTPS report passes; it has its own typed approval and journaled shadow-timer recovery. A first real public comment still requires independent exact target/text/attempt authorization and separate source release review to enable manual R3 posting.
+
+---
+
 ## Source-only proposal-worker handoff and owner-to-one-publisher synthetic rehearsal
 
 R3 proposal generation cannot silently steal the existing R2 shadow timer or run an extra publisher. The new guarded handoff source at `scripts/r3_service_handoff.py` provides **two uninstalled** exact-name user units: `bob-r3-propose.service` (oneshot, launches the existing package-verified `bob-r3-propose --once` with no Moltbook credential/post capability) and its distinct `bob-r3-propose.timer` (interval after the previous proposal run, randomized delay). The original systemd Scout and single credentialed publisher timers/services are never disabled, restarted or modified by this handoff. A second `bob-r3-candidate-publisher` service/timer is a hard review blocker.
