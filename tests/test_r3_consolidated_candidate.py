@@ -87,6 +87,12 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
         self.assertEqual(result,"R3 candidate fail-closed; no send")
         self.assertEqual(calls,["archive"])
         with patch.object(adapter, "production_dispatch_enabled",return_value=True), \
+             patch.dict(sys.modules, {"bob_r313d_package":None}):
+            missing=adapter.maybe_r3_publisher_step(
+                None, api_call=lambda *a, **kw: self.fail("no network"),
+                credential_loader=lambda: self.fail("no key"))
+        self.assertEqual(missing,"R3 candidate fail-closed; no send")
+        with patch.object(adapter, "production_dispatch_enabled",return_value=True), \
              patch.object(adapter,"_trusted_single_publisher_db",return_value=False), \
              patch.dict(sys.modules,{
                  "bob_r313d_package":SimpleNamespace(
