@@ -18,6 +18,9 @@ from bob_r312_adapter import legacy_queue_head, held_r3_count
 # R3.13c is source-only. This gate prevents importing candidate dependencies
 # into a clean installed v0.7 publisher until a reviewed versioned release.
 R313C_INTEGRATION_COMPILED_OFF = False  # exact signed, owner-armed one-comment canary ONLY
+# R4 is only a future additional branch of THIS original publisher.
+# Independent R4 owner proposal/approval/queue never grants public dispatch.
+R4_SINGLE_PUBLISHER_COMPILED_OFF = True
 
 # R3 cutover preparation: preserve the existing single credentialed sender.
 # All legacy attempts at the same target must block a second POST, regardless
@@ -143,6 +146,15 @@ def publisher_step(db):
     if not row:
         if held_r3_count(db):
             return 'R3 Bob-authored queued drafts held; no R3 production dispatcher'
+        # Separate R4 authorizations have NO access to api/key until a later
+        # signed release reviews source age, remote target and durable receipts.
+        # Legacy queue always takes precedence over any future R4 work.
+        if not R4_SINGLE_PUBLISHER_COMPILED_OFF:
+            from bob_r4_publisher_adapter import maybe_r4_publisher_step
+            r4_result=maybe_r4_publisher_step(
+                db,api_call=api,credential_loader=api_key)
+            if r4_result is not None:
+                return r4_result
         record_publisher_skip(db,'NO_QUEUE')
         return 'no queued publications'
     rid,digest,pid,draft,mode,created=row
