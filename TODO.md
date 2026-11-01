@@ -1,3 +1,13 @@
+## R3 first natural proposal tick: discovered missing timer anchor (2026-10-31)
+
+- [x] **Observed real OMEN symptom:** `bob-r3-propose.timer` was active after owner-approved handoff, but `systemctl --user list-timers --all bob-r3-propose.timer` showed `NEXT -`, `LAST -` on two checks, and `journalctl --user -u bob-r3-propose.service --since '1 hour ago'` returned no entries. A timer-active state was not a scheduled decision.
+- [x] **Root cause identified in source:** the installed user timer contains `OnUnitInactiveSec=35min` only. Since the R3 oneshot has never run, no last-deactivation timestamp exists. Systemd requires an initial monotonic anchor such as `OnActiveSec=2min` for first firing (see systemd.timer documentation).
+- [x] **Source-only repair prepared:** `scripts/repair_r3_first_timer.py` installs a narrowly pinned `[Timer] OnActiveSec=2min` user timer drop-in, without touching the original SHA-verified handoff unit files or journal. The script requires the previously accepted installed cutover1 hard-Off release, original journal complete, publisher/Scout unchanged, idle services, no competitor, and interactive owner phrase `REPAIR R3 FIRST TIMER`; it reloads/restarts only the *proposal timer* and checks a monotonic next deadline. `--check` is read-only, `--undo` removes only the exact drop-in. No publisher, credentials, SQLite or external POST actions.
+- [ ] **Real owner verification pending:** after PR CI and merge, run one read-only repair check, one separately confirmed timer repair, then verify a real `NEXT` deadline. Only later does journal evidence of a naturally fired R3 proposal service establish model execution. Do not start the service manually or enable any public R3 dispatch.
+- [ ] **Recovery note:** the original `r3_service_handoff.py --recover` predates this drop-in. Use the exact `repair_r3_first_timer.py --undo` first if later reverting to R2 Shadow. Do not leave unreviewed drop-ins behind.
+
+---
+
 ## R3 proposal-only scheduler handoff: owner-accepted activation (2026-10-31)
 
 - [x] **Read-only service handoff preflight PASS:** the real OMEN reported `installed signed cutover1 hard Off: True`, `preflight blockers: none`, original publisher/Scout untouched, R3 proposal timer not yet enabled and real R3 publishing unauthorized.
