@@ -34,6 +34,10 @@ CSS="""<style>
 .r4 h2{font-size:clamp(1.26rem,3vw,1.65rem);margin:0}
 .r4 h3{font-size:1rem;margin:0 0 8px}
 .r4 p,.r4 td,.r4 code{overflow-wrap:anywhere}
+.r4 pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;
+  overflow-y:auto;padding:12px;border-radius:9px;background:#0b182b;
+  border:1px solid #335371;font:0.8rem/1.5 ui-monospace,monospace}
+.r4 .panel form{margin:13px 0;display:grid;gap:9px}
 .r4 .muted{font-size:.83rem;color:#b7cbe1;line-height:1.55}
 .r4 .tabs{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:4px}
 .r4 .tabs a{padding:11px 14px;border:1px solid #425c78;
