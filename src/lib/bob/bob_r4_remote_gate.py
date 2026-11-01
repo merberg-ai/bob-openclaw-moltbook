@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime,timedelta,timezone
 
 from bob_publish_common import UUID
-from bob_r39_publisher_review import public_get_post,RemoteReview
+from bob_v08.r39_publisher_review import public_get_post,RemoteReview
 
 MAX_PREFLIGHT=timedelta(seconds=90)
 
@@ -92,7 +92,8 @@ def preflight(db,source_dir,*,run:str,seal:str,at:datetime,
             raise ValueError("invalid_clock")
         if not isinstance(run,str) or not isinstance(seal,str):
             raise ValueError("invalid_queued_selection")
-        if _head(db)!=(run,seal,"upvote",_head(db)[3]):
+        head=_head(db)
+        if head is None or head[:3]!=(run,seal,"upvote"):
             raise ValueError("queue_changed")
         obs,decision,current,state,_=_checked(
             db,source_dir,run,allow_expired=False,at=at)
