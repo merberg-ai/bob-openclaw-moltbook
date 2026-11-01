@@ -89,10 +89,6 @@
     {
       "name": "bob_r4_remote_gate.py",
       "source": "src/lib/bob/bob_r4_remote_gate.py"
-    },
-    {
-      "name": "bob_r4_verified_send_lab.py",
-      "source": "src/lib/bob/bob_r4_verified_send_lab.py"
     }
   ],
   "restart_manager": true
