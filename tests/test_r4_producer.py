@@ -59,6 +59,8 @@ class R4ProducerTests(unittest.TestCase):
           CREATE TABLE r3_proposals(source_run TEXT PRIMARY KEY,post_id TEXT);
         """)
         ledger.initialize(self.db)
+        from bob_r4_suggestions import initialize as initialize_suggestions
+        initialize_suggestions(self.db)
         self.db.execute("INSERT INTO publish_settings VALUES('r4_mode_upvote','propose')")
         self.db.execute("INSERT INTO publish_settings VALUES('r4_global_pause','0')")
         @contextmanager
