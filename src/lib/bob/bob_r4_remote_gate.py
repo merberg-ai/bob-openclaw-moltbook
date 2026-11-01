@@ -99,6 +99,7 @@ def preflight(db,source_dir,*,run:str,seal:str,at:datetime,
             db,source_dir,run,allow_expired=False,at=at)
         if (seal!=current or state!="approved"
                 or decision.kind!="upvote"
+                or head[3]!=obs.post_id
                 or decision.target_id!=obs.post_id or
                 pause_state(db) or
                 read_modes(db)["upvote"]!="propose"):
