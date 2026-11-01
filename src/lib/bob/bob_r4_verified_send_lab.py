@@ -118,7 +118,8 @@ def simulate_verified_attempt(db,source_dir,*,clock,post_get,self_get,
         second=preflight_post_intent(
             db,source_dir,intent,clock=clock,post_get=post_get,
             self_get=self_get)
-        if (not second.verified or second.own_agent!=first.own_agent
+        if (not second.verified or not freshness(first,at=clock())
+                or second.own_agent!=first.own_agent
                 or second.target!=first.target or
                 second.observed_author!=first.observed_author
                 or not final_local_barrier(
