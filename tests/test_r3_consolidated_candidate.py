@@ -62,6 +62,40 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
             ROOT/"src/bin/bob-moltbook-publisher",
             "R313C_INTEGRATION_COMPILED_OFF"))
 
+    def test_hard_off_prevents_archive_import_or_credentials(self):
+        import bob_r313c_adapter as adapter
+        with patch.object(adapter, "production_dispatch_enabled",
+                          return_value=False), patch.dict(
+                          sys.modules, {"bob_r313d_package": None}):
+            self.assertIsNone(adapter.maybe_r3_publisher_step(
+                None, api_call=lambda *a, **kw: self.fail("no network"),
+                credential_loader=lambda: self.fail("no key")))
+
+    def test_future_gate_fails_closed_if_archive_invalid_or_host_untrusted(self):
+        import bob_r313c_adapter as adapter
+        from types import SimpleNamespace
+        calls=[]
+        def load():
+            calls.append("archive")
+            raise ValueError("corrupt registry")
+        with patch.object(adapter, "production_dispatch_enabled",return_value=True), \
+             patch.dict(sys.modules, {
+                 "bob_r313d_package":SimpleNamespace(load_verified=load)}):
+            result=adapter.maybe_r3_publisher_step(
+                None, api_call=lambda *a, **kw: self.fail("no network"),
+                credential_loader=lambda: self.fail("no key"))
+        self.assertEqual(result,"R3 candidate fail-closed; no send")
+        self.assertEqual(calls,["archive"])
+        with patch.object(adapter, "production_dispatch_enabled",return_value=True), \
+             patch.object(adapter,"_trusted_single_publisher_db",return_value=False), \
+             patch.dict(sys.modules,{
+                 "bob_r313d_package":SimpleNamespace(
+                    load_verified=lambda:"verified_registry_archive")}):
+            result=adapter.maybe_r3_publisher_step(
+                None, api_call=lambda *a, **kw: self.fail("no network"),
+                credential_loader=lambda: self.fail("no key"))
+        self.assertEqual(result,"R3 candidate host boundary refused; no send")
+
     def test_source_gate_drift_prevents_candidate(self):
         with patch.object(candidate,"_literal_constant",return_value=False):
             with self.assertRaisesRegex(ValueError,"gate is not Off"):
