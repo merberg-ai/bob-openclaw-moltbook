@@ -71,7 +71,8 @@ the saved comment is not proof of global absence of every external duplicate.
       and fresh profile proof before a local Friend exists. Nothing
       automatically follows users or writes OpenClaw memory.
 - [x] **Additive schema rehearsal, production Off:** `bob_r4_schema.py`
-      validates exact R4 social/suggestion schema plus a version marker.
+      validates exact R4 social/suggestion/outbox and attempted-event schema
+      plus a version marker.
       Isolated offline `rehearsal()` is transactional/idempotent and
       preserves existing R3 public receipt rows. Missing/future/partial
       schemas refuse rather than auto-repair. The real installation hook
@@ -80,10 +81,28 @@ the saved comment is not proof of global absence of every external duplicate.
       installer must integrate migration only after verified private host,
       tested backup and release journal. No OMEN schema has been migrated;
       opening R4 pages never creates tables.
-- [ ] Same existing credentialed publisher, transactional per-action
-      once-only attempt and uncertainty ledger, per-category caps/cooldowns,
-      explicit Auto opt-in only after signed worker review, owner revocation,
-      verified API responses and independent read-back where available.
+- [x] **Source-staged single original publisher R4 branch (Off):**
+      added one narrow R4 hook to the original `bob-moltbook-publisher`,
+      entered only when the legacy queue has no job and no earlier R3
+      handler wins. Both `R4_SINGLE_PUBLISHER_COMPILED_OFF = True` and the
+      R4 adapter's independent hard-Off gate prevent all actual API calls.
+      The original credentialed API owner is unchanged; no second worker.
+- [x] **Private upvote outbox + synthetic counted attempt:** a separately
+      source-seal-verified R4-approved upvote can be explicitly queued via
+      owner-typed `QUEUE R4 UPVOTE <run>` and cancelled untouched via
+      `CANCEL R4 <run>`. Source/owner/pause/expiry, legacy target claims,
+      per-kind attempted-day budget and queue precedence are checked again
+      before durable intent. Offline in-memory fake HTTP tests verify that
+      intent commits before a fake send, unknown responses and crashes
+      become terminal uncertain states, and repeats never occur. A local
+      API ACK is not independent public visibility. Other R4 actions
+      remain inadmissible to the outbox.
+- [ ] **Activate any real R4 social dispatch only in a future reviewed signed
+      source change:** require independently verified live remote target,
+      final revalidation after durable intent, actual host cooldown/global
+      budgets, credentialed existing-publisher call, challenge handling,
+      public/remote receipt checks, explicit category opt-in and recovery.
+      Current R4 real action send is **not implemented or enabled**.
 - [ ] API-specific negative tests: unavailable or changed endpoints,
       malformed source, identity collision, unknown remote following,
       challenge/timeout, duplicate target, pause, crash and restart.
@@ -151,6 +170,33 @@ additive and do not replace R3 proposal, approval, attempted, or receipt
 history. CI covers explicit owner consent, malformed seals, rejected
 parent decisions, stale source, duplicate review, backend failures and
 synthetic migration preservation.
+
+### R4 publisher and first action outbox (development only)
+
+R4's first source-stage action outbox supports **UPVOTE only**. Bob's
+source-sealed private social approval and the queue instruction are
+**different owner actions**. Queueing cannot activate the installed
+publisher because the original publisher's R4 integration flag and
+`bob_r4_publisher_adapter.py` are **both compiled Off**. The future
+release candidate includes the original `bob-moltbook-publisher` and
+`bob_r4_outbox.py` for exact source-level review, without creating a
+new credential owner. The original R3 canary source and receipt remain
+preserved. The candidate is NOT promoted to `releases/current.json`.
+
+The private `r4_action_outbox` and `r4_action_events` tables are
+versioned and staged only by isolated R4 schema rehearsals. They preserve
+a unique action + target and a durable `attempted_at` before any
+request. Simulated network uncertainty, crash, token changes or malformed
+ACKs **never** authorize a second attempt. A queued and untouched row can
+be cancelled by the original owner. R4 Inbox labels approved, queued,
+attempted, uncertain and cancelled separately.
+
+Only a **memory-only fake transport** is currently accepted for an
+action-request rehearsal. No actual credential or HTTPS call for R4 is
+wired through the publisher. This is intentional: documented endpoint
+shape is not enough to safely activate a real social-network write.
+Live pre-POST identity/target GET, budget/cooldown, challenge and receipt
+reconciliation must all pass separately before release promotion.
 
 ## API evidence and conservative semantics
 
