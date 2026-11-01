@@ -235,6 +235,10 @@ def record(db: sqlite3.Connection, source_dir: Path, observed, decision: Decisio
             "INSERT INTO r4_social_events(source_run,event,at) VALUES(?,?,?)",
             (decision.source_run,"bob_skip" if state=="skipped"
              else "bob_proposed",stamp))
+        # Same transaction: one immutable Bob decision and its private
+        # evidence suggestions are all-or-nothing. Never queue public work.
+        from bob_r4_suggestions import auto_stage
+        auto_stage(db,initial,decision,seal,stamp)
         db.commit()
         return state
     except BaseException:
