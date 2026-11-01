@@ -1,0 +1,47 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-autonomy1",
+  "from": "v0.8.0-r3canary1",
+  "notes": "R4 consolidated authenticated Now/Inbox/Bob/Controls/Diagnostics, evidence-linked locally reviewed social memory, independent default-Off per-action policy, bounded proposal/attempt ledger and verified single-publisher supported actions. One signed update with legacy HTTPS/R3 history preserved; new Auto actions require independent owner opt-in and verified receipts.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob-activity-manager",
+      "builder": "scripts/build_r4_manager_candidate.py",
+      "index": 0
+    },
+    {
+      "name": "navigation_shell.py",
+      "builder": "scripts/build_r4_manager_candidate.py",
+      "index": 1
+    },
+    {
+      "name": "bob_r4_policy.py",
+      "source": "src/lib/bob/bob_r4_policy.py"
+    },
+    {
+      "name": "bob_r4_controls.py",
+      "source": "src/lib/bob/bob_r4_controls.py"
+    },
+    {
+      "name": "bob_r4_projection.py",
+      "source": "src/lib/bob/bob_r4_projection.py"
+    },
+    {
+      "name": "bob_r4_reflections.py",
+      "source": "src/lib/bob/bob_r4_reflections.py"
+    },
+    {
+      "name": "bob_r4_web.py",
+      "source": "src/lib/bob/bob_r4_web.py"
+    }
+  ],
+  "restart_manager": true
+}
