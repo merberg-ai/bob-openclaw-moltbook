@@ -28,6 +28,7 @@ FILES=frozenset((
     "bob_r4_web.py","bob_r4_outbox.py",
     "bob_r4_publisher_adapter.py","bob-moltbook-publisher",
     "bob_r4_budget.py","bob_r4_remote_gate.py",
+    "bob_r4_final_gate.py","bob_r4_installed_gate.py",
 ))
 UNSAFE_WORKERS=frozenset((
     "bob-moltbook-scout","bob-r3-propose",
@@ -103,7 +104,10 @@ def inspect(root:Path=ROOT) -> dict:
             or "R313C_INTEGRATION_COMPILED_OFF = False" not in publisher
             or publisher.count("def api(")!=1
             or "R4_REAL_DISPATCH_COMPILED_OFF=True" not in adapter
-            or "PUBLIC_DISPATCH_COMPILED_OFF=True" not in outbox):
+            or "R4_EXACT_OWNER_SEND_COMPILED_OFF=True" not in adapter
+            or "PUBLIC_DISPATCH_COMPILED_OFF=True" not in outbox
+            or "from bob_r4_final_gate import" not in adapter
+            or "from bob_r4_installed_gate import verify" not in adapter):
         raise ValueError("r4_original_publisher_scope_not_compiled_off")
     if (not "AUTO_ENGINE_COMPILED_OFF=True" in controls or
             not "dispatch_authorized: bool = False" in policy or
