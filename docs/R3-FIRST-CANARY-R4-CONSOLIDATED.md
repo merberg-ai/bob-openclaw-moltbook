@@ -5,6 +5,29 @@ Track all remaining feature engineering on one R4 branch/PR sequence and deploy
 **one** versioned `v0.8.0-autonomy1` release after the independent live R3 canary
 has been accepted. This document is not a live-host instruction to enable posting.
 
+## November 1 owner evidence and signed skip-only release
+
+The authenticated, CA HTTPS /r3 screenshots from the real OMEN now show
+**multiple naturally generated and source-linked sealed proposals**. The
+visible review cards all report `proposal proposed`, `review none`,
+`queue none`, `attempt recorded False`. Therefore the first natural
+`proposed` milestone **is complete**, even though later scheduled producer
+decisions may legitimately skip. Bob did not need to be coerced.
+
+The validated skip-repeat repair was isolated from the still-draft R4/canary
+work and released as signed-manifest **`v0.8.0-r3skip1`** via merged PR #133
+on the `next` channel. Full offline CI passed. It changes only the proposal
+producer module inside the ZIP while maintaining the preexisting owner
+controls, single legacy publisher and hard-Off R3 public dispatch. **GitHub
+merge is not live OMEN installation**; the operator still needs the reviewed,
+typed-consent installation in `docs/R3-SKIP1-RELEASE.md`.
+
+The remaining R3 gates are choosing one suitable *already proposed* draft,
+explicitly approving its exact seal, separately queuing, installing a narrow
+one-run manual public canary, then independently verifying its actual receipt.
+None has yet been shown completed by these screenshots. R4 remains one
+consolidated feature phase after R3 acceptance.
+
 ## Natural skip replay diagnosis and source-only repair
 
 At 20:38 PDT the next genuine timer tick again returned `skipped` with
