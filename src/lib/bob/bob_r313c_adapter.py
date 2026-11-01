@@ -74,6 +74,14 @@ def maybe_r3_publisher_step(db, *, api_call, credential_loader):
     # Unreachable in current source candidate; future release review must
     # attest installed source/hash, full R3 additive schema and owner UI.
     try:
+        # Verify the exact VERSIONED local R3 archive and installed registry
+        # before importing any bob_v08 module. _trusted_single_publisher_db
+        # imports shared R3 schema helpers, so even that check must follow
+        # the verified source-path setup. No extra publisher or credential
+        # owner is created. This branch remains compiled hard Off.
+        from bob_r313d_package import load_verified
+        if load_verified() != "verified_registry_archive":
+            return "R3 installed archive unverified; no send"
         if not _trusted_single_publisher_db(db):
             return "R3 candidate host boundary refused; no send"
         from bob_v08.r313c_candidate import (
