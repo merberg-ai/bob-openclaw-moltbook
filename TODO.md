@@ -1,7 +1,8 @@
 ## R3 genuine proposal → one public canary → R4 consolidated feature (2026-10-31)
 
 - [x] **Foundation branch created:** read-only sealed-draft inventory, source-only R4 default-Off advisory policy, synthetic tests and single-milestone acceptance plan. See [R3-first-canary/R4 consolidated handoff](docs/R3-FIRST-CANARY-R4-CONSOLIDATED.md). No live publisher, manifest, timers, API keys or OMEN services changed.
-- [ ] **Natural genuine proposal:** current observed 20:01 PDT R3 result was a valid `skipped`, not `proposed`. Await a natural signed fresh source-linked `proposed` outcome; never force Bob's model decision.
+- [x] **R3 skip-repeat defect diagnosed in source:** 20:38 PDT natural tick repeated the 20:01 `skipped` on the same saved Scout run. Development source now records validated skips in existing private audit and selects a different unseen source; original accepted r3format1 ZIP builder frozen. Not installed. See the consolidated handoff.
+- [ ] **Natural genuine proposal:** observed 20:01 and 20:38 PDT R3 result was a valid `skipped`, not `proposed`. Await a natural signed fresh source-linked `proposed` outcome; never force Bob's model decision.
 - [ ] **Owner exact draft approval and queue:** independently review on authenticated HTTPS /r3, approve exact seal and separately queue it; R3 dispatch remains hard Off.
 - [ ] **Single public canary:** review/CI and separately install a one-run/one-seal/one-target source allowlist, owner-authorized manual send, durable uncertain-no-retry intent and bounded independent public receipt.
 - [ ] **One R4 milestone:** integrate Now/Inbox/Bob/Controls/Diagnostics, evidence-linked reflection and social memory, verified API-only social actions with per-category Off/Propose/Auto consent, signed single-publisher pipeline, offline fault/recovery CI, 380px responsive UI and one guarded `v0.8.0-autonomy1` install. Future real-Agent CH1 Chat remains reserved, not a hidden R4 dependency.
