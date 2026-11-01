@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime,timedelta,timezone
+import sqlite3
 
 from bob_publish_common import UUID
 from bob_v08.r39_publisher_review import public_get_post,RemoteReview
@@ -104,23 +105,28 @@ def preflight(db,source_dir,*,run:str,seal:str,at:datetime,
                 pause_state(db) or
                 read_modes(db)["upvote"]!="propose"):
             raise ValueError("source_owner_or_queue_invalid")
-        if not callable(self_get):
-            raise ValueError("self_profile_transport_missing")
-        post_result=verify_post(obs.post_id,obs.author,get_post=post_get)
-        if not post_result.verified:
-            return Preflight(False,post_result.reason)
-        # The existing credentialed publisher must own this authenticated
-        # GET callback; no identity may be injected from an owner nickname.
-        identity=agent_identity(self_get())
-        if not identity.verified:
-            return Preflight(False,identity.reason)
-        if obs.author.casefold()==identity.name.casefold():
-            return Preflight(False,"self_interaction_refused")
-        return Preflight(True,"owner_source_remote_target_and_self_verified",
-                         run,obs.post_id,obs.author,identity.name,
-                         at.astimezone(timezone.utc))
+    except (OSError,ValueError,sqlite3.Error,KeyError,TypeError,
+            AttributeError):
+        return Preflight(False,"preflight_local_owner_or_source_refused")
+    if not callable(self_get):
+        return Preflight(False,"self_profile_transport_missing")
+    post_result=verify_post(obs.post_id,obs.author,get_post=post_get)
+    if not post_result.verified:
+        return Preflight(False,post_result.reason)
+    # The existing credentialed publisher must own this authenticated
+    # GET callback; no identity may be injected from an owner nickname.
+    try:
+        me=self_get()
     except Exception:
-        return Preflight(False,"preflight_local_or_remote_refused")
+        return Preflight(False,"authenticated_self_read_failed")
+    identity=agent_identity(me)
+    if not identity.verified:
+        return Preflight(False,identity.reason)
+    if obs.author.casefold()==identity.name.casefold():
+        return Preflight(False,"self_interaction_refused")
+    return Preflight(True,"owner_source_remote_target_and_self_verified",
+                     run,obs.post_id,obs.author,identity.name,
+                     at.astimezone(timezone.utc))
 
 
 def freshness(proof:Preflight,*,at:datetime)->bool:
