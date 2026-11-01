@@ -213,8 +213,8 @@ class HTTPS3CandidateTests(unittest.TestCase):
                          {"bob_manager_tls.py","bob-activity-manager"})
         self.assertTrue(data["restart_manager"])
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-r3format1")
-        self.assertEqual(live["from"],"v0.8.0-r3diag1")
+        self.assertEqual(live["release"],"v0.8.0-r3skip1")
+        self.assertEqual(live["from"],"v0.8.0-r3format1")
         self.assertEqual({x["name"] for x in live["files"]},
                          {"bob-release-updater","bobctl","bob_r3_package.pyz"})
         self.assertFalse(live["restart_manager"])

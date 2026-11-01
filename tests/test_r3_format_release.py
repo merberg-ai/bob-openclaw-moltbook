@@ -16,19 +16,19 @@ import build_r313d_off_package as build
 
 class R3Format1ReleaseTests(TestCase):
     def test_three_file_signed_https_release_does_not_change_publisher(self):
-        current=json.loads((ROOT/"releases/current.json").read_text())
+        historical=json.loads((ROOT/"releases/candidates/r3-format1-offfirst.json").read_text())
         expected=json.loads((ROOT/"releases/candidates/r3-format1-offfirst.json").read_text())
-        self.assertEqual(current,expected)
-        self.assertEqual(current["release"],"v0.8.0-r3format1")
-        self.assertEqual(current["from"],"v0.8.0-r3diag1")
-        self.assertFalse(current["restart_manager"])
-        names={x["name"] for x in current["files"]}
+        self.assertEqual(historical,expected)
+        self.assertEqual(historical["release"],"v0.8.0-r3format1")
+        self.assertEqual(historical["from"],"v0.8.0-r3diag1")
+        self.assertFalse(historical["restart_manager"])
+        names={x["name"] for x in historical["files"]}
         self.assertEqual(names,{"bob-release-updater","bobctl","bob_r3_package.pyz"})
-        self.assertEqual(updater.manager_transport(current["release"]),"https")
-        self.assertEqual(updater.manager_transport(current["from"]),"https")
+        self.assertEqual(updater.manager_transport(historical["release"]),"https")
+        self.assertEqual(updater.manager_transport(historical["from"]),"https")
         self.assertFalse(names & {"bob-activity-manager","bob-moltbook-publisher",
                                   "bob-moltbook-scout","bob-r3-publisher"})
-        for item in current["files"]:
+        for item in historical["files"]:
             self.assertTrue(updater.release_bytes(ROOT,item))
 
     def test_report_marker_proves_new_source_in_synthetic_archive(self):
