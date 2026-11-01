@@ -5,6 +5,31 @@ Track all remaining feature engineering on one R4 branch/PR sequence and deploy
 **one** versioned `v0.8.0-autonomy1` release after the independent live R3 canary
 has been accepted. This document is not a live-host instruction to enable posting.
 
+## Natural skip replay diagnosis and source-only repair
+
+At 20:38 PDT the next genuine timer tick again returned `skipped` with
+`source_run=20261101T024801Z`, exactly the same source as the 20:01 tick.
+Source audit found that R3 previously filtered proposed/queued sources but did
+**not persist accepted skips**. Unless another newer eligible Scout source
+appeared, Bob could be asked about one snapshot repeatedly.
+
+The development branch now writes a validated, source-linked **skip event** to
+the *existing* `r3_lab_audit` table and excludes that source run from later
+natural selections. Invalid model output, transient OpenClaw failures and
+unverified files are **not** recorded as a legitimate Bob abstention. A valid
+skip remains a skip: no fabricated comment, queue, approval, key or public POST.
+Concurrent duplicate skip markers fail closed, and source files are reverified
+before the event is committed. Offline tests cover persistence, natural
+advance to another saved Scout source and refusal/immutability.
+
+**Important release boundary:** the new behavior is *not* installed on the
+OMEN. The accepted `v0.8.0-r3format1` archive is still built from immutable
+baseline copies of the two changed source modules. A future separately signed
+release must use explicit `build_development()` or another reviewed versioned
+builder and the normal owner-approved updater. Do not mutate the accepted
+release identifier or assume the current proposal timer already records skips.
+R3 public sending remains compiled Off and independent of this correction.
+
 ## Confirmed boundary (October 31, 2026)
 
 The operator accepted installed signed `v0.8.0-r3format1`. The natural R3
