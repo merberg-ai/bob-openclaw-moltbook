@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-r3diag1",
-  "from": "v0.8.0-cutover1",
-  "notes": "OFF-first R3 proposal decision diagnostics only: reviewed allowlisted OpenClaw transport and JSON validation reason categories; signed package, HTTPS updater and controller. No Activity Manager restart, timer changes, new publisher, Moltbook API call, or real R3 dispatch permission.",
+  "release": "v0.8.0-r3format1",
+  "from": "v0.8.0-r3diag1",
+  "notes": "R3 strict five-field JSON format repair: pinned ID skip example, sanitized missing/extra/typed shape diagnosis, signed ZIP. Preserves existing HTTPS manager, R3 proposal-only schedule, legacy Scout and sole publisher. Real R3 posting remains hard Off.",
   "files": [
     {
       "name": "bob-release-updater",
