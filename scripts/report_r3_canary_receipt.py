@@ -14,7 +14,7 @@ import sys
 from urllib.parse import quote
 
 ROOT=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(ROOT/"scripts"))
+sys.path[:0]=[str(ROOT/"scripts"),str(ROOT/"src/lib/bob")]
 import audit_comment_visibility as visible
 
 RUN="20261101T151033Z"
