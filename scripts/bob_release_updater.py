@@ -513,6 +513,33 @@ def rollback(journal, *, auth):
     return "baseline_restored"
 
 
+def preflight_r3_consolidated_offfirst() -> bool:
+    """Read-only fixed-host gate before the one guarded R3 code upgrade.
+
+    Reuse the already accepted G2 authenticated HTTPS / original publisher
+    registry / SQLite journal / service topology audit; do not run a second
+    writer or drain a currently executing legacy send. This cannot guarantee
+    a future timer will not fire, but refuses an observed running publisher.
+    No source-only preflight can authorize a public R3 comment.
+    """
+    try:
+        import report_g2_recovery as g2
+        import report_r3_cutover_inventory as inventory
+        host=g2.inspect("baseline")
+        if host.get("host_gate")!="PASS" or (
+                host.get("historical_uncertain") is None):
+            return False
+        current=inventory.unit_facts(
+            "user","bob-moltbook-publisher.service")
+        if (current.get("load")!="loaded" or
+                current.get("active")!="inactive"):
+            return False
+        return True
+    except (OSError,ValueError,RuntimeError,TypeError,KeyError,
+            ImportError,AttributeError):
+        return False
+
+
 def update(folder, current, plan, contents, *, auth):
     private_dir(STATE_DIR)
     fd = locked()
@@ -699,6 +726,8 @@ def main():
         if args.check:
             print("BOB UPDATE: CHECK ONLY; no production changes")
             return 0
+        if plan["release"]=="v0.8.0-cutover1" and not preflight_r3_consolidated_offfirst():
+            raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
