@@ -13,12 +13,15 @@ from bob_r4_ledger import initialize as initialize_social
 from bob_r4_ledger import schema_ready as social_ready
 from bob_r4_suggestions import initialize as initialize_evidence
 from bob_r4_suggestions import schema_ready as evidence_ready
+from bob_r4_outbox import initialize as initialize_outbox
+from bob_r4_outbox import schema_ready as outbox_ready
 
 VERSION="r4-autonomy1-private-v1"
 RELEASE="v0.8.0-autonomy1"
 TABLES=frozenset((
     "r4_social_decisions","r4_social_reviews","r4_social_events",
-    "r4_evidence_suggestions","r4_evidence_reviews","r4_schema_meta"))
+    "r4_evidence_suggestions","r4_evidence_reviews","r4_schema_meta",
+    "r4_action_outbox","r4_action_events"))
 INSTALL_HOOK_COMPILED_OFF=True
 
 
@@ -33,7 +36,8 @@ def inspect(db:sqlite3.Connection) -> str:
         have=TABLES & names
         if not have:
             return "missing"
-        if have!=TABLES or not social_ready(db) or not evidence_ready(db):
+        if (have!=TABLES or not social_ready(db) or not evidence_ready(db)
+                or not outbox_ready(db)):
             return "partial_or_untrusted"
         cols={row[1] for row in db.execute(
             "PRAGMA table_info(r4_schema_meta)")}
@@ -60,6 +64,7 @@ def migrate_candidate(db:sqlite3.Connection,*,trusted_owner:bool,
         if state=="missing":
             initialize_social(db)
             initialize_evidence(db)
+            initialize_outbox(db)
             db.execute("CREATE TABLE r4_schema_meta("
                        "name TEXT PRIMARY KEY,value TEXT NOT NULL)")
             db.execute("INSERT INTO r4_schema_meta(name,value) VALUES(?,?)",
@@ -82,6 +87,7 @@ def rehearsal(db:sqlite3.Connection) -> str:
         if inspect(db)=="missing":
             initialize_social(db)
             initialize_evidence(db)
+            initialize_outbox(db)
             db.execute("CREATE TABLE r4_schema_meta("
                        "name TEXT PRIMARY KEY,value TEXT NOT NULL)")
             db.execute("INSERT INTO r4_schema_meta VALUES(?,?)",
