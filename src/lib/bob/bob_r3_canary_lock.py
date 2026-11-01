@@ -13,6 +13,8 @@ from pathlib import Path
 import json
 import os
 import stat
+import hashlib
+import pwd
 import re
 import sqlite3
 
@@ -49,6 +51,43 @@ def arm_path() -> Path:
 def expected_marker() -> dict:
     return {"format": ARM_FORMAT, "run": PIN.run, "seal": PIN.seal,
             "target": PIN.target, "expires_utc": PIN.expires_utc}
+
+
+def signed_writer_attested() -> bool:
+    """Recheck exact installed writer and pin bytes, including before POST.
+
+    Owner arming has its own earlier signature check, but a changed installed
+    byte between arm and network send must still fail closed. No source text,
+    keys, model output, arbitrary path or HTTP access.
+    """
+    try:
+        home=Path.home()
+        uid=os.geteuid()
+        if uid==0 or pwd.getpwuid(uid).pw_dir!=str(home):
+            return False
+        registry=home/".local/state/bob-updater/installed.json"
+        meta=registry.lstat()
+        if (not stat.S_ISREG(meta.st_mode) or meta.st_uid!=uid
+                or meta.st_nlink!=1 or meta.st_mode & 0o077
+                or not 0 < meta.st_size <= 32768):
+            return False
+        record=json.loads(registry.read_text(encoding="utf-8"))
+        if (record.get("format")!="bob-updater-v1"
+                or record.get("release")!="v0.8.0-r3canary1"):
+            return False
+        for name in ("bob-moltbook-publisher","bob_r313c_adapter.py",
+                     "bob_r3_canary_lock.py","bob-r3-canary-arm",
+                     "bob_r3_package.pyz"):
+            path=home/".local/bin"/name
+            leaf=path.lstat()
+            if (not stat.S_ISREG(leaf.st_mode) or leaf.st_uid!=uid
+                    or leaf.st_nlink!=1 or leaf.st_mode & 0o022):
+                return False
+            if hashlib.sha256(path.read_bytes()).hexdigest()!=record["files"][name]:
+                return False
+        return True
+    except (OSError,ValueError,TypeError,KeyError,UnicodeError):
+        return False
 
 
 def marker_valid(*, now: datetime) -> bool:
@@ -120,7 +159,7 @@ def installed_canary_ready(db: sqlite3.Connection, source: Path,
     This checks a verified source envelope and exact independently recorded
     owner approval. A second final pin/expiry check is required before POST.
     """
-    if not marker_valid(now=now):
+    if not marker_valid(now=now) or not signed_writer_attested():
         return False
     try:
         from bob_v08.r313c_candidate import _read_envelope, _source_seal
@@ -167,6 +206,7 @@ def still_pinned_for_send(run: str, target: str, now: datetime) -> bool:
     try:
         expiry = datetime.strptime(PIN.expires_utc,"%Y-%m-%dT%H:%M:%SZ").replace(
             tzinfo=timezone.utc)
-        return now.astimezone(timezone.utc) <= expiry and marker_valid(now=now)
+        return (now.astimezone(timezone.utc) <= expiry
+                and marker_valid(now=now) and signed_writer_attested())
     except (ValueError,TypeError,OverflowError):
         return False
