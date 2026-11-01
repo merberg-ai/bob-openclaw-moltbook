@@ -1,3 +1,13 @@
+## R3 strict five-field decision format repair (2026-10-31)
+
+- [x] **Second natural proposal worker attempt confirmed:** 19:26:02 PDT service started and 19:26:09 returned `decision_invalid_model_shape` for verified source run `20261101T014755Z`. No proposal queued or public send attempted; next systemd run scheduled ~20:01 PDT. Exact raw model fields are not logged, so the cause is shape mismatch, not proven missing-vs-extra fields.
+- [x] **R3-only schema prompt** now supplies an example of the exact five-field string JSON object, with pinned `source_run` and `target_id`, outside the delimited third-party data. The original strict parser remains unchanged: malformed/wrapped/nonmatching output is rejected, never silently repaired or sent.
+- [x] **Sanitized shape classifications** split `decision_invalid_model_shape` into `decision_shape_not_object`, `decision_shape_missing_fields`, `decision_shape_extra_fields`, `decision_shape_missing_and_extra_fields`, or `decision_shape_invalid_field_values`, without exposing any field names, values, credentials or raw model response.
+- [x] **Minimal signed update prepared:** `v0.8.0-r3format1` from `v0.8.0-r3diag1`, three managed files (updater, bobctl, R3 ZIP), no manager restart, no new publisher, no timer change or SQLite migration; hard-Off public dispatch retained. Guarded updater preflight and read-only `scripts/report_r3_format_installed.py --check` implemented, with offline CI. See `docs/R3-FORMAT1-STRICT-JSON-REPAIR.md`.
+- [ ] **Owner OMEN acceptance pending:** after CI/PR merge run source-updater `--check`, typed `UPDATE`, one read-only installed check and observe the next natural R3 proposal result. Actual model compliance and Moltbook canary remain separate; no forced manual service execution or public R3 comment rights.
+
+---
+
 ## R3 first natural proposal: actionable diagnostic release (2026-10-31)
 
 - [x] **First natural timer run observed:** at 18:50:34 PDT, `bob-r3-propose.service` started on OMEN; at 18:50:39 it failed closed with `openclaw_decision_invalid_or_unavailable`. No queue, attempted send or dispatch authorization. Next timer tick was scheduled automatically, confirming the first-run timer repair.
