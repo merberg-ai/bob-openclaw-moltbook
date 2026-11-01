@@ -155,6 +155,25 @@ or forced real model decision. Do not interpret this foundation PR as a
 candidate release, a successful public canary, or permission to change host
 services.
 
+## Exact canary source lock prepared, still hard Off
+
+The existing single credentialed publisher now has a *second, narrower*
+source-level barrier at `src/lib/bob/bob_r3_canary_lock.py`. Its immutable
+`PIN = CanaryPin()` is empty in this branch, so **no future R3 send can
+succeed merely by changing older enablement flags**. A later reviewed signed
+manual-canary release must pin one concrete observed run, sealed source hash,
+UUID target and expiration, in its **source**, and package that exact source
+through the guarded updater. There is no environment or dashboard override.
+
+Even with a future pin, the existing owner permission, source verification,
+original publisher and shared durable-attempt ledger remain required.
+The pinned run is checked again when selecting the candidate; target and
+expiration are checked just before the credentialed POST. Expired/ambiguous
+attempts cannot automatically retry. This is a defense-in-depth *candidate*
+and not evidence of a completed source review, model proposal, receipt or
+installed release. CI must run the complete adapter and race/crash suite
+before preparing a future send-capable candidate.
+
 ## Source baseline of this foundation change
 
 - `scripts/report_r3_first_draft.py`: read-only, content-free host check.
