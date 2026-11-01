@@ -78,6 +78,11 @@ def _can_arm(db, *, at: datetime) -> bool:
         approval=db.execute(
             "SELECT seal_sha256,decision FROM r3_owner_approvals "
             "WHERE source_run=?", (PIN.run,)).fetchone()
+        from bob_v08.r313c_candidate import _head
+        # R3 must be the selected whole-queue manual head; this release
+        # never authorizes sending an unrelated older legacy draft.
+        if _head(db)!=PIN.run:
+            return False
         previous=db.execute(
             "SELECT 1 FROM publish_jobs WHERE run_id<>? AND post_id=? "
             "AND attempted_at IS NOT NULL LIMIT 1",
