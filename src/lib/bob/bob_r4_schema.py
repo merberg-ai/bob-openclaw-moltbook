@@ -22,7 +22,7 @@ TABLES=frozenset((
     "r4_social_decisions","r4_social_reviews","r4_social_events",
     "r4_evidence_suggestions","r4_evidence_reviews","r4_schema_meta",
     "r4_action_outbox","r4_action_events"))
-INSTALL_HOOK_COMPILED_OFF=True
+INSTALL_HOOK_COMPILED_OFF=False  # ONLY signed existing-updater transaction may call migrate_candidate
 
 
 def inspect(db:sqlite3.Connection) -> str:
@@ -52,7 +52,12 @@ def inspect(db:sqlite3.Connection) -> str:
 
 def migrate_candidate(db:sqlite3.Connection,*,trusted_owner:bool,
                       backup_verified:bool,installed_release:str) -> str:
-    """Transactional synthetic rehearsal. Not wired into the live updater."""
+    """Explicit signed-updater migration only. Host-level guards in updater.
+
+    Does not own permissions, backups, publisher or install approvals.
+    Direct calling this function is not sufficient for an authorized
+    installation and grants no public R4 permission.
+    """
     if (INSTALL_HOOK_COMPILED_OFF or trusted_owner is not True or
             backup_verified is not True or installed_release!=RELEASE):
         raise ValueError("r4_migration_not_authorized_for_install")
