@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""Future R4 OpenClaw proposal-only entrypoint. No service/timer installed.
+
+Requires an independently signed R4 release and completed additive schema
+migration. Off/paused defaults mean no model call. Never publishes/queues.
+"""
+from __future__ import annotations
+
+import os
+import sys
+
+
+def main(argv=None):
+    os.umask(0o077)
+    args=sys.argv[1:] if argv is None else argv
+    if args!=["--once"]:
+        print("Usage: bob-r4-propose --once")
+        return 2
+    try:
+        from bob_r313d_package import load_verified
+        load_verified()
+        from bob_r4_producer import main as propose_main
+        return propose_main(["--once"])
+    except (OSError,ValueError,TypeError,ImportError,KeyError):
+        print("BOB R4 PROPOSAL: refused; signed package or owner gate unavailable")
+        return 1
+
+
+if __name__=="__main__":
+    raise SystemExit(main())
