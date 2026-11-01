@@ -40,7 +40,8 @@ def _exists(db: sqlite3.Connection, name: str) -> bool:
 
 def _count(db: sqlite3.Connection, table: str, *, where: str="", args=()):
     if table not in ("publish_jobs","r3_proposals","bob_memories",
-                     "bob_friends","original_posts","r3_lab_audit"):
+                     "bob_friends","original_posts","r3_lab_audit",
+                     "r4_social_decisions"):
         raise ValueError("r4_unreviewed_table")
     if not _exists(db,table):
         return 0
@@ -56,6 +57,7 @@ def empty():
         "available":False,
         "publisher_jobs":0,"attempted":0,"r3_proposed_recorded":0,
         "saved_memories":0,"saved_friends":0,"originals":0,
+        "r4_proposed":0,"r4_total_decisions":0,"r4_recent":[],
         "recent_jobs":[],"recent_events":[],"people":[],"memory_titles":[],
         "controls":{kind:"off" for kind in ACTIONS},
         "r4_paused":True, "latest_r3_source":None,
@@ -82,6 +84,17 @@ def project_db(db: sqlite3.Connection) -> dict:
     result["saved_friends"]=_count(
         db,"bob_friends",where=" WHERE state='active'")
     result["originals"]=_count(db,"original_posts")
+    result["r4_total_decisions"]=_count(db,"r4_social_decisions")
+    if _exists(db,"r4_social_decisions"):
+        from bob_r4_ledger import recent,schema_ready
+        if not schema_ready(db):
+            raise ValueError("r4_social_schema_unverified")
+        result["r4_proposed"]=db.execute(
+            "SELECT COUNT(*) FROM r4_social_decisions "
+            "WHERE state='proposed'").fetchone()[0]
+        # Source+seal independently checked, never render unchecked DB text.
+        from bob_publish_common import DATA
+        result["r4_recent"]=recent(db,DATA,limit=12)
     recent=db.execute(
         "SELECT run_id,state,mode,attempted_at,comment_id FROM publish_jobs "
         "ORDER BY created_at DESC,run_id DESC LIMIT ?",(MAX_QUEUE,)).fetchall()
