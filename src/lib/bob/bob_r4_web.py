@@ -184,7 +184,7 @@ def _bob(data):
     memories=''.join('<li>'+e(x["title"])+' · '+e(x["category"])+
             ' · '+e(x["confidence"])+' · owner-entered, not automatically '
             'recalled</li>' for x in data["memory_titles"])
-    return ('<section class="panel"><h3>Bob's own source-linked reasons</h3>'
+    return ('<section class="panel"><h3>Bob&#39;s own source-linked reasons</h3>'
             '<p class="muted">These are previous Bob-authored reasons that '
             'passed the sealed R3 source reader. They are tentative '
             'interpretations, not automatically promoted memories.</p><ul>'+
