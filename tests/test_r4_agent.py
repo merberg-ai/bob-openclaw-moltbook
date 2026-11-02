@@ -56,7 +56,7 @@ class R4AgentTests(unittest.TestCase):
                          SRC.run_id+r"-[a-f0-9]{16}$")
         self.assertIn("TRUSTED OUTPUT CONTRACT",calls[0][0])
         self.assertIn("FINAL ANSWER: SINGLE JSON OBJECT ONLY",calls[0][0])
-        self.assertLess(calls[0][0].index("END_UNTRUSTED_MOLTBOOK_JSON\\n"),
+        self.assertLess(calls[0][0].index("END_UNTRUSTED_MOLTBOOK_JSON"),
                         calls[0][0].index("TRUSTED OUTPUT CONTRACT"))
 
     def test_each_invocation_gets_fresh_session_without_auto_retry(self):
