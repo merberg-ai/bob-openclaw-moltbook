@@ -14,9 +14,9 @@ import report_r4_candidate as source
 class R4CandidateReportTests(unittest.TestCase):
     def test_source_scope_is_one_promoted_https_release(self):
         audit=source.inspect()
-        self.assertEqual(audit["release_manifest"],"v0.8.0-autonomy1")
-        self.assertEqual(audit["previous_installed_release"],"v0.8.0-r3canary1")
-        self.assertEqual(audit["promotion_state"],"promoted_exact_candidate")
+        self.assertEqual(audit["release_manifest"],"v0.8.0-r4propose1")
+        self.assertEqual(audit["previous_installed_release"],"v0.8.0-autonomy1")
+        self.assertEqual(audit["promotion_state"],"promoted_exact_r4_proposal_patch")
         self.assertEqual(audit["candidate"],"v0.8.0-autonomy1")
         self.assertEqual(audit["candidate_source_build"],"PASS")
         self.assertTrue(audit["legacy_r3_publisher_not_replaced"])
@@ -37,7 +37,8 @@ class R4CandidateReportTests(unittest.TestCase):
             candidate=json.loads((ROOT/
                 "releases/candidates/r4-autonomy1-consolidated.json").read_text())
             candidate["files"][4]["source"]="src/lib/bob/bob_r4_WRONG.py"
-            (root/"releases/current.json").write_text(json.dumps(candidate))
+            (root/"releases/candidates/r4-propose1-one-shot.json").write_text(
+                (ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
             (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(
                 json.dumps(candidate))
             with self.assertRaisesRegex(ValueError,"r4_unreviewed_source_target"):
@@ -55,6 +56,7 @@ class R4CandidateReportTests(unittest.TestCase):
             original=json.loads((ROOT/"releases/current.json").read_text())
             candidate=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
             (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(json.dumps(candidate))
+            (root/"releases/candidates/r4-propose1-one-shot.json").write_text((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
             for mutation in (
                 {"restart_manager":False},
                 {"files":candidate["files"][:-1]},
@@ -71,9 +73,12 @@ class R4CandidateReportTests(unittest.TestCase):
         live=json.loads((ROOT/"releases/current.json").read_text())
         candidate=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
-        self.assertEqual(live,candidate)
-        self.assertEqual(live["release"],"v0.8.0-autonomy1")
-        self.assertEqual(live["from"],"v0.8.0-r3canary1")
+        patch=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
+        self.assertEqual(live,patch)
+        self.assertEqual(live["release"],"v0.8.0-r4propose1")
+        self.assertEqual(live["from"],"v0.8.0-autonomy1")
+        self.assertEqual(candidate["release"],live["from"])
+        self.assertEqual(candidate["from"],"v0.8.0-r3canary1")
         self.assertTrue(live["restart_manager"])
         # The ONE original publisher is included, not a second worker.
         self.assertIn("bob-moltbook-publisher",
