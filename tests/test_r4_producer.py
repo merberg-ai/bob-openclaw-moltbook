@@ -12,6 +12,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import os
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/"src"),str(ROOT/"src/lib/bob")]
@@ -31,6 +32,11 @@ class R4ProducerTests(unittest.TestCase):
         home=Path(temp.name)
         self.saved=home/".config"/"moltbook"
         self.saved.mkdir(parents=True,mode=0o700)
+        # Fake account uid must own the fixture (runner uid varies by host;
+        # root is refused by the producer, so emulate a normal account).
+        self.uid=os.getuid() or 1001
+        if os.getuid()==0:
+            os.chown(self.saved,self.uid,-1)
         raw=json.dumps(
             {"posts":[{"id":POST,"author":"Test_Agent","title":"Synthetic",
                        "content":"A harmless test source."}]},sort_keys=True).encode()
@@ -76,7 +82,7 @@ class R4ProducerTests(unittest.TestCase):
             patch.object(producer,"connect",fake_conn),
             patch.object(producer,"DATA",self.saved),
             patch.object(producer.Path,"home",return_value=home),
-            patch.object(producer.os,"geteuid",return_value=1001),
+            patch.object(producer.os,"geteuid",return_value=self.uid),
             patch.object(producer.pwd,"getpwuid",
                          return_value=SimpleNamespace(pw_dir=str(home))),
         ):

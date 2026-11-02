@@ -16,6 +16,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src/lib/bob"))
 sys.path.insert(0,str(ROOT/"tests"))
+sys.path.insert(0,str(ROOT/"webui"))
 
 import bob_inactivity as oc4
 import bob_operations_diagnostics as operations
