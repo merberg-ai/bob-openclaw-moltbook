@@ -4,7 +4,7 @@ from __future__ import annotations
 from contextlib import redirect_stdout
 from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch,MagicMock
 from io import StringIO
 from pathlib import Path
 import sys
@@ -101,6 +101,66 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
         self.assertFalse(report["r4_proposal_queued"])
         self.assertFalse(report["public_social_dispatch_authorized"])
 
+    def test_exact_source_session_never_changes_identity_or_bypasses_gate(self):
+        run="20261101T213703Z"
+        source="moltbook-v08-shadow-r4-proposal-"+run
+        self.assertEqual(probe._session_key(source,run,production=True),source)
+        self.assertEqual(probe._session_key(source,run,production=False),
+                         "moltbook-v08-shadow-r4-diagnostic-"+run)
+        for bad in ("moltbook-v08-shadow-r4-proposal-other", "main",
+                    "moltbook-v08-shadow-r4-diagnostic-"+run):
+            with self.assertRaisesRegex(ValueError,"unexpected_shadow_session"):
+                probe._session_key(bad,run,production=True)
+        with self.assertRaisesRegex(ValueError,"unexpected_shadow_session"):
+            probe._session_key(source,run,production="yes")
+
+    def test_production_session_requires_real_terminal_and_confirmation(self):
+        with patch.object(probe.sys,"stdin") as stdin, \
+             patch.object(probe,"diagnose") as diagnose:
+            stdin.isatty.return_value=False
+            with redirect_stdout(StringIO()) as output:
+                self.assertEqual(probe.main(["--production-session-once"]),1)
+            self.assertIn("terminal confirmation required",output.getvalue())
+            diagnose.assert_not_called()
+            stdin.isatty.return_value=True
+            with patch("builtins.input",return_value="WRONG"):
+                with redirect_stdout(StringIO()) as output:
+                    self.assertEqual(probe.main(["--production-session-once"]),1)
+                self.assertIn("confirmation not granted",output.getvalue())
+            diagnose.assert_not_called()
+
+    def test_exact_phrase_enables_only_one_explicit_diagnostic_call(self):
+        valid=probe.result(stage="valid_private_decision",reason="ok",
+                           called=True,source_run="20261101T213703Z",
+                           session_scope="production",
+                           verified_kind="skip")
+        with patch.object(probe.sys,"stdin") as stdin, \
+             patch("builtins.input",return_value="TRACE R4 SESSION") as confirm, \
+             patch.object(probe,"diagnose",return_value=valid) as diagnose:
+            stdin.isatty.return_value=True
+            with redirect_stdout(StringIO()) as output:
+                self.assertEqual(probe.main(["--production-session-once"]),0)
+        confirm.assert_called_once()
+        diagnose.assert_called_once_with(production_session=True)
+        self.assertIn('"production_session_touched":true',output.getvalue())
+        self.assertNotIn('"isolated_agent_session":true',output.getvalue())
+        self.assertFalse(valid["r4_decision_recorded"])
+        self.assertFalse(valid["public_social_dispatch_authorized"])
+
+    def test_default_probe_remains_isolated_and_no_extra_confirmation(self):
+        valid=probe.result(stage="valid_private_decision",reason="ok",
+                           called=True,source_run="20261101T213703Z",
+                           session_scope="isolated",
+                           verified_kind="skip")
+        with patch.object(probe,"diagnose",return_value=valid) as diagnose, \
+             patch("builtins.input",side_effect=AssertionError(
+                 "isolated mode must not request production confirmation")):
+            with redirect_stdout(StringIO()):
+                self.assertEqual(probe.main(["--once"]),0)
+        diagnose.assert_called_once_with(production_session=False)
+        self.assertTrue(valid["isolated_agent_session"])
+        self.assertFalse(valid["production_session_touched"])
+
     def test_diagnostic_main_explicit_one_call_flag(self):
         output=StringIO()
         with redirect_stdout(output):
@@ -111,6 +171,10 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
         source=(ROOT/"scripts/report_r4_agent_contract.py").read_text()
         for needle in (
             'SESSION_PREFIX="moltbook-v08-shadow-r4-diagnostic-"',
+            'key=_session_key(session,run,production=production_session)',
+            'raw=openclaw_decide(prompt,key)',
+            'approval!="TRACE R4 SESSION"',
+            'if not sys.stdin.isatty():',
             'from bob_r4_agent import decide,AVAILABLE',
             'from bob_v08.shadow import openclaw_decide',
             'from bob_v08.evidence import latest_observations',
