@@ -70,10 +70,16 @@ def inspect(*, root=ROOT, build=True) -> dict:
         raise ValueError("symlinked release manifest")
     current=json.loads(current_path.read_text(encoding="utf-8"))
     proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
-    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1")
+    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1")
     if current.get("release") not in (
-            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1"):
+            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1"):
         raise ValueError("unreviewed_source_release_or_promotion")
+    if current.get("release")=="v0.8.0-autonomy1":
+        r4=json.loads((root/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
+        if (current!=r4 or r4.get("from")!="v0.8.0-r3canary1"
+                or len(r4.get("files",[]))!=23
+                or r4.get("restart_manager") is not True):
+            raise ValueError("r4_promotion_does_not_match_reviewed_candidate")
     if current.get("release")=="v0.8.0-cutover1" and any(current.get(key)!=proposed.get(key) for key in (
             "format","release","from","files","restart_manager")):
         raise ValueError("promoted_r3_manifest_not_exact_reviewed_candidate")
@@ -107,13 +113,13 @@ def inspect(*, root=ROOT, build=True) -> dict:
     controller=(root/"src/bin/bobctl").read_text(encoding="utf-8")
     if '"v0.8.0-cutover1": "https"' not in controller:
         raise ValueError("bobctl candidate HTTPS mode unavailable")
-    exact=current.get("release")=="v0.8.0-r3canary1"
+    exact=current.get("release") in ("v0.8.0-r3canary1","v0.8.0-autonomy1")
     if exact:
         # The historic integration-off audit must NEVER label an exact
         # owner-arm canary as globally compiled Off, or as a cutover release.
         # Only narrowly pinned manual behavior may bypass the old importer gate.
-        candidate=current
         reviewed=json.loads((root/"releases/candidates/r3-canary1-exact-manual.json").read_text())
+        candidate=current if current.get("release")=="v0.8.0-r3canary1" else reviewed
         if candidate!=reviewed:
             raise ValueError("canary_release_manifest_not_exact")
         required=dict(OFF_CONSTANTS)
