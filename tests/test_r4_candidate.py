@@ -37,6 +37,7 @@ class R4CandidateReportTests(unittest.TestCase):
             candidate=json.loads((ROOT/
                 "releases/candidates/r4-autonomy1-consolidated.json").read_text())
             candidate["files"][4]["source"]="src/lib/bob/bob_r4_WRONG.py"
+            (root/"releases/current.json").write_text(json.dumps(candidate))
             (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(
                 json.dumps(candidate))
             with self.assertRaisesRegex(ValueError,"r4_unreviewed_source_target"):
