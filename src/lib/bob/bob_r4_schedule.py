@@ -22,7 +22,7 @@ import sys
 import tempfile
 from typing import Callable
 
-RELEASE="v0.8.0-r4schedule1"
+RELEASE="v0.8.0-r4schedule2"
 FORMAT="r4-proposal-schedule-v1"
 HOME=Path.home()
 UNIT_DIR=HOME/".config/systemd/user"
@@ -39,6 +39,12 @@ PUBLISHER_TIMER="bob-moltbook-publisher.timer"
 SCOUT_TIMER="bob-moltbook-scout.timer"
 SHADOW_SERVICE="bob-v08-shadow.service"
 SHADOW_TIMER="bob-v08-shadow.timer"
+# This exact, owner-private bootstrap was reviewed in R3 as
+# scripts/repair_r3_first_timer.py. Unknown extra systemd drop-ins still
+# fail closed; the approved R3 timer is never edited/restarted here.
+R3_BOOTSTRAP_DIR=UNIT_DIR/(R3_TIMER+".d")
+R3_BOOTSTRAP=R3_BOOTSTRAP_DIR/"10-first-run.conf"
+R3_BOOTSTRAP_BYTES=b"[Timer]\\nOnActiveSec=2min\\n"
 UNITS=(SERVICE,TIMER,R3_SERVICE,R3_TIMER,PUBLISHER_SERVICE,
        PUBLISHER_TIMER,SCOUT_TIMER,SHADOW_SERVICE,SHADOW_TIMER)
 ENABLED=frozenset(("enabled","enabled-runtime"))
@@ -209,13 +215,43 @@ def _unit_absent(name:str,unit:Unit)->bool:
             and unit.dropins=="" and not p.exists() and not p.is_symlink())
 
 
+
+def _approved_r3_timer_dropin(unit:Unit)->bool:
+    """Allow ONLY the original R3 first-tick bootstrap, checked bytewise.
+
+    This is pinned by R3's owner-typed `repair_r3_first_timer.py --apply`.
+    No checkout file is imported at runtime; installed signed R4 verifies
+    the exact path, permissions, owner, inode type and immutable text.
+    """
+    try:
+        if unit.dropins=="":
+            return (not R3_BOOTSTRAP_DIR.exists()
+                    and not R3_BOOTSTRAP_DIR.is_symlink())
+        if unit.dropins!=str(R3_BOOTSTRAP):
+            return False
+        if not _dir(R3_BOOTSTRAP_DIR,strict=True):
+            return False
+        if set(R3_BOOTSTRAP_DIR.iterdir())!={R3_BOOTSTRAP}:
+            return False
+        return (_file(R3_BOOTSTRAP,max_bytes=256)
+                and R3_BOOTSTRAP.read_bytes()==R3_BOOTSTRAP_BYTES)
+    except (OSError,ValueError,TypeError):
+        return False
+
+
+
 def _other_workers_idle(states:dict[str,Unit])->bool:
     if set(states)!=set(UNITS):
         return False
     for name in (R3_TIMER,PUBLISHER_TIMER,SCOUT_TIMER):
         unit=states[name]
         if (unit.load!="loaded" or unit.active!="active"
-                or unit.enabled not in ENABLED or unit.dropins!=""):
+                or unit.enabled not in ENABLED):
+            return False
+        if name==R3_TIMER:
+            if not _approved_r3_timer_dropin(unit):
+                return False
+        elif unit.dropins!="":
             return False
     if any(states[name].active!="inactive" or states[name].dropins!=""
            for name in (R3_SERVICE,PUBLISHER_SERVICE,SHADOW_SERVICE)):
