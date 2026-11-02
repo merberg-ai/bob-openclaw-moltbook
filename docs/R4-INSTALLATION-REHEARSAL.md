@@ -1,6 +1,6 @@
 # R4 production-shaped rehearsal and release review
 
-**Status:** source rehearsal in PR #137, **not an OMEN installation**. The trusted
+**Status:** source rehearsal CI **PASS**: 1,262 Python tests plus Windows startup checks on code commit `7b07b75` (GitHub Actions run `41366703351`). **Not an OMEN installation**. The trusted
 `next` manifest remains `v0.8.0-r3canary1`. The separate candidate is
 `releases/candidates/r4-autonomy1-consolidated.json`. No public R4 action is
 authorized by this review.
@@ -58,7 +58,7 @@ newer publication attempts.
 
 ## Remaining release gates
 
-- [ ] All PR checks on the final commit pass, including Windows checks.
+- [x] Source CI on last code commit `7b07b75`: 1,262 Python tests and Windows workflow PASS. Future source changes require fresh checks.
 - [ ] Review exact 23-file payload and four independent real-send Off markers.
 - [ ] Verify one original publisher unit/timer, read-only effective unit
       inventory, and no new credentialed R4 service.
