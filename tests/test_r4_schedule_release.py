@@ -221,6 +221,11 @@ class SignedUpdaterRehearsal(unittest.TestCase):
             file=folder/"bob-r4-propose.timer"
             file.write_text("synthetic staged operator timer")
             self.assertFalse(updater.r4_schedule_units_absent())
+            file.unlink()
+            wants=folder/"timers.target.wants"
+            wants.mkdir()
+            (wants/"bob-r4-propose.timer").symlink_to(file)
+            self.assertFalse(updater.r4_schedule_units_absent())
             with self.assertRaisesRegex(
                     ValueError,"r4_schedule_units_must_be_recovered_first"):
                 updater.rollback_completed_r4(auth="Basic test-only")
