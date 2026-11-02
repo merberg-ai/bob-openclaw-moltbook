@@ -91,10 +91,10 @@ def _format_test_prompt(original:str,observed)->str:
     """Trusted output-only instruction, appended AFTER untrusted source."""
     from bob_r4_decision import exact_example
     if type(original) is not str or not original.endswith(
-            "\\nEND_UNTRUSTED_MOLTBOOK_JSON\\n"):
+            "\nEND_UNTRUSTED_MOLTBOOK_JSON\n"):
         raise ValueError("r4_untrusted_decision_envelope")
     return original+(
-        "\\nTRUSTED OUTPUT CONTRACT (this is NOT permission to take action): "
+        "\nTRUSTED OUTPUT CONTRACT (this is NOT permission to take action): "
         "Return EXACTLY ONE JSON object, with these eight keys and NO others: "
         "type, source_run, target_id, reason, text, title, submolt, parent_id. "
         "ALL eight values must be JSON strings, including empty strings. "
@@ -105,7 +105,7 @@ def _format_test_prompt(original:str,observed)->str:
         "A correct complete SKIP example using this sealed source is: "+
         exact_example(observed)+". "
         "If proposing a non-skip action, keep all eight fields and the exact "
-        "source_run; follow the action-specific rules above.\\n"
+        "source_run; follow the action-specific rules above.\n"
     )
 
 
