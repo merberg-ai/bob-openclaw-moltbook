@@ -56,12 +56,42 @@ Do **not** use the old installed updater for R4, manually execute schema DDL,
 run the rehearsal against the live database, or copy a SQLite backup over
 newer publication attempts.
 
+## Final R3-canary-aware host preflight
+
+An important last-review incompatibility was corrected: the previous R4
+\`bob_release_updater.py\` called \`preflight_r3_diagnostics_only()\`, whose
+historical \`_installed_cutover_off()\` check deliberately accepts older R3
+release identities **but not the actually installed
+\`v0.8.0-r3canary1\`**. An otherwise healthy owner installation would have
+been refused before the R4 UPDATE prompt.
+
+The R4 path now calls \`preflight_r4_installation()\`, which delegates only
+to the new **read-only** \`scripts/report_r4_preinstall.py --check\` and
+requires the exact signed R3 canary source, matching \`openclaw\` owner,
+active existing publisher/Scout/R3 proposal timers, inactive original
+publisher, disabled shadow and absent competing publisher, reviewed effective
+publisher service/timer with no unknown blockers, verified CA HTTPS Manager
+and no incomplete updater transaction. It returns *readiness for a distinct
+owner prompt*, **not installation approval**.
+
+Importantly, the guarded migration also reruns the original publisher idle,
+effective service/timer and competing-worker topology checks **after staging
+the exact candidate files and before the additive SQLite transaction**. A
+changed/unknown unit fails closed and invokes the normal code-only rollback.
+This is not a guarantee against arbitrary subsequent host changes; running
+the reviewed report on the actual OMEN remains essential before install.
+
+These checks are offline-mocked in \`tests/test_r4_preinstall.py\`. The
+read-only host report has **not yet run on the OMEN**. Running it later does
+not stop timers, disable Scout, change HTTPS, migrate schema or send Moltbook
+actions.
+
 ## Remaining release gates
 
 - [x] Source CI on last code commit `7b07b75`: 1,262 Python tests and Windows workflow PASS. Future source changes require fresh checks.
 - [ ] Review exact 23-file payload and four independent real-send Off markers.
-- [ ] Verify one original publisher unit/timer, read-only effective unit
-      inventory, and no new credentialed R4 service.
+- [x] Source R4 preinstall probes review unique original publisher unit/timer, effective unit shape, current R3 canary hashes, existing Scout/R3 proposal schedule and competing-worker absence; migration repeats the topology check.
+- [ ] Verify the **actual** OMEN host output from `report_r4_preinstall.py --check` once the candidate is approved and promotion prepared. No live host report has been performed yet.
 - [ ] Review the authenticated CA-verified HTTPS route behavior in an isolated
       service-shaped smoke; no fallback to HTTP or public listener.
 - [x] Add a separate owner-typed **post-`complete`** rollback:
