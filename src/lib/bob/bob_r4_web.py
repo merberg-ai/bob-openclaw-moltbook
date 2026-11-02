@@ -437,7 +437,7 @@ class R4HandlerMixin:
             from bob_r4_reflections import reasons
             data["bob_reasons"]=reasons()
         self._send(200,wrap("Bob R4 · "+view.title(),
-                            content(view,data,self.R4_CSRF_TOKEN),path),
+                            content(view,data,self.R4_CSRF_TOKEN),"/r4/now"),
                    "text/html; charset=utf-8")
 
     def do_POST(self):
