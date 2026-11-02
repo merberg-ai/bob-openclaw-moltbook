@@ -1,3 +1,13 @@
+## R4 first diagnostics: historical Scout source now consumed; fresh-source selection fix (2026-11-01 PST)
+
+- [x] Owner ran PR #143 diagnostic once. It returned `stage:source`, `reason:source_already_used`, `source_run:20261102T042747Z`, `openclaw_called:false`, and all R4 queue/public flags false. **No diagnostic inference occurred and this does not identify why the earlier R4 model call was rejected.**
+- [x] Found source-only diagnostic bug: `scripts/report_r4_agent_contract.py` pinned the original run ID rather than following the installed R4 producer's exact latest-eligible-source selection, so it could become obsolete while scheduled R3 or another ledger used the source. Do not delete/reset/replay existing R3/R4/publication history.
+- [x] Updated diagnostic to read the sealed latest 20 observations within 100 saves; select the first under the installed 48-hour freshness window and **absent from all three ledgers** (`r4_social_decisions`, `r3_proposals`, `publish_jobs`). If none, return `no_fresh_r4_source` without contacting Bob. The sanitized report includes historical run owner category (`r3`, `r4`, `publisher`, `multiple`, `none`) but never leaks underlying rows or source content.
+- [x] Tests cover old source now R3-used, newer fresh selection, stale sources, all-used result, no publisher access, bounded output, and existing signed bridge.
+- [ ] Source PR CI/merge, then owner can run **one** updated private diagnostic from `~/bob-next`. It may call local OpenClaw once if a fresh unused source exists; it never records any R4 decision, sends social actions, changes timers or overrides owner controls. Read resulting stage/allowlisted error before any model contract change.
+
+---
+
 ## R4 first genuine OpenClaw trial: model or contract refused, no social side effect (2026-11-01 PST)
 
 - [x] Owner activated the existing R4 Propose controls and ran `~/.local/bin/bob-r4-propose --once`: `status:refused`, `reason:r4_model_or_contract_unverified`, `source_run:20261102T042747Z`, `queued:false`, `attempted:false`, `dispatch_authorized:false`. The previous `r4_paused_or_all_actions_off` gate has been passed; R4 selected a sealed recent Scout source. The failed model/contract verification **did not consume** the source or record a social decision.
