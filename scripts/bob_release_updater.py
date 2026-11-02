@@ -579,6 +579,22 @@ def preflight_r3_diagnostics_only() -> bool:
         return False
 
 
+
+def preflight_r4_installation() -> bool:
+    """Check exact accepted R3 canary host, not obsolete R3 handoff versions.
+
+    This is a read-only, fail-closed prerequisite to the separate owner-typed
+    UPDATE and its independent backup/hash/migration guards. It neither
+    grants new R4 publish privileges nor edits services or SQLite.
+    """
+    try:
+        from report_r4_preinstall import inspect
+        return inspect()["ready_for_separate_owner_install_prompt"] is True
+    except (OSError, ValueError, RuntimeError, TypeError, KeyError,
+            ImportError, AttributeError, UnicodeError):
+        return False
+
+
 def r4_publisher_inactive() -> bool:
     """Read-only exact effective publisher unit gate before R4 migration."""
     try:
@@ -874,8 +890,8 @@ def main():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
         if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1") and not preflight_r3_diagnostics_only():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
-        if plan["release"]=="v0.8.0-autonomy1" and not preflight_r3_diagnostics_only():
-            raise ValueError("r4_preinstall_r3_publisher_or_timer_unverified")
+        if plan["release"]=="v0.8.0-autonomy1" and not preflight_r4_installation():
+            raise ValueError("r4_preinstall_signed_r3_canary_host_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
