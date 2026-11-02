@@ -1,3 +1,12 @@
+## R4 schedule1 OMEN signed installation accepted; staging blocked by existing systemd topology (2026-11-02)
+
+- [x] Owner installed exact `v0.8.0-r4schedule1` (six signed files) with independently typed `UPDATE`, updater `BOB UPDATE: updated`. Installed acceptance `PASS`, authenticated HTTPS true, signed files true, original R3/legacy registry present, versioned additive schema ready, `new_r4_actions_attempted:0`, `public_send_armed_by_report:false`, `database_changed_by_report:false`.
+- [x] First post-install `~/.local/bin/bob-r4-schedule --status`: `phase:absent`, `timer_enabled:false`, `worker_in_flight:false`, `ready_to_stage:false`, `ready_to_enable:false`, blocker `scout_r3_or_publisher_topology_not_idle`. No owner staged/enabled R4 units or ran R4 scheduled worker.
+- [ ] **Physical gate next:** read-only systemd unit-state snapshot of R3 propose service/timer, original publisher service/timer, Scout timer and old Shadow service/timer. Current strict `_other_workers_idle` expects R3/publisher/Scout timers loaded+active+enabled without drop-ins, corresponding services idle, old Shadow service idle and timer inactive/disabled. Locate actual mismatched unit before changing code, enabling schedules, stopping prior timers or clearing history. A transient service run may resolve without intervention. **Do not type STAGE or ENABLE yet.**
+- [ ] If host topology is legitimate but incompatible with overstrict check, prepare a separate signed fail-closed compatibility patch with synthetic tests and an explicit release identity. Do not hot-edit installed signed code or weaken R3/publisher checks as a shortcut.
+
+---
+
 ## R4 controlled proposal scheduling: schedule1 OFF-first implementation (2026-11-02)
 
 - [x] **Prerequisite accepted:** Owner confirmed signed `v0.8.0-r4format1` installed and independent R4 acceptance PASS; genuine normal R4 one-shot returned `status:skipped, reason:bob_abstained, source_run:20261102T105527Z` with `queued:false, attempted:false, dispatch_authorized:false`. No requirement for Bob to make a public action.
