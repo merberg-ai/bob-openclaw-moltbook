@@ -57,6 +57,8 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-r3canary1": "https",
     # R4 only after separate signed, owner-approved one-time install.
     "v0.8.0-autonomy1": "https",
+    # R4 proposal-only compatibility patch. No additional public action.
+    "v0.8.0-r4propose1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -595,6 +597,31 @@ def preflight_r4_installation() -> bool:
         return False
 
 
+def preflight_r4_proposal_patch() -> bool:
+    """Only patch an independently accepted, idle autonomy1 installation.
+
+    Reads the live signed R4 registry and completed transaction, additive
+    schema, CA-authenticated HTTPS and existing unique publisher topology.
+    It does NOT enable any action mode or launch an agent/publisher.
+    """
+    try:
+        from report_r4_installed import inspect
+        evidence=inspect()
+        return (
+            evidence.get("release")=="v0.8.0-autonomy1"
+            and evidence.get("signed_installed_source") is True
+            and evidence.get("legacy_and_r3_registry") is True
+            and evidence.get("authenticated_https") is True
+            and evidence.get("new_r4_routes") is True
+            and evidence.get("versioned_additive_schema") is True
+            and evidence.get("publisher_inactive_at_check") is True
+            and evidence.get("new_r4_actions_attempted")==0
+            and r4_publisher_inactive() is True)
+    except (OSError,ValueError,RuntimeError,TypeError,KeyError,
+            ImportError,AttributeError,UnicodeError,sqlite3.Error):
+        return False
+
+
 def r4_publisher_inactive() -> bool:
     """Read-only unique original publisher topology, rechecked at migration.
 
@@ -665,6 +692,8 @@ def update(folder, current, plan, contents, *, auth):
     private_dir(STATE_DIR)
     fd = locked()
     try:
+        if plan["release"]=="v0.8.0-r4propose1" and not r4_publisher_inactive():
+            raise ValueError("r4_proposal_patch_publisher_topology_unverified")
         if read_journal() and read_journal()["phase"] not in ("complete", "rolled_back"):
             raise ValueError("incomplete prior release; use --recover")
         if not live_ok(current):
@@ -755,8 +784,8 @@ def update(folder, current, plan, contents, *, auth):
 def rollback_completed_r4(*, auth):
     """Owner-only R4-to-R3 code recovery AFTER a successfully completed install.
 
-    Unlike --recover (interrupted installs), this deliberately permits only
-    the exact completed autonomy1 journal and its archived r3canary1 baseline.
+    Unlike --recover (interrupted installs), this permits only two exact
+    signed completed transitions: R3->autonomy1 or autonomy1->r4propose1.
     The same existing archive/hash checks perform code-only restoration:
     NEVER restore an older SQLite snapshot over later public attempts.
     """
@@ -764,17 +793,22 @@ def rollback_completed_r4(*, auth):
     try:
         journal = read_journal()
         installed = registry()
+        predecessors={
+            "v0.8.0-autonomy1":"v0.8.0-r3canary1",
+            "v0.8.0-r4propose1":"v0.8.0-autonomy1",
+        }
+        release=journal.get("release") if journal else None
         if (not journal or journal.get("phase") != "complete"
-                or journal.get("release") != "v0.8.0-autonomy1"
+                or release not in predecessors
                 or journal.get("restart_manager") is not True
-                or installed["release"] != "v0.8.0-autonomy1"
+                or installed["release"] != release
                 or not live_ok(installed) or not r4_publisher_inactive()):
             raise ValueError("r4_completed_rollback_scope_unverified")
-        archive = STATE_DIR / "tx-v0.8.0-autonomy1"
+        archive = STATE_DIR / ("tx-"+release)
         safe_private(archive, directory=True)
         before = read_json(archive / "registry-before.json")
         if (before.get("format") != FORMAT or
-                before.get("release") != "v0.8.0-r3canary1" or
+                before.get("release") != predecessors[release] or
                 not isinstance(before.get("files"), dict)):
             raise ValueError("r4_completed_rollback_archive_unverified")
         return rollback(journal, auth=auth)
@@ -829,7 +863,7 @@ def main():
     group.add_argument("--check", action="store_true")
     group.add_argument("--recover", action="store_true")
     group.add_argument("--rollback-r4", action="store_true",
-                       help="owner-typed, code-only rollback of completed autonomy1 to r3canary1")
+                       help="owner-typed, code-only rollback of last completed R4 release to its exact predecessor")
     group.add_argument("--channel", choices=sorted(CHANNELS))
     group.add_argument("--rollback-to", metavar="RELEASE")
     args = parser.parse_args()
@@ -848,7 +882,7 @@ def main():
             return 0
         if args.rollback_r4:
             if not sys.stdin.isatty() or input(
-                    "Type ROLLBACK-R4 to restore R3 code ONLY (never SQLite): "
+                    "Type ROLLBACK-R4 to restore preceding signed code ONLY (never SQLite): "
             ) != "ROLLBACK-R4":
                 raise ValueError("r4_completed_rollback_approval_not_granted")
             print("BOB UPDATE:", rollback_completed_r4(auth=authorization()))
@@ -903,6 +937,8 @@ def main():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
         if plan["release"]=="v0.8.0-autonomy1" and not preflight_r4_installation():
             raise ValueError("r4_preinstall_signed_r3_canary_host_unverified")
+        if plan["release"]=="v0.8.0-r4propose1" and not preflight_r4_proposal_patch():
+            raise ValueError("r4_proposal_patch_existing_install_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
