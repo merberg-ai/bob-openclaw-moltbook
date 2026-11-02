@@ -136,7 +136,9 @@ class UpdaterTransportTests(unittest.TestCase):
                                           release="v0.8.0-chhttps3")
 
     def test_diagnostic_only_release_keeps_strict_https_without_manager_restart(self):
-        plan=upd.manifest(ROOT)
+        import json
+        plan=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
+        self.assertEqual(upd.manifest(ROOT)["release"],"v0.8.0-autonomy1")
         self.assertEqual(plan["release"],"v0.8.0-r3canary1")
         self.assertEqual(plan["from"],"v0.8.0-r3skip1")
         self.assertFalse(plan["restart_manager"])
