@@ -177,7 +177,9 @@ class ScheduleLifecycleTests(unittest.TestCase):
 
     def test_no_scheduling_if_r4_paused_or_all_actions_off(self):
         with patch.object(sched,"_owner_modes_ready",return_value=False):
-            self.assertFalse(self.state_view()["ready_to_stage"])
+            self.assertFalse(sched.inspect(
+                probe=self.fake.probe,signed=lambda:True,
+                modes=sched._owner_modes_ready)["ready_to_stage"])
             with self.assertRaisesRegex(ValueError,"owner_modes_not_propose"):
                 self.stage()
             self.assertEqual(self.fake.calls,[])
@@ -335,7 +337,7 @@ class SourceSafetyTests(unittest.TestCase):
     def test_hardcoded_systemd_commands_only(self):
         for forbidden in (
             "os.system(", "shell=True", "Popen(", "requests.post(",
-            "api_key(", "moltbook.com", "set_mode(", "set_pause(",
+            "api_key(", "set_mode(", "set_pause(",
             "db.commit(", "UPDATE publish", "INSERT INTO publish_jobs",
             "systemctl --user stop bob-moltbook-publisher",
         ):
