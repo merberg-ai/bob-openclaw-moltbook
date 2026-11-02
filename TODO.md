@@ -1,3 +1,12 @@
+## R4 OMEN source/host GO-NO-GO handoff (2026-11-01, draft PR #137)
+
+- [x] Added `scripts/report_r4_go_nogo.py --check`: a single no-install, no-public-send, sanitized combined **23-file source candidate audit + actual-host R3-canary/HTTPS/service/journal review**. One PASS only means ready for *separate* release review, never owner authorization.
+- [x] Added synthetic fail-closed tests `tests/test_r4_go_nogo.py`, CI path triggers, and [one-paste isolated host check instructions](docs/R4-LIVE-HOST-CHECK.md). Uses a separate `~/bob-r4-review` checkout; no change to trusted `~/bob-next`, active systemd, SQLite or Moltbook.
+- [ ] Await the real OMEN result from the owner running the one read-only command as `openclaw`. Do **not** infer live host readiness from GitHub CI, and do not stop publisher/Scout timers to force PASS.
+- [ ] Review the live evidence; only then complete source PR review/merge into `next`, followed by a separately approved release-manifest promotion and owner-typed R4 installation. Real R4 sends require another distinct authorization.
+
+---
+
 ## R4 production-shaped release hardening (2026-11-01, PR #137)
 
 - [x] **One full-payload transaction rehearsal:** `tests/test_r4_production_shape_rehearsal.py` installs the exact 23 candidate blobs in disposable private paths, executes the **real** updater's verified SQLite backup/independent restore, hash gate, additive R4 migration and journal, preserving the existing R3 canary receipt. No OMEN, systemd or Moltbook requests.
