@@ -4,7 +4,8 @@
 - [x] Reviewed exact pre-archive updater path: private state directory, updater lock, second publisher-idle check, prior journal, installed hash verification, authenticated loopback HTTPS, verified private SQLite backup, archive absence and creation, then private copy/journal. The generic `ValueError` did not identify which early check refused.
 - [x] Staged **allowlisted categorical error reporting** in source updater, restricted to the R4 proposal patch before the rollback-aware install transaction. It reveals only fixed gate name and exception type, never private paths, credentials, HTTP body, SQLite content or raw error messages. Refusal still raises exactly as before; no bypass, install, retry, service/timer changes or Moltbook action.
 - [x] Added synthetic refusal-stage tests covering publisher, HTTPS, backup, journal and lock errors, including rejection of unreviewed diagnostic labels and proof that installed file writes never occur.
-- [ ] Source PR CI/merge; separate owner choice to perform at most one instrumented update after review. If the patch refuses, stop and inspect the printed stage; do not loop, force, recover or restore DB without evidence.
+- [x] **PR #142 merged to `next` after 1,295 Python tests and Windows CI PASS.** The trusted checkout now includes the exact allowlisted failure-stage diagnostic; only updater source/test/docs changed, release manifest and current installed OMEN remain unchanged. The staged four-file source bytes have been reviewed in PR #142.
+- [ ] **Separate owner choice:** run exactly one instrumented typed `UPDATE` from clean updated `~/bob-next`. If refusal repeats, collect the sanitized `BOB R4 PATCH PREFLIGHT: refused at <stage>` output and stop; do not bypass checks, recover, restore DB or keep retrying. If install succeeds, collect `report_r4_installed.py --check` PASS before enabling R4 private Propose.
 
 ---
 
