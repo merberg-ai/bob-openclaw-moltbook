@@ -47,7 +47,12 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
         self.assertEqual(current["from"],"v0.8.0-r4format1")
         self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-schedule1-offfirst.json").read_text()))
         self.assertEqual(len(current["files"]),6)
-        self.assertIn("bob_r4_agent.py",{row["name"] for row in current["files"]})
+        self.assertIn("bob_r4_schedule.py",
+                      {row["name"] for row in current["files"]})
+        prior_format=json.loads((ROOT/
+            "releases/candidates/r4-format1-json-reliability.json").read_text())
+        self.assertIn("bob_r4_agent.py",
+                      {row["name"] for row in prior_format["files"]})
         self.assertNotIn("bob-r4-publisher",{row["name"] for row in current["files"]})
         with self.assertRaisesRegex(
                 ValueError,"unreviewed_source_release_or_promotion"):
