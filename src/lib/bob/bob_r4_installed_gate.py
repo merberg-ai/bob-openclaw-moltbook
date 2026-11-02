@@ -15,13 +15,20 @@ from pathlib import Path
 import re
 import stat
 
+import bob_release_lineage as lineage
+
 RELEASE="v0.8.0-autonomy1"
 PROPOSAL_RELEASE="v0.8.0-r4propose1"
 FORMAT_RELEASE="v0.8.0-r4format1"
 SCHEDULE_RELEASE="v0.8.0-r4schedule1"
 SCHEDULE2_RELEASE="v0.8.0-r4schedule2"
-SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE,
-                     SCHEDULE_RELEASE,SCHEDULE2_RELEASE))
+# Every R4-family release in the reviewed lineage; unknown ids fail closed.
+SUPPORTED=lineage.family("r4")
+SCHEDULE_FAMILY=lineage.family("r4_schedule")
+# Releases older than the lineage module did not ship it; newer ones must,
+# and its installed bytes are then hash-verified like every other file.
+PRE_LINEAGE=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE,
+                       SCHEDULE_RELEASE,SCHEDULE2_RELEASE))
 REGISTRY_FORMAT="bob-updater-v1"
 REQUIRED=frozenset((
     "bob-moltbook-publisher","bob-activity-manager","bob_r3_package.pyz",
@@ -89,13 +96,14 @@ def verify(*,home:Path|None=None)->bool:
         hashes=info["files"]
         if not REQUIRED.issubset(hashes.keys()):
             return False
-        if info["release"] in (SCHEDULE_RELEASE,SCHEDULE2_RELEASE) and not frozenset((
-                "bob-r4-schedule","bob_r4_schedule.py"
-                )).issubset(hashes):
+        required=set(REQUIRED)
+        if info["release"] in SCHEDULE_FAMILY:
+            required|={"bob-r4-schedule","bob_r4_schedule.py"}
+        if info["release"] not in PRE_LINEAGE:
+            required.add("bob_release_lineage.py")
+        if not required.issubset(hashes):
             return False
-        for name in (REQUIRED|frozenset((
-                "bob-r4-schedule","bob_r4_schedule.py"
-                )) if info["release"] in (SCHEDULE_RELEASE,SCHEDULE2_RELEASE) else REQUIRED):
+        for name in required:
             expected=hashes[name]
             p=bindir/name
             if (type(expected) is not str or not DIGEST.fullmatch(expected)
