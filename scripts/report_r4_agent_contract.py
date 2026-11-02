@@ -55,6 +55,15 @@ def safe_error(exc:Exception)->str:
     return candidate if candidate in ALLOWED_ERRORS else "unclassified_error"
 
 
+def _session_key(session:str,run:str,*,production:bool)->str:
+    """Only use the R4 bridge's exact source-specific session identity."""
+    expected="moltbook-v08-shadow-r4-proposal-"+run
+    if (type(run) is not str or type(session) is not str or
+            type(production) is not bool or session!=expected):
+        raise ValueError("unexpected_shadow_session")
+    return session if production else SESSION_PREFIX+run
+
+
 def _ledger_owner(db, run:str)->str:
     """Which original ledger has the historical source (no row content)."""
     found=[]
@@ -215,14 +224,12 @@ def diagnose(*,production_session:bool=False)->dict:
         transport_completed=False
         def model(prompt,session):
             nonlocal called,transport_completed
-            if (session!="moltbook-v08-shadow-r4-proposal-"+run):
-                raise ValueError("unexpected_shadow_session")
-            called=True
             # Default probe uses its isolated diagnostic session. Only
             # explicit --production-session-once with a second owner-typed
             # confirmation reuses the SAME source-specific session key as
             # the signed normal R4 worker. No bypass of the real parser.
-            key=session if production_session else SESSION_PREFIX+run
+            key=_session_key(session,run,production=production_session)
+            called=True
             raw=openclaw_decide(prompt,key)
             transport_completed=True
             return raw
