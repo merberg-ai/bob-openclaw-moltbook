@@ -211,13 +211,14 @@ def _other_workers_idle(states:dict[str,Unit])->bool:
     for name in (R3_TIMER,PUBLISHER_TIMER,SCOUT_TIMER):
         unit=states[name]
         if (unit.load!="loaded" or unit.active!="active"
-                or unit.enabled not in ENABLED):
+                or unit.enabled not in ENABLED or unit.dropins!=""):
             return False
-    if any(states[name].active!="inactive" for name in
-           (R3_SERVICE,PUBLISHER_SERVICE,SHADOW_SERVICE)):
+    if any(states[name].active!="inactive" or states[name].dropins!=""
+           for name in (R3_SERVICE,PUBLISHER_SERVICE,SHADOW_SERVICE)):
         return False
     shadow=states[SHADOW_TIMER]
-    if shadow.active!="inactive" or shadow.enabled in ENABLED:
+    if (shadow.active!="inactive" or shadow.enabled in ENABLED
+            or shadow.dropins!=""):
         return False
     return True
 
@@ -228,7 +229,8 @@ def _owner_modes_ready()->bool:
         from bob_publish_common import DB
         from bob_r313d_owner import trusted_manager_boundary
         from bob_r4_ledger import schema_ready
-        from bob_r4_controls import AVAILABLE,read_modes,pause_state
+        from bob_r4_controls import read_modes,pause_state
+        from bob_r4_agent import AVAILABLE
         if DB.is_symlink() or not DB.is_file():
             return False
         with closing(sqlite3.connect(
@@ -417,15 +419,20 @@ def _require_owner():
 def stage(*,probe=_probe,control=_ctl)->str:
     """Explicit staged units, with timer DISABLED. No OpenClaw inference."""
     _require_owner()
-    if STATE.exists() or STATE.is_symlink():
+    if STATE.is_symlink():
         raise ValueError("r4_schedule_existing_state_requires_review")
+    existing=STATE.exists()
+    if existing:
+        if not _dir(STATE,strict=True) or _phase()!="rolled_back":
+            raise ValueError("r4_schedule_existing_state_requires_review")
     before=_states(probe)
     safe,_,problems=_preflight_states(before,"absent")
     if not safe or problems:
         raise ValueError("r4_schedule_stage_topology_unverified")
     if not _owner_modes_ready():
         raise ValueError("r4_schedule_owner_modes_not_propose")
-    STATE.mkdir(mode=0o700,parents=True,exist_ok=False)
+    if not existing:
+        STATE.mkdir(mode=0o700,parents=True,exist_ok=False)
     fd=_lock(LOCK)
     try:
         _write_phase("prepared")
