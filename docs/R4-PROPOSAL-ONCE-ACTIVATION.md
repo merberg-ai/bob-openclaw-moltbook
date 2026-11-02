@@ -147,3 +147,24 @@ A green result reflects conditions **now**, not the historical failed instant.
 It never retries, installs, creates a database backup, invokes OpenClaw, changes
 a service or makes any Moltbook API call.
 
+
+## Categorical pretransaction refusal diagnostics (source-review stage)
+
+After a second typed `UPDATE` refusal, the owner separately ran a private
+SQLite online backup and isolated restore rehearsal. Both passed. The original
+`autonomy1` registry/journal remained signed and complete, and no patch
+archive existed. This does not establish which earlier gate failed.
+
+A reviewed follow-up adds strictly allowlisted diagnostic stages to the
+existing source updater **before** any installed-file changes:
+`state_directory`, `updater_lock`, `publisher_topology`,
+`prior_journal`, `installed_hashes`, `authenticated_https`,
+`verified_sqlite_backup`, `archive_absence`, `archive_creation`,
+`archive_original_files`, `archive_checksums`, `archive_registry`
+and `transaction_journal`. Only hardcoded stage labels and exception
+types are printed, never raw errors, credentials, paths or HTTP content.
+
+This is observability, **not** a bypass. The same exception still aborts
+the update; no automatic retry, stop/start command, R4 action-mode change,
+new public writer, or social action is introduced. The ordinary signed
+transaction rollback remains intact.
