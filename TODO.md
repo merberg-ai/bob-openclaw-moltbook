@@ -1,3 +1,11 @@
+## R4 proposal patch: owner-reported updater refusal (2026-11-01 PDT)
+
+- [ ] **DO NOT RETRY / DO NOT ENABLE CONTROLS YET.** Owner's actual OMEN source audit `report_r4_proposal_candidate.py --check` PASSED (exact promoted four-file `v0.8.0-r4propose1`, source gates Off). The source updater offered the correct four files and received typed `UPDATE`, but returned `BOB UPDATE: REFUSED (ValueError)` without a `BOB UPDATE: failed at …` transaction-stage line. **Patch installation NOT confirmed.** Original `v0.8.0-autonomy1` acceptance was previously PASS.
+- [ ] Next action: obtain **read-only sanitized** current registry release, signed registry hash check, updater journal `release/phase`, existence of `tx-v0.8.0-r4propose1`, current publisher-idle snapshot, and R4 installed acceptance. Do not infer the specific ValueError from its class; early updater guard, temporary original-publisher activity, backup setup, or archive state remain possibilities. Avoid disclosing credentials/SQLite contents.
+- [ ] Only after diagnosing stage/guard state, prepare narrowly scoped fix or separately reviewed operator path. No automatic retry, rollback, manual file editing, timer stopping, or public Moltbook actions.
+
+---
+
 ## R4 proposal-only one-shot activation: signed compatibility patch (2026-11-01 PDT)
 
 - [x] **Identified a real production blocker before enabling controls:** installed `bob_r4_agent.decide` used `moltbook-v08-r4-proposal-*`, while the existing verified OpenClaw `openclaw_decide` allows only `moltbook-v08-shadow-*`. Offline mock-model tests hid the mismatch. The current accepted R4 install remains intact and private actions Off/paused.
