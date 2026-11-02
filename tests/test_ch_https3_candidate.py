@@ -213,13 +213,13 @@ class HTTPS3CandidateTests(unittest.TestCase):
                          {"bob_manager_tls.py","bob-activity-manager"})
         self.assertTrue(data["restart_manager"])
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text()))
-        self.assertEqual(live["release"],"v0.8.0-autonomy1")
-        self.assertEqual(live["from"],"v0.8.0-r3canary1")
-        self.assertEqual(len(live["files"]),23)
+        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text()))
+        self.assertEqual(live["release"],"v0.8.0-r4propose1")
+        self.assertEqual(live["from"],"v0.8.0-autonomy1")
+        self.assertEqual(len(live["files"]),4)
         self.assertTrue(live["restart_manager"])
         archived=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
-        self.assertEqual(archived["release"],live["from"])
+        self.assertEqual(archived["release"],"v0.8.0-r3canary1")
         self.assertEqual({x["name"] for x in archived["files"]},
                          {"bob-release-updater","bobctl","bob_r3_package.pyz",
                           "bob_r3_canary_lock.py","bob_r313c_adapter.py",
