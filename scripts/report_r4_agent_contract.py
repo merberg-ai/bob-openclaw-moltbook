@@ -326,7 +326,7 @@ def main(argv=None)->int:
                     ["--fresh-format-once"]):
         print("Usage: python3 scripts/report_r4_agent_contract.py "
               "--once | --production-session-once | --fresh-format-once "
-              "(one OpenClaw call, no R4 record or social send)")
+              "(one local OpenClaw main-agent call; no R4 record or social send)")
         return 2
     production=args==["--production-session-once"]
     format_test=args==["--fresh-format-once"]
