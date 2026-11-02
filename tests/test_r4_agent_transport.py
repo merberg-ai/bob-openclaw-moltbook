@@ -50,7 +50,9 @@ class LiveTransportCompatibilityTests(unittest.TestCase):
         command=seen[0][0]
         self.assertEqual(command[0:4],["openclaw","agent","--agent","main"])
         session=command[command.index("--session-key")+1]
-        self.assertEqual(session,"moltbook-v08-shadow-r4-proposal-"+Observed.run_id)
+        self.assertRegex(session,
+                         r"^moltbook-v08-shadow-r4-proposal-"+
+                         Observed.run_id+r"-[a-f0-9]{16}$")
         self.assertTrue(session.startswith("moltbook-v08-shadow-"))
         self.assertIn("--message-file",command)
         self.assertNotIn("--tools",command)
