@@ -94,7 +94,8 @@ def _next_available(db, choices, now:datetime):
 
 def result(*,stage:str,reason:str,called:bool=False,
            verified_kind:str="none",source_run:str="",
-           previous_owner:str="unknown")->dict:
+           previous_owner:str="unknown",
+           session_scope:str="isolated")->dict:
     if stage not in ("host","source","controls","transport",
                      "contract","valid_private_decision"):
         stage="host"
@@ -120,7 +121,10 @@ def result(*,stage:str,reason:str,called:bool=False,
             verified_kind in ("none","skip","upvote","comment","post","follow")
             else "none",
         "openclaw_called":called,
-        "isolated_agent_session":called,
+        "requested_session_scope":session_scope if session_scope in
+            ("isolated","production") else "unverified",
+        "isolated_agent_session":called and session_scope=="isolated",
+        "production_session_touched":called and session_scope=="production",
         "r4_decision_recorded":False,
         "r4_proposal_queued":False,
         "public_social_dispatch_authorized":False,
@@ -129,16 +133,27 @@ def result(*,stage:str,reason:str,called:bool=False,
     }
 
 
-def diagnose()->dict:
+def diagnose(*,production_session:bool=False)->dict:
+    """Optional exact source-session trace; never records a social action.
+
+    An explicit owner-facing command and terminal confirmation are required
+    before using the live source-specific OpenClaw session. This leaves the
+    private database query-only, but OpenClaw itself persists a session turn.
+    """
+    if type(production_session) is not bool:
+        raise ValueError("r4_unreviewed_session_diagnostic")
     called=False
     stage="host"
     run=""
     prior_owner="unknown"
+    scope="production" if production_session else "isolated"
+    def emit(**fields):
+        return result(session_scope=scope,**fields)
     try:
         home=Path.home()
         uid=os.geteuid()
         if uid==0 or pwd.getpwuid(uid).pw_dir!=str(home):
-            return result(stage="host",reason="invalid_account")
+            return emit(stage="host",reason="invalid_account")
         bindir=home/".local/bin"
         # Never load R4 code from a mutable Git checkout.
         if str(bindir) not in sys.path:
@@ -146,12 +161,12 @@ def diagnose()->dict:
         import bob_r4_installed_gate as installed_gate
         from bob_r313d_package import load_verified
         if not installed_gate.verify():
-            return result(stage="host",reason="signed_install_not_verified")
+            return emit(stage="host",reason="signed_install_not_verified")
         registry=json.loads((home/".local/state/bob-updater/installed.json")
                             .read_text(encoding="utf-8"))
         if registry.get("release")!=RELEASE or (
                 load_verified()!="verified_registry_archive"):
-            return result(stage="host",reason="signed_install_not_verified")
+            return emit(stage="host",reason="signed_install_not_verified")
 
         from bob_publish_common import DATA,DB
         from bob_r313d_owner import trusted_manager_boundary
@@ -165,21 +180,21 @@ def diagnose()->dict:
         if (DATA.is_symlink() or not DATA.is_dir()
                 or DATA.stat().st_uid!=uid
                 or DATA.stat().st_mode & 0o077):
-            return result(stage="source",reason="saved_feed_not_verified")
+            return emit(stage="source",reason="saved_feed_not_verified")
         now=datetime.now(timezone.utc)
         if DB.is_symlink() or not stat.S_ISREG(DB.stat().st_mode):
-            return result(stage="host",reason="private_database_not_verified")
+            return emit(stage="host",reason="private_database_not_verified")
         with closing(sqlite3.connect(DB.as_uri()+"?mode=ro",
                                      uri=True,timeout=5)) as db:
             db.execute("PRAGMA query_only=ON")
             if not trusted_manager_boundary(db) or not schema_ready(db):
-                return result(stage="host",reason="private_database_not_verified")
+                return emit(stage="host",reason="private_database_not_verified")
             prior_owner=_ledger_owner(db,PREVIOUS_RUN)
             stage="controls"
             modes=read_modes(db)
             if pause_state(db) or not any(
                     modes[a]=="propose" for a in AVAILABLE):
-                return result(stage="controls",reason="owner_off_or_paused",
+                return emit(stage="controls",reason="owner_off_or_paused",
                               previous_owner=prior_owner)
             stage="source"
             # Same bounded, sealed 100-file scan / 20-result selection as
@@ -188,7 +203,7 @@ def diagnose()->dict:
             choices=latest_observations(DATA,max_scan=100,limit=20)
             observed=_next_available(db,choices,now)
             if observed is None:
-                return result(stage="source",reason="no_fresh_r4_source",
+                return emit(stage="source",reason="no_fresh_r4_source",
                               previous_owner=prior_owner)
             run=observed.run_id
             repeats=author_count(DATA,observed)
@@ -203,32 +218,56 @@ def diagnose()->dict:
             if (session!="moltbook-v08-shadow-r4-proposal-"+run):
                 raise ValueError("unexpected_shadow_session")
             called=True
-            raw=openclaw_decide(prompt,SESSION_PREFIX+run)
+            # Default probe uses its isolated diagnostic session. Only
+            # explicit --production-session-once with a second owner-typed
+            # confirmation reuses the SAME source-specific session key as
+            # the signed normal R4 worker. No bypass of the real parser.
+            key=session if production_session else SESSION_PREFIX+run
+            raw=openclaw_decide(prompt,key)
             transport_completed=True
             return raw
         try:
             decision=decide(observed,modes=modes,model=model,now=now,
                             author_observations=repeats)
         except (OSError,ValueError,RuntimeError,TypeError) as exc:
-            return result(stage="contract" if transport_completed else "transport",
+            return emit(stage="contract" if transport_completed else "transport",
                           reason=safe_error(exc),called=called,
                           source_run=run,previous_owner=prior_owner)
-        return result(stage="valid_private_decision",reason="ok",
+        return emit(stage="valid_private_decision",reason="ok",
                       called=called,verified_kind=decision.kind,
                       source_run=run,previous_owner=prior_owner)
     except (OSError,ValueError,TypeError,RuntimeError,ImportError,
             KeyError,AttributeError,sqlite3.Error,UnicodeError) as exc:
-        return result(stage=stage,reason=safe_error(exc),called=called,
+        return emit(stage=stage,reason=safe_error(exc),called=called,
                       source_run=run,previous_owner=prior_owner)
 
 
 def main(argv=None)->int:
     args=sys.argv[1:] if argv is None else argv
-    if args!=["--once"]:
-        print("Usage: python3 scripts/report_r4_agent_contract.py --once "
-              "(one local OpenClaw main-agent call; distinct saved session)")
+    if args not in (["--once"],["--production-session-once"]):
+        print("Usage: python3 scripts/report_r4_agent_contract.py "
+              "--once | --production-session-once")
         return 2
-    report=diagnose()
+    production=args==["--production-session-once"]
+    if production:
+        # A normal --once can be used without prompting; sharing the exact
+        # production R4 OpenClaw session is an additional explicit action.
+        # No CLI flags, environment values or nonterminal input may bypass.
+        if not sys.stdin.isatty():
+            print("R4 SESSION TRACE: refused (terminal confirmation required)")
+            return 1
+        try:
+            approval=input(
+                "Add ONE diagnostic turn to existing production R4 "
+                "OpenClaw source session (NO DB or social writes). "
+                "Type TRACE R4 SESSION: ")
+        except (EOFError,KeyboardInterrupt):
+            print("R4 SESSION TRACE: refused (confirmation unavailable)")
+            return 1
+        if approval!="TRACE R4 SESSION":
+            print("R4 SESSION TRACE: refused (confirmation not granted)")
+            return 1
+    report=diagnose(production_session=production)
     print(json.dumps(report,sort_keys=True,separators=(",",":")))
     return 0 if report["stage"]=="valid_private_decision" else 1
 
