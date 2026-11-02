@@ -16,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import pwd
+import secrets
 import sqlite3
 import stat
 import sys
@@ -23,6 +24,9 @@ import sys
 PREVIOUS_RUN="20261102T042747Z"  # Historical refused source; NEVER replay it.
 RELEASE="v0.8.0-r4propose1"
 SESSION_PREFIX="moltbook-v08-shadow-r4-diagnostic-"
+FORMAT_PREFIX="moltbook-v08-shadow-r4-format-"
+EXPECTED_FIELDS=("type","source_run","target_id","reason",
+                 "text","title","submolt","parent_id")
 ALLOWED_ERRORS=frozenset((
     # The existing verified OpenClaw transport's error identifiers.
     "unexpected_shadow_session","shadow_agent_unavailable",
@@ -53,6 +57,56 @@ def safe_error(exc:Exception)->str:
     """No arbitrary model text, paths, tokens or subprocess stderr."""
     candidate=str(exc)
     return candidate if candidate in ALLOWED_ERRORS else "unclassified_error"
+
+
+def sanitized_shape(raw)->dict:
+    """Describe format without exposing ANY returned field names or values.
+
+    Only names from our own fixed eight-field allowlist appear in output.
+    Arbitrary model keys, text, prompts and JSON values are never echoed.
+    """
+    shape={"top_level":"unavailable","missing_expected":[],
+           "non_string_expected":[],"extra_field_count":0}
+    if type(raw) is not str or not 0<len(raw.encode("utf-8"))<=8192:
+        return shape
+    try:
+        value=json.loads(raw)
+    except (ValueError,TypeError):
+        shape["top_level"]="invalid_json"
+        return shape
+    if type(value) is not dict:
+        shape["top_level"]=("array" if type(value) is list else "other")
+        return shape
+    shape["top_level"]="object"
+    shape["missing_expected"]=[k for k in EXPECTED_FIELDS if k not in value]
+    shape["non_string_expected"]=[
+        k for k in EXPECTED_FIELDS if k in value and type(value[k]) is not str
+    ]
+    shape["extra_field_count"]=min(
+        32,sum(1 for k in value if k not in EXPECTED_FIELDS))
+    return shape
+
+
+def _format_test_prompt(original:str,observed)->str:
+    """Trusted output-only instruction, appended AFTER untrusted source."""
+    from bob_r4_decision import exact_example
+    if type(original) is not str or not original.endswith(
+            "\\nEND_UNTRUSTED_MOLTBOOK_JSON\\n"):
+        raise ValueError("r4_untrusted_decision_envelope")
+    return original+(
+        "\\nTRUSTED OUTPUT CONTRACT (this is NOT permission to take action): "
+        "Return EXACTLY ONE JSON object, with these eight keys and NO others: "
+        "type, source_run, target_id, reason, text, title, submolt, parent_id. "
+        "ALL eight values must be JSON strings, including empty strings. "
+        "Never use null, numbers, lists or nested objects for any field. "
+        "Do not omit empty fields. Do not wrap the JSON in markdown fences. "
+        "Do not write an explanation outside the JSON. "
+        "Use skip when no permitted action is clearly justified. "
+        "A correct complete SKIP example using this sealed source is: "+
+        exact_example(observed)+". "
+        "If proposing a non-skip action, keep all eight fields and the exact "
+        "source_run; follow the action-specific rules above.\\n"
+    )
 
 
 def _session_key(session:str,run:str,*,production:bool)->str:
@@ -104,7 +158,7 @@ def _next_available(db, choices, now:datetime):
 def result(*,stage:str,reason:str,called:bool=False,
            verified_kind:str="none",source_run:str="",
            previous_owner:str="unknown",
-           session_scope:str="isolated")->dict:
+           session_scope:str="isolated",response_shape=None)->dict:
     if stage not in ("host","source","controls","transport",
                      "contract","valid_private_decision"):
         stage="host"
@@ -131,8 +185,12 @@ def result(*,stage:str,reason:str,called:bool=False,
             else "none",
         "openclaw_called":called,
         "requested_session_scope":session_scope if session_scope in
-            ("isolated","production") else "unverified",
-        "isolated_agent_session":called and session_scope=="isolated",
+            ("isolated","production","fresh_format") else "unverified",
+        "isolated_agent_session":called and session_scope in
+            ("isolated","fresh_format"),
+        "fresh_format_experiment":session_scope=="fresh_format",
+        "response_shape":response_shape if session_scope=="fresh_format"
+            and isinstance(response_shape,dict) else None,
         "production_session_touched":called and session_scope=="production",
         "r4_decision_recorded":False,
         "r4_proposal_queued":False,
@@ -142,20 +200,22 @@ def result(*,stage:str,reason:str,called:bool=False,
     }
 
 
-def diagnose(*,production_session:bool=False)->dict:
+def diagnose(*,production_session:bool=False,fresh_format:bool=False)->dict:
     """Optional exact source-session trace; never records a social action.
 
     An explicit owner-facing command and terminal confirmation are required
     before using the live source-specific OpenClaw session. This leaves the
     private database query-only, but OpenClaw itself persists a session turn.
     """
-    if type(production_session) is not bool:
+    if (type(production_session) is not bool or type(fresh_format) is not bool
+            or production_session and fresh_format):
         raise ValueError("r4_unreviewed_session_diagnostic")
     called=False
     stage="host"
     run=""
     prior_owner="unknown"
-    scope="production" if production_session else "isolated"
+    scope=("production" if production_session else
+           "fresh_format" if fresh_format else "isolated")
     def emit(**fields):
         return result(session_scope=scope,**fields)
     try:
@@ -222,27 +282,38 @@ def diagnose(*,production_session:bool=False)->dict:
         # action/target/age restrictions. This script never calls record().
         stage="transport"
         transport_completed=False
+        raw_reply=None
         def model(prompt,session):
-            nonlocal called,transport_completed
+            nonlocal called,transport_completed,raw_reply
             # Default probe uses its isolated diagnostic session. Only
             # explicit --production-session-once with a second owner-typed
             # confirmation reuses the SAME source-specific session key as
             # the signed normal R4 worker. No bypass of the real parser.
             key=_session_key(session,run,production=production_session)
+            if fresh_format:
+                # The experiment must not reuse or reset any production
+                # session. A fresh unpredictable shadow key isolates this
+                # single test turn from earlier model-format failures.
+                key=FORMAT_PREFIX+run+"-"+secrets.token_hex(8)
+                prompt=_format_test_prompt(prompt,observed)
             called=True
-            raw=openclaw_decide(prompt,key)
+            raw_reply=openclaw_decide(prompt,key)
             transport_completed=True
-            return raw
+            return raw_reply
         try:
             decision=decide(observed,modes=modes,model=model,now=now,
                             author_observations=repeats)
         except (OSError,ValueError,RuntimeError,TypeError) as exc:
             return emit(stage="contract" if transport_completed else "transport",
                           reason=safe_error(exc),called=called,
-                          source_run=run,previous_owner=prior_owner)
+                          source_run=run,previous_owner=prior_owner,
+                          response_shape=sanitized_shape(raw_reply)
+                              if fresh_format and transport_completed else None)
         return emit(stage="valid_private_decision",reason="ok",
                       called=called,verified_kind=decision.kind,
-                      source_run=run,previous_owner=prior_owner)
+                      source_run=run,previous_owner=prior_owner,
+                      response_shape=sanitized_shape(raw_reply)
+                          if fresh_format else None)
     except (OSError,ValueError,TypeError,RuntimeError,ImportError,
             KeyError,AttributeError,sqlite3.Error,UnicodeError) as exc:
         return emit(stage=stage,reason=safe_error(exc),called=called,
@@ -251,14 +322,15 @@ def diagnose(*,production_session:bool=False)->dict:
 
 def main(argv=None)->int:
     args=sys.argv[1:] if argv is None else argv
-    if args not in (["--once"],["--production-session-once"]):
+    if args not in (["--once"],["--production-session-once"],
+                    ["--fresh-format-once"]):
         print("Usage: python3 scripts/report_r4_agent_contract.py "
-              "--once | --production-session-once "
-              "(one local OpenClaw main-agent call; production session "
-              "requires terminal confirmation)")
+              "--once | --production-session-once | --fresh-format-once "
+              "(one OpenClaw call, no R4 record or social send)")
         return 2
     production=args==["--production-session-once"]
-    if production:
+    format_test=args==["--fresh-format-once"]
+    if production or format_test:
         # A normal --once can be used without prompting; sharing the exact
         # production R4 OpenClaw session is an additional explicit action.
         # No CLI flags, environment values or nonterminal input may bypass.
@@ -266,17 +338,21 @@ def main(argv=None)->int:
             print("R4 SESSION TRACE: refused (terminal confirmation required)")
             return 1
         try:
+            phrase=("TRACE R4 SESSION" if production
+                    else "TEST R4 JSON FORMAT")
             approval=input(
-                "Add ONE diagnostic turn to existing production R4 "
-                "OpenClaw source session (NO DB or social writes). "
-                "Type TRACE R4 SESSION: ")
+                ("Add ONE diagnostic turn to existing production R4 session. "
+                 if production else
+                 "Call Bob ONCE in a fresh private test session with "
+                 "a stronger JSON-only format prompt. ")+
+                "No R4 database or social writes. Type "+phrase+": ")
         except (EOFError,KeyboardInterrupt):
             print("R4 SESSION TRACE: refused (confirmation unavailable)")
             return 1
-        if approval!="TRACE R4 SESSION":
+        if approval!=phrase:
             print("R4 SESSION TRACE: refused (confirmation not granted)")
             return 1
-    report=diagnose(production_session=production)
+    report=diagnose(production_session=production,fresh_format=format_test)
     print(json.dumps(report,sort_keys=True,separators=(",",":")))
     return 0 if report["stage"]=="valid_private_decision" else 1
 
