@@ -42,7 +42,7 @@ class ProposalPatchTests(unittest.TestCase):
         # The signed old release is already installed on OMEN; re-offering
         # or auditing it as the CURRENT offer is not permitted.
         current=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        self.assertEqual(current["release"],"v0.8.0-r4schedule1")
         with self.assertRaisesRegex(ValueError,"r4_proposal_patch_chain_unverified"):
             audit.inspect()
 
@@ -79,8 +79,11 @@ class ProposalPatchTests(unittest.TestCase):
                        .read_text())
         current=json.loads((ROOT/"releases/current.json").read_text())
         self.assertEqual(old["release"],"v0.8.0-r4propose1")
-        self.assertEqual(current["from"],old["release"])
-        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        intermediate=json.loads((ROOT/
+            "releases/candidates/r4-format1-json-reliability.json").read_text())
+        self.assertEqual(intermediate["from"],old["release"])
+        self.assertEqual(current["from"],intermediate["release"])
+        self.assertEqual(current["release"],"v0.8.0-r4schedule1")
         self.assertNotIn("bob-moltbook-publisher",
                          {f["name"] for f in current["files"]})
         self.assertNotIn("bob-r4-publisher",
