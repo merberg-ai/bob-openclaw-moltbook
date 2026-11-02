@@ -941,7 +941,8 @@ def r4_schedule_units_absent() -> bool:
         if state.exists():
             safe_private(state)
             record=read_json(state)
-            if (record.get("release")!="v0.8.0-r4schedule1"
+            if (record.get("release") not in (
+                    "v0.8.0-r4schedule1","v0.8.0-r4schedule2")
                     or record.get("phase")!="rolled_back"):
                 return False
         return True
