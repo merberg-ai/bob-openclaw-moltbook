@@ -3,7 +3,7 @@
 - [x] **Owner-confirmed successful one-time install:** on OpenClawLab, the trusted `next` checkout's updater displayed the exact reviewed `v0.8.0-autonomy1` 23-file release, received interactive `UPDATE` consent, and returned `BOB UPDATE: updated`. This is operator-provided terminal evidence, not a remote host connection by the assistant.
 - [x] **Independent installed acceptance PASS:** `report_r4_installed.py --check` returned signed installed source, preserved legacy/R3 registry, local authenticated CA HTTPS, new R4 GET routes, complete additive versioned schema and original publisher idle. `new_r4_actions_attempted:0`, `public_send_armed_by_report:false`; no real R4 social sends were authorized or performed.
 - [x] PR #137 source merged into `next` at `c211647`; PR #138 manifest promotion merged into `next` at `0773977`. CI 1,276 Python tests and Windows startup checks PASS on the promotion source. The live installation is now `v0.8.0-autonomy1` as reported by the owner.
-- [ ] **LAN visual acceptance still pending:** open the authenticated `https://192.168.1.24:18790/r4/now` dashboard from the usual remote LAN browser, visit Inbox / Bob / Controls / Diagnostics, confirm internal navigation, layout/mobile behavior and the existing R3/Scout views. The actual installed report already verified server-side authenticated R4 routes but not browser rendering.
+- [x] **Owner-confirmed LAN browser smoke PASS (2026-11-01 PDT):** the Activity Manager dashboard and `/r4/` pages work as expected in the user's normal browser. Complements the separate installed acceptance PASS for authenticated HTTPS R4 routes. No new R4 public social actions were enabled.
 - [ ] **Next separately controlled work:** owner-reviewed R4 controls/personality/agent proposal acceptance, any activation of proposal-only scheduling, and any real social API dispatch are distinct decisions. In autonomy1 R4 Auto and all real R4 sends remain source-disabled. Do not flip gates or start a second publisher merely because installation passed.
 
 ---
@@ -14,7 +14,7 @@
 - [x] Proposed exact `v0.8.0-r3canary1 → v0.8.0-autonomy1` current-manifest promotion using reviewed 23-file candidate, no service/host changes. Source auditor now refuses any divergence between current and candidate manifests, including path, release notes and restart-policy changes.
 - [x] Converted promotion-source and host GO-NO-GO regression checks to distinguish promoted source from still-installed R3. R4 dispatch remains compiled Off, no second publisher.
 - [x] **PR #138 merged:** release manifest promoted to exact reviewed `v0.8.0-autonomy1` source after 1,276 Python tests and Windows checks passed. Promotion itself made no host changes.
-- [x] **Owner completed separate installation and CLI acceptance:** actual R4 install `BOB UPDATE: updated`, installed `acceptance:PASS`, additive schema and HTTPS verified, zero R4 public attempts. Browser-based LAN visual smoke remains pending. See [R4 promotion runbook](docs/R4-PROMOTION-AND-INSTALL.md).
+- [x] **Owner completed installation, CLI acceptance and LAN browser smoke:** actual R4 install `BOB UPDATE: updated`, installed `acceptance:PASS`, additive schema and HTTPS verified, zero R4 public attempts; dashboard and `/r4/` work as expected. See [R4 promotion runbook](docs/R4-PROMOTION-AND-INSTALL.md).
 - [ ] **Separate later authorization:** no real R4 public upvote/follow/reply/post dispatch in autonomy1. All four source hard-Off barriers remain closed.
 
 ---
