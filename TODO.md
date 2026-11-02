@@ -1,3 +1,13 @@
+## R4 proposal-only patch installation accepted on OMEN (2026-11-01 PST)
+
+- [x] **Owner-confirmed signed update PASS:** `v0.8.0-r4propose1` offered four reviewed files (`bob-release-updater`, `bobctl`, `bob_r4_agent.py`, `bob_r4_installed_gate.py`); owner typed `UPDATE`; updater returned `BOB UPDATE: updated`.
+- [x] **Independent installed acceptance PASS:** `report_r4_installed.py --check` confirmed exact `v0.8.0-r4propose1` release, signed installed source, legacy/R3 registry intact, authenticated HTTPS and R4 routes, additive schema ready, original publisher inactive, `new_r4_actions_attempted:0`, `public_send_armed_by_report:false`. No new DB migration performed by acceptance report.
+- [x] Earlier generic pretransaction refusals investigated with a 10/10 read-only host check, independent SQLite backup/restore PASS, and source-reviewed stage-specific diagnostics (PR #142); **historical refusal cause remains unknown**, no bypass performed. This accepted installation supersedes the historical `do not retry` / `patch not installed` notes below.
+- [ ] **Next owner-only functional acceptance:** in authenticated `/r4/controls` set Upvote=Propose (and optionally Comment=Propose) using exact confirmation, separately `RESUME R4`; leave other categories Off and Auto disabled. Run ONE signed `~/.local/bin/bob-r4-propose --once`, inspect sanitized status + private `/r4/inbox`. `queued`, `attempted`, `dispatch_authorized` must remain false. No R4 timer/scheduling or real public sends.
+- [ ] Depending on real first trial, review missing/stale source and model contract only if observed. Any recurring proposal-only timer requires separate source/owner review and opt-in, not part of this installation.
+
+---
+
 ## R4 proposal patch refusal: verified private backup, categorical gate reporting (2026-11-01 PST)
 
 - [x] **Owner independently verified SQLite backup AND isolated restore PASS** after the second `v0.8.0-r4propose1` refusal; signed `autonomy1` remains installed, prior journal `complete`, no patch archive. This is a point-in-time test, not evidence the backup succeeded during the earlier refusal.
