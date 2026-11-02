@@ -90,6 +90,7 @@ def inspect(root:Path=ROOT) -> dict:
     migration=(root/"src/lib/bob/bob_r4_schema.py").read_text("utf-8")
     updater_source=(root/"scripts/bob_release_updater.py").read_text("utf-8")
     install_guard=(root/"scripts/r4_install_guard.py").read_text("utf-8")
+    preinstall=(root/"scripts/report_r4_preinstall.py").read_text("utf-8")
     bobctl=(root/"src/bin/bobctl").read_text("utf-8")
     if ("INSTALL_HOOK_COMPILED_OFF=False" not in migration
             or "r4_apply_guarded_schema(" not in updater_source
@@ -98,7 +99,13 @@ def inspect(root:Path=ROOT) -> dict:
             or '"v0.8.0-autonomy1": "https"' not in bobctl
             or "verify_backup_evidence(" not in install_guard
             or "def run_migration(" not in install_guard
-            or "publisher_inactive:" not in install_guard):
+            or "publisher_inactive:" not in install_guard
+            or "not preflight_r4_installation()" not in updater_source
+            or "from report_r4_preinstall import inspect" not in updater_source
+            or "def signed_r3_canary()" not in preinstall
+            or "def existing_worker_topology()" not in preinstall
+            or "def effective_original_publisher_units()" not in preinstall
+            or "def no_incomplete_update()" not in preinstall):
         raise ValueError("r4_source_migration_updater_chain_unverified")
     publisher=(root/"src/bin/bob-moltbook-publisher").read_text("utf-8")
     adapter=(root/"src/lib/bob/bob_r4_publisher_adapter.py").read_text("utf-8")
