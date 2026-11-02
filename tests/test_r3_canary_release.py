@@ -24,8 +24,10 @@ class ExactCanaryReleaseTests(unittest.TestCase):
     def test_reviewed_historical_r3_canary_is_still_exact_seven_file_scope(self):
         live=json.loads((ROOT/"releases/current.json").read_text())
         m=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
-        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text()))
-        self.assertEqual(live["from"],m["release"])
+        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text()))
+        self.assertEqual(live["from"],"v0.8.0-autonomy1")
+        previous=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
+        self.assertEqual(previous["from"],m["release"])
         self.assertEqual(m["release"],"v0.8.0-r3canary1")
         self.assertEqual(m["from"],"v0.8.0-r3skip1")
         self.assertFalse(m["restart_manager"])
