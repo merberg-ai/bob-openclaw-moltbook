@@ -59,6 +59,8 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-autonomy1": "https",
     # R4 proposal-only compatibility patch. No additional public action.
     "v0.8.0-r4propose1": "https",
+    # R4 JSON reliability patch, existing manager with the same verified TLS.
+    "v0.8.0-r4format1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -622,6 +624,32 @@ def preflight_r4_proposal_patch() -> bool:
         return False
 
 
+def preflight_r4_format_patch() -> bool:
+    """Only update an accepted, signed, idle r4propose1 installation.
+
+    The candidate changes just the main-agent private decision bridge and
+    release chain. It does NOT migrate data, add a publisher or change R4
+    owner-controlled action modes. Recheck inside the update lock too.
+    """
+    try:
+        from report_r4_installed import inspect
+        evidence=inspect()
+        return (
+            evidence.get("acceptance") in (None,"PASS")
+            and evidence.get("release")=="v0.8.0-r4propose1"
+            and evidence.get("signed_installed_source") is True
+            and evidence.get("legacy_and_r3_registry") is True
+            and evidence.get("authenticated_https") is True
+            and evidence.get("new_r4_routes") is True
+            and evidence.get("versioned_additive_schema") is True
+            and evidence.get("publisher_inactive_at_check") is True
+            and evidence.get("new_r4_actions_attempted")==0
+            and r4_publisher_inactive() is True)
+    except (OSError,ValueError,RuntimeError,TypeError,KeyError,
+            ImportError,AttributeError,UnicodeError,sqlite3.Error):
+        return False
+
+
 def r4_publisher_inactive() -> bool:
     """Read-only unique original publisher topology, rechecked at migration.
 
@@ -703,7 +731,8 @@ R4_PATCH_REFUSAL_STAGES=frozenset((
 def _r4_patch_refusal_stage(plan,stage,exc):
     """Reveal the safe stage for an otherwise generic pre-transaction error."""
     if (isinstance(plan,dict)
-            and plan.get("release")=="v0.8.0-r4propose1"
+            and plan.get("release") in ("v0.8.0-r4propose1",
+                                        "v0.8.0-r4format1")
             and stage in R4_PATCH_REFUSAL_STAGES):
         print("BOB R4 PATCH PREFLIGHT: refused at "+stage+
               " ("+type(exc).__name__+")")
@@ -720,7 +749,7 @@ def update(folder, current, plan, contents, *, auth):
         raise
     stage="publisher_topology"
     try:
-        if plan["release"]=="v0.8.0-r4propose1" and not r4_publisher_inactive():
+        if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1") and not r4_publisher_inactive():
             raise ValueError("r4_proposal_patch_publisher_topology_unverified")
         stage="prior_journal"
         before=read_journal()
@@ -830,8 +859,9 @@ def update(folder, current, plan, contents, *, auth):
 def rollback_completed_r4(*, auth):
     """Owner-only R4-to-R3 code recovery AFTER a successfully completed install.
 
-    Unlike --recover (interrupted installs), this permits only two exact
-    signed completed transitions: R3->autonomy1 or autonomy1->r4propose1.
+    Unlike --recover (interrupted installs), this permits only the
+    reviewed signed completed transitions R3->autonomy1, autonomy1->
+    r4propose1 and r4propose1->r4format1.
     The same existing archive/hash checks perform code-only restoration:
     NEVER restore an older SQLite snapshot over later public attempts.
     """
@@ -842,6 +872,7 @@ def rollback_completed_r4(*, auth):
         predecessors={
             "v0.8.0-autonomy1":"v0.8.0-r3canary1",
             "v0.8.0-r4propose1":"v0.8.0-autonomy1",
+            "v0.8.0-r4format1":"v0.8.0-r4propose1",
         }
         release=journal.get("release") if journal else None
         if (not journal or journal.get("phase") != "complete"
@@ -985,13 +1016,15 @@ def main():
             raise ValueError("r4_preinstall_signed_r3_canary_host_unverified")
         if plan["release"]=="v0.8.0-r4propose1" and not preflight_r4_proposal_patch():
             raise ValueError("r4_proposal_patch_existing_install_unverified")
+        if plan["release"]=="v0.8.0-r4format1" and not preflight_r4_format_patch():
+            raise ValueError("r4_format_patch_existing_install_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
         try:
             auth=authorization()
         except (OSError,ValueError,TypeError,KeyError) as exc:
-            if plan["release"]=="v0.8.0-r4propose1":
+            if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1"):
                 print("BOB R4 PATCH PREFLIGHT: refused at dashboard_credentials "+
                       "("+type(exc).__name__+")")
             raise

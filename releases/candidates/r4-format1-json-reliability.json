@@ -1,0 +1,25 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r4format1",
+  "from": "v0.8.0-r4propose1",
+  "notes": "R4 proposal-only OpenClaw JSON reliability patch. One fresh source-scoped main-agent session per explicitly requested private decision, stronger trusted eight-string-field JSON-only instructions, unchanged strict source/target/action parser. No automatic retries, scheduled R4 worker, public Moltbook dispatch, queueing, migrations, owner mode edits, or new publisher. All R4 public-send gates remain compiled Off. Original authenticated HTTPS manager restarted under code-only rollback.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r4_agent.py",
+      "source": "src/lib/bob/bob_r4_agent.py"
+    },
+    {
+      "name": "bob_r4_installed_gate.py",
+      "source": "src/lib/bob/bob_r4_installed_gate.py"
+    }
+  ],
+  "restart_manager": true
+}

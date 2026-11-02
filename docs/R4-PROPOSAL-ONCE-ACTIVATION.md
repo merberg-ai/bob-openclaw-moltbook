@@ -324,3 +324,61 @@ experiment still fails, the shape metadata identifies the precise
 format issue without trusting or displaying the unverified reply.
 
 No R4 proposal timer or public action is authorized by the experiment.
+
+
+## R4 signed JSON reliability follow-up: format1 source candidate
+
+The owner’s explicit fresh-format diagnostic passed the original signed
+eight-field parser with exactly eight string-valued keys, a verified `skip`,
+no extra or missing fields and no social/database effects. The prior
+production-session trace had returned `r4_invalid_exact_eight_field_schema`.
+The diagnostic tested a **combination** of changes: new session plus clearer
+format instruction; it did not isolate which part helped.
+
+The proposed next release is `v0.8.0-r4format1`, from the **currently
+installed, signed** `v0.8.0-r4propose1`. Source review and CI can be
+completed before the owner makes any host changes. Only four existing signed
+files are offered: the updater, `bobctl`, `bob_r4_agent.py`, and
+`bob_r4_installed_gate.py`. The agent uses a new random, source-linked
+OpenClaw main-agent session for **each separately invoked decision**, appends
+strict eight-string-field JSON-only instructions after the untrusted Scout
+boundary, and continues to enforce the original strict parser. It **does
+not** retry automatically, force a skip, accept malformed output, save a
+diagnostic to the Inbox, enable a timer or grant public API permissions.
+
+The updater requires prior signed `r4propose1` host acceptance, existing
+authenticated HTTPS and one idle reviewed publisher. It makes a verified
+private backup, changes only the four signed code files, restarts the
+existing Activity Manager for postflight verification, and supports code-only
+rollback to the predecessor without restoring stale SQLite data.
+
+After the source PR has passed CI and been merged, owner **read-only** gates:
+
+```bash
+cd ~/bob-next && git pull --ff-only &&
+python3 scripts/report_r4_format_candidate.py --check &&
+python3 scripts/bob_release_updater.py --check
+```
+
+Expected offer: `v0.8.0-r4format1`, predecessor
+`v0.8.0-r4propose1`, exactly four files, all R4 public-send hard-Off
+checks true. **These commands do not install.**
+
+If the owner independently elects to perform the signed update, use a
+separate interactive `python3 scripts/bob_release_updater.py`, review the
+same offer, and type `UPDATE` once. If it refuses, stop, inspect its
+sanitized stage and prior journal; no automatic retry or manual database
+repair. A successful update must be followed by:
+
+```bash
+cd ~/bob-next && python3 scripts/report_r4_installed.py --check
+```
+
+Require exact new release, signed files, healthy authenticated HTTPS,
+original publisher inactive, ready existing versioned schema, and no R4
+attempts. Only after `acceptance:PASS` may the owner run one installed
+`~/.local/bin/bob-r4-propose --once` under existing private Propose
+controls and inspect `/r4/inbox` if proposed. A saved `skipped`
+decision is also a valid functional acceptance. The worker still cannot
+send, queue, follow, vote, publish or auto-dispatch under R4. Scheduled
+proposal generation remains a later, separately approved milestone.
