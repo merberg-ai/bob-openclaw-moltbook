@@ -1,3 +1,13 @@
+## R4 production-session error classified: JSON exact-eight-field mismatch (2026-11-01 PST)
+
+- [x] **Owner-confirmed exact-session result:** `stage:contract`, `reason:r4_invalid_exact_eight_field_schema`, `source_run:20261101T213703Z`, `openclaw_called:true`, `production_session_touched:true`, `isolated_agent_session:false`; all R4 queue, decision-recording, publisher and public dispatch effects false. Actual OpenClaw transport and JSON decode succeeded; the reply was not a dict with exactly the expected eight string-valued keys. This **does not yet say** which field(s) are missing, extra, nonstring or whether reply was JSON array.
+- [x] **Safety preserved:** Do NOT accept raw malformed JSON, silently convert to skip, relax source/target/schema checks, reuse previously published R3 runs or repeatedly call production session. OpenClaw context persistence remains a possible but unproven factor.
+- [x] Source-only, explicit opt-in diagnostic experiment `report_r4_agent_contract.py --fresh-format-once`: adds trusted JSON-only guidance **after sealed untrusted source**, uses a new unpredictable shadow session for exactly one local OpenClaw main-agent call, and passes any reply through the **same installed signed eight-field validator**. Prints only a sanitized shape summary (which expected fields are missing/nonstring, capped extra-field count, top-level type); never raw keys outside the fixed allowlist, content, response, secret, post text or stderr. No production SQLite writes, local review, queue or remote social requests.
+- [x] Synthetic tests for shape-only redaction, trusted prompt boundary, TTY + exact `TEST R4 JSON FORMAT` confirmation, isolated session and no social-write authority.
+- [ ] Source PR CI and merge, then one owner-invoked fresh-format experiment. If its reply passes strict validation, stage separately signed normal-worker reliability fix (fresh per-attempt session and stronger format contract), preserving zero public dispatch. If still invalid, inspect sanitized missing/nonstring/extra counts before choosing a specific fix. **No signed R4 production code or release manifest changed in this diagnostic phase.**
+
+---
+
 ## R4 normal worker failed after successful isolated OpenClaw skip (2026-11-01 PST)
 
 - [x] Owner ran accepted signed `~/.local/bin/bob-r4-propose --once` after the first valid isolated diagnostic. The ordinary worker selected the same fresh Scout source `20261101T213703Z` but returned `status:refused`, `reason:r4_model_or_contract_unverified`, with `queued:false`, `attempted:false`, `dispatch_authorized:false`. No R4 proposal was persisted. Original refusal remains unclassified.

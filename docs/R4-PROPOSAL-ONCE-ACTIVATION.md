@@ -282,3 +282,45 @@ Review the sanitized returned `stage`, `reason`,
 Do **not** paste raw OpenClaw session logs, model replies or credentials.
 Even a valid result is only a diagnostic and **not** a saved R4 Inbox
 proposal. Public sending, scheduled R4 proposals and Auto remain Off.
+
+
+## Exact eight-field schema failure: bounded fresh-format experiment
+
+The owner ran the exact production OpenClaw session trace after the normal
+one-shot refused. The result was `stage:contract` and
+`reason:r4_invalid_exact_eight_field_schema`, with `openclaw_called:true`
+and all DB/queue/public-attempt flags false. This proves OpenClaw returned
+parseable JSON, but the top-level value was not a dictionary with exactly
+the eight required **string-valued** keys. The category alone does not
+prove which field was missing, unexpected or non-string. The original
+installed worker and strict parser remain unchanged.
+
+A source-only diagnostic experiment introduces `--fresh-format-once`.
+It requires interactive terminal and exact typed `TEST R4 JSON FORMAT`
+before it makes **one local OpenClaw main-agent call**. This uses an
+unpredictable new isolated shadow session, so prior production-session
+model context is not replayed. The original signed `bob_r4_agent.decide`
+constructs the request and validates the response. The probe appends
+a trusted, explicit eight-string-field JSON-only instruction *after*
+the untrusted source delimiter, then calls the same signed OpenClaw
+transport. A valid reply remains **unsaved** and cannot send, queue,
+follow, post, vote or alter any production database record.
+
+After source review and `git pull --ff-only`, an operator can invoke:
+
+```bash
+cd ~/bob-next && PYTHONDONTWRITEBYTECODE=1 python3 scripts/report_r4_agent_contract.py --fresh-format-once
+```
+
+The only printed model metadata is a strictly bounded
+`response_shape`: `top_level`, `missing_expected`,
+`non_string_expected` and `extra_field_count`. Any included names
+come only from the hardcoded expected field list. Raw model response
+text, unexpected field names and values, credentials, URLs, Scout text
+and stderr are not printed. A `valid_private_decision` result supports
+testing a separately signed reliability patch, not relaxing parser
+rules or treating a diagnostic as an actual R4 proposal. If the
+experiment still fails, the shape metadata identifies the precise
+format issue without trusting or displaying the unverified reply.
+
+No R4 proposal timer or public action is authorized by the experiment.
