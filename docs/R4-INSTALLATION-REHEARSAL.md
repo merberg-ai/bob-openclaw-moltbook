@@ -81,10 +81,9 @@ changed/unknown unit fails closed and invokes the normal code-only rollback.
 This is not a guarantee against arbitrary subsequent host changes; running
 the reviewed report on the actual OMEN remains essential before install.
 
-These checks are offline-mocked in `tests/test_r4_preinstall.py`. The
-read-only host report has **not yet run on the OMEN**. Running it later does
-not stop timers, disable Scout, change HTTPS, migrate schema or send Moltbook
-actions.
+These checks are offline-mocked in `tests/test_r4_preinstall.py`. The read-only host report was subsequently executed by the owner on the OMEN
+(2026-11-01 PDT): **7/7 checks PASS, zero blockers**. It did not stop timers,
+disable Scout, change HTTPS, migrate schema or send Moltbook actions.
 
 ## Source-to-host handoff (no release promotion)
 
@@ -96,20 +95,23 @@ The tested one-paste procedure clones the draft branch into a separate
 `~/bob-r4-review` checkout, leaving the trusted `~/bob-next` channel and
 installed R3 binaries alone. See [R4 live host check](R4-LIVE-HOST-CHECK.md).
 
-**GitHub CI cannot supply host evidence.** The OMEN read-only check must
-execute under the actual `openclaw` account before promotion is considered.
-No PR merge, manifest promotion, migration, or public social send is authorized
-by a check passing. A live host failure is not automatically repaired.
+**GitHub CI cannot supply host evidence.** The owner subsequently supplied the
+actual OMEN `report_r4_go_nogo.py --check` result (2026-11-01 PDT):
+`candidate_files_checked:23`, `candidate_source_verified:true`,
+`live_host_readiness_verified:true`, `blockers:[]`, all seven host checks true,
+`ready_for_separate_release_review:true`, no changes to host files, SQLite or
+systemd, and zero Moltbook API requests. This is owner-supplied observed output,
+not evidence of an install. A report PASS does not authorize manifest promotion,
+migration or any public social send.
 
 ## Remaining release gates
 
 - [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The CI path-trigger update also passed: 1,269 Python tests and Windows checks on `2d191b4` (run `41370326709`).
-- [ ] Review exact 23-file payload and four independent real-send Off markers.
+- [x] Review exact 23-file candidate manifest and the independent real-send Off markers in original publisher, adapter, owner-send adapter and outbox. No real R4 dispatch enabled.
 - [x] Source R4 preinstall probes review unique original publisher unit/timer, effective unit shape, current R3 canary hashes, existing Scout/R3 proposal schedule and competing-worker absence; migration repeats the topology check.
 - [x] Prepare one consolidated source+host check and isolated review checkout, tested with fail-closed synthetic cases; no production modification.
-- [ ] Verify **actual** OMEN output of `report_r4_go_nogo.py --check` (includes `report_r4_preinstall.py`) before release promotion. No real host report has been performed yet.
-- [ ] Review the authenticated CA-verified HTTPS route behavior in an isolated
-      service-shaped smoke; no fallback to HTTP or public listener.
+- [x] **Owner-submitted actual OMEN** read-only `report_r4_go_nogo.py --check` PASS on 2026-11-01 PDT, seven host checks true, zero blockers. This is a snapshot, and deployment must recheck the live host.
+- [x] Isolated real ephemeral CA-verified TLS socket smoke passed with six R4 routes and legacy routes; Host/Origin/CSRF and plaintext/wrong-CA were refused. Real deployed R4 HTTPS acceptance remains post-install only.
 - [x] Add a separate owner-typed **post-`complete`** rollback:
       `python3 scripts/bob_release_updater.py --rollback-r4` accepts only
       a completed exact autonomy1 journal, its archived r3canary1 registry,
