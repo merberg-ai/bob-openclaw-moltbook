@@ -121,7 +121,9 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
             (new_root/"releases/candidates").mkdir(parents=True)
             (new_root/"src/bin").mkdir(parents=True)
             (new_root/"src/lib/bob").mkdir(parents=True)
-            old=json.loads((ROOT/"releases/current.json").read_text())
+            # Exercise the historical R3 candidate against the archived R3
+            # release baseline, not the newly promoted current R4 manifest.
+            old=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
             plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
             (new_root/"releases/current.json").write_text(json.dumps(old))
             def write(p): (new_root/"releases/candidates/r3-cutover1-integration-off.json").write_text(json.dumps(p))
