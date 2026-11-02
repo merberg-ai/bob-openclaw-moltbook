@@ -11,7 +11,7 @@ printed. Does not insert an R4 decision, queue, review, or public API request.
 from __future__ import annotations
 
 from contextlib import closing
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 import json
 import os
 from pathlib import Path
@@ -20,7 +20,7 @@ import sqlite3
 import stat
 import sys
 
-RUN="20261102T042747Z"  # Exact refused source from the owner's one-shot.
+PREVIOUS_RUN="20261102T042747Z"  # Historical refused source; NEVER replay it.
 RELEASE="v0.8.0-r4propose1"
 SESSION_PREFIX="moltbook-v08-shadow-r4-diagnostic-"
 ALLOWED_ERRORS=frozenset((
@@ -55,8 +55,46 @@ def safe_error(exc:Exception)->str:
     return candidate if candidate in ALLOWED_ERRORS else "unclassified_error"
 
 
+def _ledger_owner(db, run:str)->str:
+    """Which original ledger has the historical source (no row content)."""
+    found=[]
+    for name,table,column in (
+        ("r4","r4_social_decisions","source_run"),
+        ("r3","r3_proposals","source_run"),
+        ("publisher","publish_jobs","run_id"),
+    ):
+        if db.execute("SELECT 1 FROM "+table+" WHERE "+column+"=?",
+                      (run,)).fetchone():
+            found.append(name)
+    return found[0] if len(found)==1 else (
+        "multiple" if found else "none")
+
+
+def _next_available(db, choices, now:datetime):
+    """Exact producer source order, age window, and prior-consumption gates."""
+    from bob_r4_decision import SOURCE_AGE
+    if type(now) is not datetime or now.tzinfo is None:
+        raise ValueError("r4_invalid_model_or_clock")
+    if not isinstance(choices,(list,tuple)) or len(choices)>20:
+        raise ValueError("r4_untrusted_decision_envelope")
+    for item in choices:
+        try:
+            stamp=datetime.strptime(item.run_id,"%Y%m%dT%H%M%SZ").replace(
+                tzinfo=timezone.utc)
+            age=now.astimezone(timezone.utc)-stamp
+            if not timedelta(0)<=age<=SOURCE_AGE:
+                continue
+            if _ledger_owner(db,item.run_id)!="none":
+                continue
+            return item
+        except (ValueError,TypeError,AttributeError,sqlite3.Error):
+            continue
+    return None
+
+
 def result(*,stage:str,reason:str,called:bool=False,
-           verified_kind:str="none")->dict:
+           verified_kind:str="none",source_run:str="",
+           previous_owner:str="unknown")->dict:
     if stage not in ("host","source","controls","transport",
                      "contract","valid_private_decision"):
         stage="host"
@@ -64,11 +102,18 @@ def result(*,stage:str,reason:str,called:bool=False,
             "ok","source_not_recent","source_already_used",
             "owner_off_or_paused","signed_install_not_verified",
             "saved_feed_not_verified","private_database_not_verified",
-            "invalid_account","unclassified_error"):
+            "invalid_account","unclassified_error",
+            "no_fresh_r4_source"):
         reason="unclassified_error"
     return {
         "format":"r4-agent-contract-diagnostic-v1",
-        "source_run":RUN,
+        "source_run":source_run if isinstance(source_run,str) and
+            len(source_run)==16 and source_run[:8].isdigit() and
+            source_run[8]=="T" and source_run[9:15].isdigit() and
+            source_run[15]=="Z" else "",
+        "historical_source_run":PREVIOUS_RUN,
+        "historical_source_owner":previous_owner if previous_owner in
+            ("r3","r4","publisher","multiple","none","unknown") else "unknown",
         "stage":stage,
         "reason":reason,
         "verified_action_kind":verified_kind if
@@ -87,6 +132,8 @@ def result(*,stage:str,reason:str,called:bool=False,
 def diagnose()->dict:
     called=False
     stage="host"
+    run=""
+    prior_owner="unknown"
     try:
         home=Path.home()
         uid=os.geteuid()
@@ -110,7 +157,7 @@ def diagnose()->dict:
         from bob_r313d_owner import trusted_manager_boundary
         from bob_r4_controls import read_modes,pause_state
         from bob_r4_ledger import schema_ready,author_count
-        from bob_v08.evidence import read_observation
+        from bob_v08.evidence import latest_observations
         from bob_v08.shadow import openclaw_decide
         from bob_r4_agent import decide,AVAILABLE
 
@@ -119,13 +166,7 @@ def diagnose()->dict:
                 or DATA.stat().st_uid!=uid
                 or DATA.stat().st_mode & 0o077):
             return result(stage="source",reason="saved_feed_not_verified")
-        observed=read_observation(DATA,RUN)
         now=datetime.now(timezone.utc)
-        from bob_r4_decision import SOURCE_AGE
-        source_time=datetime.strptime(RUN,"%Y%m%dT%H%M%SZ").replace(
-            tzinfo=timezone.utc)
-        if not source_time<=now<=source_time+SOURCE_AGE:
-            return result(stage="source",reason="source_not_recent")
         if DB.is_symlink() or not stat.S_ISREG(DB.stat().st_mode):
             return result(stage="host",reason="private_database_not_verified")
         with closing(sqlite3.connect(DB.as_uri()+"?mode=ro",
@@ -133,17 +174,23 @@ def diagnose()->dict:
             db.execute("PRAGMA query_only=ON")
             if not trusted_manager_boundary(db) or not schema_ready(db):
                 return result(stage="host",reason="private_database_not_verified")
-            if any(db.execute("SELECT 1 FROM "+table+" WHERE "+col+"=?",
-                              (RUN,)).fetchone() for table,col in (
-                    ("r4_social_decisions","source_run"),
-                    ("r3_proposals","source_run"),
-                    ("publish_jobs","run_id"))):
-                return result(stage="source",reason="source_already_used")
+            prior_owner=_ledger_owner(db,PREVIOUS_RUN)
             stage="controls"
             modes=read_modes(db)
             if pause_state(db) or not any(
                     modes[a]=="propose" for a in AVAILABLE):
-                return result(stage="controls",reason="owner_off_or_paused")
+                return result(stage="controls",reason="owner_off_or_paused",
+                              previous_owner=prior_owner)
+            stage="source"
+            # Same bounded, sealed 100-file scan / 20-result selection as
+            # the installed producer. Never choose the previous run merely
+            # because it was used during an earlier refusal.
+            choices=latest_observations(DATA,max_scan=100,limit=20)
+            observed=_next_available(db,choices,now)
+            if observed is None:
+                return result(stage="source",reason="no_fresh_r4_source",
+                              previous_owner=prior_owner)
+            run=observed.run_id
             repeats=author_count(DATA,observed)
 
         # Existing signed agent bridge invokes the original OpenClaw transport,
@@ -153,10 +200,10 @@ def diagnose()->dict:
         transport_completed=False
         def model(prompt,session):
             nonlocal called,transport_completed
-            if (session!="moltbook-v08-shadow-r4-proposal-"+RUN):
+            if (session!="moltbook-v08-shadow-r4-proposal-"+run):
                 raise ValueError("unexpected_shadow_session")
             called=True
-            raw=openclaw_decide(prompt,SESSION_PREFIX+RUN)
+            raw=openclaw_decide(prompt,SESSION_PREFIX+run)
             transport_completed=True
             return raw
         try:
@@ -164,12 +211,15 @@ def diagnose()->dict:
                             author_observations=repeats)
         except (OSError,ValueError,RuntimeError,TypeError) as exc:
             return result(stage="contract" if transport_completed else "transport",
-                          reason=safe_error(exc),called=called)
+                          reason=safe_error(exc),called=called,
+                          source_run=run,previous_owner=prior_owner)
         return result(stage="valid_private_decision",reason="ok",
-                      called=called,verified_kind=decision.kind)
+                      called=called,verified_kind=decision.kind,
+                      source_run=run,previous_owner=prior_owner)
     except (OSError,ValueError,TypeError,RuntimeError,ImportError,
             KeyError,AttributeError,sqlite3.Error,UnicodeError) as exc:
-        return result(stage=stage,reason=safe_error(exc),called=called)
+        return result(stage=stage,reason=safe_error(exc),called=called,
+                      source_run=run,previous_owner=prior_owner)
 
 
 def main(argv=None)->int:
