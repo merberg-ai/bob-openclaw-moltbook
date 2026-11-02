@@ -23,8 +23,7 @@ PROPOSAL_RELEASE="v0.8.0-r4propose1"
 FORMAT_RELEASE="v0.8.0-r4format1"
 SCHEDULE_RELEASE="v0.8.0-r4schedule1"
 SCHEDULE2_RELEASE="v0.8.0-r4schedule2"
-SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE,
-                     SCHEDULE_RELEASE,SCHEDULE2_RELEASE))
+SUPPORTED=updater.LINEAGE.family("r4")
 ROUTES=("/r4/now","/r4/inbox","/r4/bob",
         "/r4/controls","/r4/diagnostics")
 

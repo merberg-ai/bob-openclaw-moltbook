@@ -86,11 +86,14 @@ def inspect(root:Path=ROOT)->dict:
             or 'BODY=b"[Timer]\\nOnActiveSec=2min\\n"' not in original
             or 'F= D/"10-first-run.conf"' not in original
             or '"v0.8.0-r4schedule2": "https"' not in controller
-            or '"v0.8.0-r4schedule2": "https"' not in installer
+            or updater.LINEAGE.transport("v0.8.0-r4schedule2")!="https"
+            or 'MANAGER_TRANSPORTS = LINEAGE.manager_transports()' not in installer
             or 'def preflight_r4_schedule2_patch()' not in installer
             or 'not preflight_r4_schedule2_patch()' not in installer
             or 'r4_schedule_units_absent()' not in installer
-            or '"v0.8.0-r4schedule2":"v0.8.0-r4schedule1"' not in installer
+            or updater.LINEAGE.predecessor("v0.8.0-r4schedule2")!="v0.8.0-r4schedule1"
+            or 'predecessors=LINEAGE.rollback_predecessors()' not in installer
+            or not updater.LINEAGE.in_family("v0.8.0-r4schedule2","r4_schedule")
             or 'SCHEDULE2_RELEASE="v0.8.0-r4schedule2"' not in gate):
         raise ValueError("schedule2_exact_pinned_dropin_or_release_drift")
     for body,marker in (

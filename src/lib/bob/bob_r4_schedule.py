@@ -22,7 +22,13 @@ import sys
 import tempfile
 from typing import Callable
 
-RELEASE="v0.8.0-r4schedule2"
+import bob_release_lineage as lineage
+
+# Release stamped into newly written journals/status. Acceptance of an
+# EXISTING registry or journal uses the reviewed r4_schedule family, so a
+# later signed release does not force recover/restage/enable while the exact
+# unit bytes are unchanged (those are still verified separately).
+RELEASE=lineage.LATEST
 FORMAT="r4-proposal-schedule-v1"
 HOME=Path.home()
 UNIT_DIR=HOME/".config/systemd/user"
@@ -137,7 +143,7 @@ def _signed()->bool:
             return False
         registry=json.loads(path.read_text(encoding="utf-8"))
         required={"bob-r4-schedule","bob_r4_schedule.py","bob_r4_web.py"}
-        return (registry.get("release")==RELEASE
+        return (lineage.in_family(registry.get("release"),"r4_schedule")
                 and required.issubset(registry.get("files",{})))
     except (OSError,TypeError,ValueError,KeyError,ImportError):
         return False
@@ -296,7 +302,8 @@ def _phase()->str:
     expected={name:_sha(body.encode()) for name,body in UNIT_TEXT.items()}
     if (type(data) is not dict or set(data)!={"format","release",
             "phase","units","public_send_authorized"}
-            or data.get("format")!=FORMAT or data.get("release")!=RELEASE
+            or data.get("format")!=FORMAT
+            or not lineage.in_family(data.get("release"),"r4_schedule")
             or data.get("phase") not in PHASES
             or data.get("units")!=expected
             or data.get("public_send_authorized") is not False):

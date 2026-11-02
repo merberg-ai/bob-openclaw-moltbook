@@ -44,30 +44,23 @@ TARGET = re.compile(r"(?:bobctl|bob[-_][a-zA-Z0-9._-]+|navigation_shell\.py)\Z")
 MANIFEST = "releases/current.json"
 # Reviewed release identities, not caller flags or unauthenticated headers,
 # select the manager transport. Unknown releases MUST fail closed.
-MANAGER_TRANSPORTS = {
-    "v0.8.0-r3stage1": "http",
-    "v0.8.0-chhttps1": "http",
-    "v0.8.0-chhttps3": "https",
-    # R3 source candidate retains strict HTTPS on the existing private LAN port.
-    # This does not enable R3 dispatch or authorize a production installation.
-    "v0.8.0-cutover1": "https",
-    "v0.8.0-r3diag1": "https",
-    "v0.8.0-r3format1": "https",
-    "v0.8.0-r3skip1": "https",
-    "v0.8.0-r3canary1": "https",
-    # R4 only after separate signed, owner-approved one-time install.
-    "v0.8.0-autonomy1": "https",
-    # R4 proposal-only compatibility patch. No additional public action.
-    "v0.8.0-r4propose1": "https",
-    # R4 JSON reliability patch, existing manager with the same verified TLS.
-    "v0.8.0-r4format1": "https",
-    # OFF-first R4 private proposal scheduling; timer is NOT installed by
-    # updater and may only be staged/enabled with separate typed approval.
-    "v0.8.0-r4schedule1": "https",
-    # Strict allowance for the pinned R3 first-tick bootstrap; no new
-    # timer or authority, previous OFF-first schedule still absent.
-    "v0.8.0-r4schedule2": "https",
-}
+def _load_lineage():
+    """Load the reviewed release table from the installed bin dir or checkout."""
+    here = Path(__file__).resolve().parent
+    for folder in (here, here.parent / "src" / "lib" / "bob"):
+        path = folder / "bob_release_lineage.py"
+        if path.is_file() and not path.is_symlink():
+            spec = importlib.util.spec_from_file_location("bob_release_lineage", path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+    raise SystemExit("BOB UPDATE: refused: reviewed release lineage module missing")
+
+
+LINEAGE = _load_lineage()
+# Reviewed release identities, not caller flags or unauthenticated headers,
+# select the manager transport. Unknown releases MUST fail closed.
+MANAGER_TRANSPORTS = LINEAGE.manager_transports()
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
 MANAGER_HOST = "127.0.0.1"
@@ -788,10 +781,7 @@ R4_PATCH_REFUSAL_STAGES=frozenset((
 def _r4_patch_refusal_stage(plan,stage,exc):
     """Reveal the safe stage for an otherwise generic pre-transaction error."""
     if (isinstance(plan,dict)
-            and plan.get("release") in ("v0.8.0-r4propose1",
-                                        "v0.8.0-r4format1",
-                                        "v0.8.0-r4schedule1",
-                                        "v0.8.0-r4schedule2")
+            and LINEAGE.in_family(plan.get("release"),"r4_patch")
             and stage in R4_PATCH_REFUSAL_STAGES):
         print("BOB R4 PATCH PREFLIGHT: refused at "+stage+
               " ("+type(exc).__name__+")")
@@ -808,8 +798,7 @@ def update(folder, current, plan, contents, *, auth):
         raise
     stage="publisher_topology"
     try:
-        if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1",
-                                "v0.8.0-r4schedule1","v0.8.0-r4schedule2") and not r4_publisher_inactive():
+        if LINEAGE.in_family(plan["release"],"r4_patch") and not r4_publisher_inactive():
             raise ValueError("r4_proposal_patch_publisher_topology_unverified")
         if plan["release"]=="v0.8.0-r4schedule2" and not r4_schedule_units_absent():
             raise ValueError("r4_schedule2_units_must_be_absent")
@@ -941,8 +930,7 @@ def r4_schedule_units_absent() -> bool:
         if state.exists():
             safe_private(state)
             record=read_json(state)
-            if (record.get("release") not in (
-                    "v0.8.0-r4schedule1","v0.8.0-r4schedule2")
+            if (not LINEAGE.in_family(record.get("release"),"r4_schedule")
                     or record.get("phase")!="rolled_back"):
                 return False
         return True
@@ -963,13 +951,7 @@ def rollback_completed_r4(*, auth):
     try:
         journal = read_journal()
         installed = registry()
-        predecessors={
-            "v0.8.0-autonomy1":"v0.8.0-r3canary1",
-            "v0.8.0-r4propose1":"v0.8.0-autonomy1",
-            "v0.8.0-r4format1":"v0.8.0-r4propose1",
-            "v0.8.0-r4schedule1":"v0.8.0-r4format1",
-            "v0.8.0-r4schedule2":"v0.8.0-r4schedule1",
-        }
+        predecessors=LINEAGE.rollback_predecessors()
         release=journal.get("release") if journal else None
         if (not journal or journal.get("phase") != "complete"
                 or release not in predecessors
@@ -977,7 +959,7 @@ def rollback_completed_r4(*, auth):
                 or installed["release"] != release
                 or not live_ok(installed) or not r4_publisher_inactive()):
             raise ValueError("r4_completed_rollback_scope_unverified")
-        if release in ("v0.8.0-r4schedule1","v0.8.0-r4schedule2") and not r4_schedule_units_absent():
+        if LINEAGE.in_family(release,"r4_schedule") and not r4_schedule_units_absent():
             raise ValueError("r4_schedule_units_must_be_recovered_first")
         archive = STATE_DIR / ("tx-"+release)
         safe_private(archive, directory=True)
@@ -1126,8 +1108,7 @@ def main():
         try:
             auth=authorization()
         except (OSError,ValueError,TypeError,KeyError) as exc:
-            if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1",
-                                    "v0.8.0-r4schedule1","v0.8.0-r4schedule2"):
+            if LINEAGE.in_family(plan["release"],"r4_patch"):
                 print("BOB R4 PATCH PREFLIGHT: refused at dashboard_credentials "+
                       "("+type(exc).__name__+")")
             raise
