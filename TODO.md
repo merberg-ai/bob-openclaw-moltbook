@@ -1,3 +1,14 @@
+## R4 proposal-only one-shot activation: signed compatibility patch (2026-11-01 PDT)
+
+- [x] **Identified a real production blocker before enabling controls:** installed `bob_r4_agent.decide` used `moltbook-v08-r4-proposal-*`, while the existing verified OpenClaw `openclaw_decide` allows only `moltbook-v08-shadow-*`. Offline mock-model tests hid the mismatch. The current accepted R4 install remains intact and private actions Off/paused.
+- [x] Corrected to distinct `moltbook-v08-shadow-r4-proposal-*` OpenClaw main-agent session and added regression test using the real verified model-transport validator with a synthetic subprocess response; no real model, key or external network in CI.
+- [x] Staged **unpromoted** `v0.8.0-r4propose1` four-file signed patch candidate (updater, bobctl, agent bridge, installed R4 attestation), strict private-HTTPS ID, installed autonomy1 health/schema/zero-R4-attempt/publisher preflight, code-only immediate predecessor rollback. Existing dashboard/social code and public send hard-Off flags untouched.
+- [x] Documented owner-controlled **one-shot** trial in [R4 private proposal activation](docs/R4-PROPOSAL-ONCE-ACTIVATION.md): allow Upvote/Comment Propose in Controls, `RESUME R4`, run one signed `bob-r4-propose --once`, inspect private Inbox. Do not schedule, queue, follow, upvote or publish.
+- [ ] Require CI and exact source review before merging candidate to `next`; a **distinct promotion** to `releases/current.json` and owner-typed update follow. No live host action has been taken by this source PR.
+- [ ] Confirm installed patch acceptance and one actual manual OpenClaw `--once` result. Then discuss source freshness/model contract refinements or a separate bounded scheduling phase.
+
+---
+
 ## R4 autonomy1 OMEN installation accepted (2026-11-01 PDT)
 
 - [x] **Owner-confirmed successful one-time install:** on OpenClawLab, the trusted `next` checkout's updater displayed the exact reviewed `v0.8.0-autonomy1` 23-file release, received interactive `UPDATE` consent, and returned `BOB UPDATE: updated`. This is operator-provided terminal evidence, not a remote host connection by the assistant.
