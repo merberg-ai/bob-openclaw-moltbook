@@ -20,7 +20,7 @@ class ReadOnlyPatchRefusalTests(unittest.TestCase):
         self.addCleanup(folder.cleanup)
         self.home=Path(folder.name)
 
-    def all_ok(self):
+    def all_ok(self, *, publisher=True, journal_phase="complete"):
         with ExitStack() as stack:
             stack.enter_context(patch.object(diag.u,"STATE_DIR",self.home))
             stack.enter_context(patch.object(diag.u,"registry",return_value={
@@ -31,10 +31,10 @@ class ReadOnlyPatchRefusalTests(unittest.TestCase):
                     "bob-release-updater","bobctl","bob_r4_agent.py",
                     "bob_r4_installed_gate.py")]}))
             stack.enter_context(patch.object(diag.u,"read_journal",return_value={
-                "release":diag.OLD,"phase":"complete"}))
+                "release":diag.OLD,"phase":journal_phase}))
             stack.enter_context(patch.object(diag.u,"live_ok",return_value=True))
             stack.enter_context(patch.object(diag.u,"r4_publisher_inactive",
-                                              return_value=True))
+                                              return_value=publisher))
             stack.enter_context(patch.object(diag.u,"authorization",
                                               return_value="Basic synthetic"))
             stack.enter_context(patch.object(diag.u,"healthy",return_value=True))
@@ -57,11 +57,16 @@ class ReadOnlyPatchRefusalTests(unittest.TestCase):
         self.assertEqual(report["public_social_requests_by_report"],0)
 
     def test_changed_publisher_or_incomplete_journal_stays_blocked(self):
-        with patch.object(diag.u,"r4_publisher_inactive",return_value=False):
-            self.assertFalse(diag._probe(diag.u.r4_publisher_inactive))
+        inactive=self.all_ok(publisher=False)
+        self.assertEqual(inactive["current_blockers"],[
+            "publisher_idle_at_snapshot"])
+        self.assertFalse(inactive["currently_no_observed_prearchive_blocker"])
+        interrupted=self.all_ok(journal_phase="installed")
+        self.assertEqual(interrupted["current_blockers"],[
+            "completed_prior_journal"])
+        self.assertFalse(interrupted["retry_authorized_by_report"])
         self.assertFalse(diag._probe(lambda:(_ for _ in ()).throw(
             ValueError("private content never displayed"))))
-        self.assertFalse(diag._probe(lambda:False))
 
     def test_read_only_cli_rejects_install_arguments(self):
         self.assertEqual(diag.main(["--install"]),2)
