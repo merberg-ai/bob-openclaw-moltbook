@@ -213,3 +213,77 @@ file payloads**, checks old registry/SQLite data, exercises successful
 code-only rollback and failed HTTPS postflight rollback, and rejects
 rollback while schedule units exist. None of these tests reaches the
 owner's OMEN, OpenClaw agent, real systemd or Moltbook.
+
+
+## Schedule2 compatibility: legitimate R3 10-first-run.conf bootstrap
+
+The first physical `r4schedule1` acceptance on OMEN passed independently,
+but the read-only R4 scheduling status refused `ready_to_stage` with
+`scout_r3_or_publisher_topology_not_idle`. The owner's read-only
+`systemctl --user show` output proved that all seven existing unit
+active/enabled states were as expected, while the R3 timer alone reported
+`~/.config/systemd/user/bob-r3-propose.timer.d/10-first-run.conf` as a
+drop-in. The repository's prior `scripts/repair_r3_first_timer.py`
+deliberately installed exactly `[Timer]\\nOnActiveSec=2min\\n` under
+owner-approved R3 maintenance to seed the first tick, leaving its
+original 35-minute recurring schedule intact. No R3 unit is defective
+merely because it has that reviewed bootstrap.
+
+**Do not delete, disable, or edit that R3 file to satisfy R4.**
+New code-only candidate `v0.8.0-r4schedule2` from accepted signed
+`v0.8.0-r4schedule1` allows precisely the original bootstrap if and only
+if all are true: exact absolute `DropInPaths`, the sole file in the
+`openclaw`-owned 0700 R3 timer drop-in directory, regular privately
+owned 0600 single-link file, no symlink, and byte-exact original
+content. An absent drop-in is also allowed if its directory is absent.
+Unrecognized or changed R3 drop-ins still refuse, as do ANY publisher,
+Scout or old Shadow drop-ins. R4's own staged unit files remain
+strictly prohibited during this signed upgrade.
+
+The signed update contains only **four files**: updater, `bobctl`,
+`bob_r4_installed_gate.py`, `bob_r4_schedule.py`. No R3 timer, public
+API, publisher, unit template, dashboard endpoint, schema or permissions
+changes. The updater does not create or enable any timer.
+
+### Operator-only code acceptance after CI
+
+As the existing `openclaw` user on OMEN:
+
+```bash
+cd ~/bob-next &&
+git pull --ff-only &&
+python3 scripts/report_r4_schedule2_candidate.py --check &&
+python3 scripts/bob_release_updater.py --check
+```
+
+Expect exact `v0.8.0-r4schedule2` from `v0.8.0-r4schedule1`,
+four signed files and unchanged private HTTPS. Source-only report
+does not prove the host drop-in's bytes and permission. The installed
+scheduler independently verifies those on every read-only status,
+owner-approved stage, enable and scheduled tick.
+
+For separately approved signed **code installation**, run
+`cd ~/bob-next && python3 scripts/bob_release_updater.py` and type
+`UPDATE` exactly. A refusal means stop, investigate the stage without
+manual edits. After `BOB UPDATE: updated`, run:
+
+```bash
+cd ~/bob-next &&
+python3 scripts/report_r4_installed.py --check &&
+~/.local/bin/bob-r4-schedule --status
+```
+
+Expected `acceptance:PASS`, release `v0.8.0-r4schedule2`,
+`phase:absent`, `timer_enabled:false`, `ready_to_stage:true`,
+no blockers. If any fail, do not stage or enable; use read-only
+`systemctl --user cat bob-r3-propose.timer` and filesystem metadata
+to see whether the legacy drop-in differs from its pinned source.
+
+Only after that physical acceptance, return to **physical test B**
+above for separately typed `STAGE R4 SCHEDULE`. Verify the R4 timer
+remains disabled before considering a separately typed
+`ENABLE R4 SCHEDULE`. R3, Scout and publisher must remain untouched.
+
+Offline regression tests exercise valid and altered R3 drop-ins,
+signed upgrade and rollback, absence of R4 units and safe denial when
+stage/enable would encounter any unreviewed systemd configuration.
