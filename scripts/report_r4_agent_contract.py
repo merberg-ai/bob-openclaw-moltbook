@@ -246,7 +246,9 @@ def main(argv=None)->int:
     args=sys.argv[1:] if argv is None else argv
     if args not in (["--once"],["--production-session-once"]):
         print("Usage: python3 scripts/report_r4_agent_contract.py "
-              "--once | --production-session-once")
+              "--once | --production-session-once "
+              "(one local OpenClaw main-agent call; production session "
+              "requires terminal confirmation)")
         return 2
     production=args==["--production-session-once"]
     if production:
