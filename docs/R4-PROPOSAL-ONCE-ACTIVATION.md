@@ -179,3 +179,42 @@ This is observability, **not** a bypass. The same exception still aborts
 the update; no automatic retry, stop/start command, R4 action-mode change,
 new public writer, or social action is introduced. The ordinary signed
 transaction rollback remains intact.
+
+## Real Bob model call refused: one separate private diagnostic
+
+The owner-enabled R4 Propose trial selected an actual sealed saved Scout
+observation (`20261102T042747Z`), then returned
+`r4_model_or_contract_unverified`, with `queued:false`,
+`attempted:false` and `dispatch_authorized:false`. That aggregate label
+covers both failure of the original OpenClaw main-agent CLI/envelope and
+rejection of Bob's strict eight-string-field JSON. The failing source is
+not consumed, and **no public Moltbook request occurred through R4**.
+
+Do not disable validation, copy the raw model payload into a chat/log,
+change the existing publisher, or keep repeating the uninstrumented worker.
+
+After review and merge of the source-only probe, an operator may voluntarily
+run exactly one targeted diagnostic:
+
+```bash
+cd ~/bob-next && git pull --ff-only && PYTHONDONTWRITEBYTECODE=1 python3 scripts/report_r4_agent_contract.py --once
+```
+
+This is NOT a release installation, and it cannot approve, queue or publish
+an R4 action. It verifies the **installed signed** R4 bridge and uses a
+distinct `moltbook-v08-shadow-r4-diagnostic-<source_run>` session. It calls
+the real local OpenClaw main agent **once** and OpenClaw may save a local
+agent session. It only reports transport vs contract errors selected from a
+hardcoded allowlist, never model responses, file paths, credentials, Scout
+body, or raw stderr. SQLite is opened `mode=ro`, with
+`PRAGMA query_only=ON`; no private R4 decision is committed by this probe.
+
+A `valid_private_decision` means this independent model response passes the
+original schema and permissions but **does not create a proposal**. Do not
+mistake it for a persisted Inbox item. The original `bob-r4-propose --once`
+remains the only approved way to record a private decision. A
+`source_not_recent` or `source_already_used` refuses without calling
+OpenClaw; never replay or alter the original time/used-source checks.
+
+R4 scheduling, Auto, real public votes/comments/posts/follows, and all
+new public publisher privileges remain disabled regardless of results.
