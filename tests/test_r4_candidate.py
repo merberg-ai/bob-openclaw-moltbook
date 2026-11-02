@@ -24,8 +24,11 @@ class R4CandidateReportTests(unittest.TestCase):
         intermediate=json.loads((ROOT/
             "releases/candidates/r4-format1-json-reliability.json").read_text())
         self.assertEqual(intermediate["from"],old_patch["release"])
-        self.assertEqual(current["from"],intermediate["release"])
-        self.assertEqual(current["release"],"v0.8.0-r4schedule1")
+        schedule1=json.loads((ROOT/
+            "releases/candidates/r4-schedule1-offfirst.json").read_text())
+        self.assertEqual(schedule1["from"],intermediate["release"])
+        self.assertEqual(current["from"],schedule1["release"])
+        self.assertEqual(current["release"],"v0.8.0-r4schedule2")
         with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
             source.inspect()
 
@@ -73,9 +76,11 @@ class R4CandidateReportTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
                         source.inspect(root=root)
 
-    def test_current_schedule_patch_chain_references_immutable_old_r4_candidate(self):
+    def test_current_schedule2_chain_preserves_legacy_hard_off(self):
         live=json.loads((ROOT/"releases/current.json").read_text())
         offer=json.loads((ROOT/
+            "releases/candidates/r4-schedule2-pinned-r3-first-tick.json").read_text())
+        schedule1=json.loads((ROOT/
             "releases/candidates/r4-schedule1-offfirst.json").read_text())
         format1=json.loads((ROOT/
             "releases/candidates/r4-format1-json-reliability.json").read_text())
@@ -84,15 +89,16 @@ class R4CandidateReportTests(unittest.TestCase):
         base=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
         self.assertEqual(live,offer)
-        self.assertEqual(live["release"],"v0.8.0-r4schedule1")
-        self.assertEqual(live["from"],format1["release"])
+        self.assertEqual(live["release"],"v0.8.0-r4schedule2")
+        self.assertEqual(live["from"],schedule1["release"])
+        self.assertEqual(schedule1["from"],format1["release"])
         self.assertEqual(format1["from"],previous["release"])
         self.assertEqual(previous["from"],base["release"])
         self.assertEqual(base["from"],"v0.8.0-r3canary1")
         self.assertTrue(live["restart_manager"])
         self.assertEqual({x["name"] for x in live["files"]},{
             "bob-release-updater","bobctl","bob_r4_installed_gate.py",
-            "bob_r4_schedule.py","bob-r4-schedule","bob_r4_web.py"})
+            "bob_r4_schedule.py"})
         self.assertNotIn("bob-moltbook-publisher",
                          {x["name"] for x in live["files"]})
         self.assertNotIn("bob-r4-publisher",
