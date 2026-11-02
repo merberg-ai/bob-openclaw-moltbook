@@ -172,8 +172,33 @@ def journal(run: Runner, unit: str, since: str, limit: int = 400) -> dict:
             omitted += 1
         else:
             kept.append(ts.strftime("%m-%d %H:%M:%S ") + line)
-    return {"lines": kept[-60:], "omitted": omitted,
+    return {"lines": compact(kept)[-60:], "omitted": omitted,
             "error": None if code == 0 else "journalctl_failed"}
+
+
+def compact(lines: list) -> list:
+    """Collapse runs of routine Starting/Finished pairs (minutely units).
+
+    Status JSON, failures and any other kept line are always preserved."""
+    out, quiet = [], []
+    routine = re.compile(r"\S+ \S+ (Starting|Finished|Deactivated successfully|Consumed )")
+
+    def flush():
+        if len(quiet) > 4:
+            starts = sum(1 for q in quiet if " Starting " in q)
+            out.append(f"{quiet[0][:14]}… {quiet[-1][:14]} {starts} routine runs started and finished cleanly (collapsed)")
+        else:
+            out.extend(quiet)
+        quiet.clear()
+
+    for line in lines:
+        if routine.match(line):
+            quiet.append(line)
+        else:
+            flush()
+            out.append(line)
+    flush()
+    return out
 
 
 def classify(message: str):

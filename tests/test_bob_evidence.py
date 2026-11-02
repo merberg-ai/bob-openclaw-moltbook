@@ -164,6 +164,18 @@ class EvidenceTests(unittest.TestCase):
                     '{"password": "x"}', "-----BEGIN PRIVATE KEY-----", "api_key=123"):
             self.assertFalse(ev.secret_free(text + bad), bad)
 
+    def test_compact_collapses_routine_runs_but_keeps_status_and_failures(self):
+        routine = []
+        for i in range(10):
+            routine += [f"11-02 09:{i:02d}:00 Starting bob-moltbook-publisher.service - P...",
+                        f"11-02 09:{i:02d}:01 Finished bob-moltbook-publisher.service - P."]
+        status = '11-02 09:30:00 {"reason":"x","status":"none"}'
+        failed = "11-02 09:31:00 Failed with result 'exit-code'."
+        out = ev.compact(routine + [status, failed] + routine[:2])
+        self.assertEqual(len(out), 5)
+        self.assertIn("10 routine runs", out[0])
+        self.assertEqual(out[1:3], [status, failed])
+
     def test_classify_rejects_non_token_values(self):
         self.assertIsNone(ev.classify('{"status": "none", "reason": "has spaces in it"}'))
         self.assertIsNone(ev.classify('{"status": {"nested": 1}}'))
