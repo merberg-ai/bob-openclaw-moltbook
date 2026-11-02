@@ -5,7 +5,8 @@
 - [x] **Completed-install owner rollback:** the updated trusted updater adds `--rollback-r4`, requires exact typed `ROLLBACK-R4`, completed R4 journal, correct archived R3 baseline, no source drift, and inactive original publisher. Restores code/registry ONLY; never SQLite. Wrong archive/active service are refused.
 - [x] **Actual loopback TLS UI smoke developed:** `tests/test_r4_https_host_smoke.py` tests CA-verified HTTPS, six authenticated R4 routes, legacy routes, hostile Host/Origin, CSRF, plaintext refusal, wrong CA and read-only GET in synthetic HOME.
 - [x] **Real UI navigation regression discovered/fixed:** shared sidebar accepted `/r4/now` but threw on subpages. R4 handlers now render their internal tab while passing canonical `/r4/now` to the existing sidebar, preserving all authenticated subroutes.
-- [ ] **Final CI and release review:** both Windows and full Python workflows must PASS on the final code head; finish exact service topology and owner-specific WSL HTTPS acceptance plan. See [R4 rehearsal notes](docs/R4-INSTALLATION-REHEARSAL.md).
+- [x] **Final source CI:** 1,262 offline Python tests PASS and Windows startup parsing PASS on code commit `7b07b75` (GitHub Actions run 41366703351); the real ephemeral TLS regression and completed-install code-only rollback tests pass. See [R4 rehearsal notes](docs/R4-INSTALLATION-REHEARSAL.md).
+- [ ] **Release/host review still required:** finish exact effective publisher service/timer and owner-specific WSL HTTPS installation acceptance. Do not claim a real OMEN rehearsal from synthetic CI.
 - [ ] **One separately approved R4 install:** no `releases/current.json` promotion, no OMEN binary/SQLite migration, and no real R4 send authorization yet.
 
 ---
