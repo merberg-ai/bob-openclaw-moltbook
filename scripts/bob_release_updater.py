@@ -596,13 +596,24 @@ def preflight_r4_installation() -> bool:
 
 
 def r4_publisher_inactive() -> bool:
-    """Read-only exact effective publisher unit gate before R4 migration."""
+    """Read-only unique original publisher topology, rechecked at migration.
+
+    Do not mistake a momentarily idle service for the absence of competing
+    dispatch workers or unknown systemd drop-ins. This must still be true
+    AFTER candidate hashes are staged and BEFORE the R4 DDL transaction.
+    """
     try:
         import report_r3_cutover_inventory as inventory
         import report_r38_effective_units as effective
+        import report_r3_diagnostic_installed as diagnostics
         facts=inventory.unit_facts("user",effective.SERVICE)
+        unit_shape=effective.report()
         return (facts.get("load")=="loaded" and
-                facts.get("active")=="inactive")
+                facts.get("active")=="inactive" and
+                unit_shape.get("effective_service")=="reviewed_shape" and
+                unit_shape.get("effective_timer")=="reviewed_shape" and
+                unit_shape.get("review_blockers")==[] and
+                diagnostics._units_ok() is True)
     except (OSError,ValueError,TypeError,KeyError,ImportError,
             RuntimeError,AttributeError):
         return False
