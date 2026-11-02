@@ -83,6 +83,9 @@ try:
         assert code == 200, (route, code, data[:200])
         assert b"R4 Autonomy" in data, route
 
+    # Verify R4 GETs themselves never create SQLite, before legacy routes.
+    assert not (home / ".config/moltbook/activity-queue.sqlite3").exists()
+
     assert req("GET", "/r3", authenticated=True)[0] == 200
     assert req("GET", "/activity", authenticated=True)[0] == 200
     assert b"future CH1" in req(
@@ -107,7 +110,6 @@ try:
                fields={"csrf": manager.TOKEN, "mode": "propose",
                        "confirmation": "SET R4 UPVOTE PROPOSE"})[0] == 409
 
-    assert not (home / ".config/moltbook/activity-queue.sqlite3").exists()
     try:
         plain = HTTPConnection("127.0.0.1", server.server_port, timeout=2)
         try:
