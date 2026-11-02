@@ -172,6 +172,47 @@ class R4ProductionShapeRehearsal(unittest.TestCase):
         with sqlite3.connect(self.dbpath) as db:
             self.assertEqual(schema.inspect(db), "ready")
 
+    def test_completed_r4_owner_rollback_is_code_only_and_preserves_new_attempts(self):
+        with self.isolated_host():
+            self.assertEqual(
+                updater.update(ROOT, self.current, self.plan, self.contents,
+                               auth="Basic isolated-test"), "updated")
+            self.assertEqual(updater.read_journal()["phase"], "complete")
+            with sqlite3.connect(self.dbpath) as db:
+                db.execute("INSERT INTO publish_jobs VALUES (?,?,?,?)", (
+                    "20261101T210000Z", "later-post",
+                    "2026-11-01T21:00:00+00:00", "later-comment"))
+            self.assertEqual(
+                updater.rollback_completed_r4(auth="Basic isolated-test"),
+                "baseline_restored")
+            self.assertEqual(updater.read_journal()["phase"], "rolled_back")
+            self.assertEqual(updater.registry()["release"], OLD_RELEASE)
+            self.assertTrue(updater.live_ok(self.current))
+        self.assertEqual(len(self.rows("publish_jobs")), 2)
+        with sqlite3.connect(self.dbpath) as db:
+            self.assertEqual(schema.inspect(db), "ready")
+
+    def test_completed_rollback_refuses_wrong_archive_or_active_publisher(self):
+        with self.isolated_host():
+            self.assertEqual(
+                updater.update(ROOT, self.current, self.plan, self.contents,
+                               auth="Basic isolated-test"), "updated")
+            with patch.object(updater, "r4_publisher_inactive",
+                              return_value=False):
+                with self.assertRaisesRegex(
+                        ValueError, "r4_completed_rollback_scope_unverified"):
+                    updater.rollback_completed_r4(auth="Basic isolated-test")
+            archive = self.state / "tx-v0.8.0-autonomy1/registry-before.json"
+            before = json.loads(archive.read_text())
+            archive.write_text(json.dumps({**before,
+                                           "release": "v0.8.0-r3skip1"}))
+            with self.assertRaisesRegex(
+                    ValueError, "r4_completed_rollback_archive_unverified"):
+                updater.rollback_completed_r4(auth="Basic isolated-test")
+            self.assertEqual(updater.registry()["release"], R4_RELEASE)
+            self.assertTrue(updater.live_ok(updater.registry()))
+            self.assertEqual(updater.read_journal()["phase"], "complete")
+
     def test_interrupted_migrated_phase_recovery_keeps_new_attempt_records(self):
         with self.isolated_host() as (_, restart):
             calls = []
