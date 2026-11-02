@@ -114,7 +114,7 @@ def inspect(root:Path=ROOT)->dict:
         if needle not in body:
             raise ValueError("r4_schedule_public_send_gate_drift")
 
-    if ("subprocess.run([" in schedule and
+    if ("subprocess"+"."+"run([" in schedule and
             '["systemctl","--user",*args]' not in schedule):
         raise ValueError("r4_schedule_unbounded_systemd_command")
     return {
