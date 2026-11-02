@@ -1,3 +1,13 @@
+## R4 real OpenClaw diagnostic accepted: valid private abstention (2026-11-01 PST)
+
+- [x] Owner ran `scripts/report_r4_agent_contract.py --once` after PR #144. Confirmed `stage:valid_private_decision`, `reason:ok`, `verified_action_kind:skip`, `openclaw_called:true`, `isolated_agent_session:true` for fresh unconsumed sealed Scout source `20261101T213703Z`. Signed R4 OpenClaw transport and exact eight-field decision parser succeeded in this actual local model trial. Choosing to skip is Bob's legitimate independent abstention.
+- [x] Probe reported original failed Scout run `20261102T042747Z` as `historical_source_owner:multiple`; at least two existing ledgers currently contain it. This does not establish which earlier model/contract check failed and must **not** justify replaying or clearing history.
+- [x] All diagnostic social-side-effect flags false: no R4 decision recorded/queued, no public dispatch authority, no production database writes or service/publisher changes. OpenClaw did save/use a distinct diagnostic session.
+- [ ] **Next manual functional milestone:** owner runs exactly one ordinary signed `~/.local/bin/bob-r4-propose --once` under current Propose controls and checks result plus private `/r4/inbox`. A saved `skipped` decision is a valid end-to-end acceptance; a `proposed` decision is only a local owner-review item, never a public send. `queued`, `attempted`, `dispatch_authorized` must remain false. If a different source is selected or the model refuses again, diagnose that new result; do not force action or reset source ledgers.
+- [ ] Defer any timer, automatic proposal scheduling, auto-action privileges or public R4 sending until separately reviewed and explicitly authorized.
+
+---
+
 ## R4 first diagnostics: historical Scout source now consumed; fresh-source selection fix (2026-11-01 PST)
 
 - [x] Owner ran PR #143 diagnostic once. It returned `stage:source`, `reason:source_already_used`, `source_run:20261102T042747Z`, `openclaw_called:false`, and all R4 queue/public flags false. **No diagnostic inference occurred and this does not identify why the earlier R4 model call was rejected.**
