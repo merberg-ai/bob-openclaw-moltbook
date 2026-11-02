@@ -43,17 +43,17 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-r3canary1")
+        self.assertEqual(current["release"],"v0.8.0-autonomy1")
         self.assertEqual(plan["from"],"v0.8.0-chhttps3")
         self.assertEqual(plan["release"],"v0.8.0-cutover1")
-        self.assertEqual(current["from"],"v0.8.0-r3skip1")
-        self.assertEqual({row["name"] for row in current["files"]},
-                         {"bob-release-updater","bobctl","bob_r3_package.pyz",
-                          "bob_r3_canary_lock.py","bob_r313c_adapter.py",
-                          "bob-moltbook-publisher","bob-r3-canary-arm"})
+        self.assertEqual(current["from"],"v0.8.0-r3canary1")
+        self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text()))
+        self.assertEqual(len(current["files"]),23)
+        self.assertIn("bob-moltbook-publisher",{row["name"] for row in current["files"]})
+        self.assertNotIn("bob-r4-publisher",{row["name"] for row in current["files"]})
         self.assertTrue(candidate.inspect(build=False)["releases_current_json_modified"])
         self.assertTrue(plan["restart_manager"])
-        self.assertFalse(current["restart_manager"])
+        self.assertTrue(current["restart_manager"])
         self.assertIn("bob-moltbook-publisher",{x["name"] for x in plan["files"]})
         self.assertNotIn("bob-moltbook-publisher.timer",{x["name"] for x in plan["files"]})
         self.assertNotIn("bob-r3-publisher",{x["name"] for x in plan["files"]})
