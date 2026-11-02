@@ -101,6 +101,19 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
         self.assertFalse(report["r4_proposal_queued"])
         self.assertFalse(report["public_social_dispatch_authorized"])
 
+    def test_exact_source_session_never_changes_identity_or_bypasses_gate(self):
+        run="20261101T213703Z"
+        source="moltbook-v08-shadow-r4-proposal-"+run
+        self.assertEqual(probe._session_key(source,run,production=True),source)
+        self.assertEqual(probe._session_key(source,run,production=False),
+                         "moltbook-v08-shadow-r4-diagnostic-"+run)
+        for bad in ("moltbook-v08-shadow-r4-proposal-other", "main",
+                    "moltbook-v08-shadow-r4-diagnostic-"+run):
+            with self.assertRaisesRegex(ValueError,"unexpected_shadow_session"):
+                probe._session_key(bad,run,production=True)
+        with self.assertRaisesRegex(ValueError,"unexpected_shadow_session"):
+            probe._session_key(source,run,production="yes")
+
     def test_production_session_requires_real_terminal_and_confirmation(self):
         with patch.object(probe.sys,"stdin") as stdin, \
              patch.object(probe,"diagnose") as diagnose:
@@ -158,7 +171,7 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
         source=(ROOT/"scripts/report_r4_agent_contract.py").read_text()
         for needle in (
             'SESSION_PREFIX="moltbook-v08-shadow-r4-diagnostic-"',
-            'key=session if production_session else SESSION_PREFIX+run',
+            'key=_session_key(session,run,production=production_session)',
             'raw=openclaw_decide(prompt,key)',
             'approval!="TRACE R4 SESSION"',
             'if not sys.stdin.isatty():',
