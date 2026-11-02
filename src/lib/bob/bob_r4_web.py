@@ -339,6 +339,41 @@ def _bob(data):
             '</p></section></div>')
 
 
+
+def _schedule_status(data):
+    """Display signed, read-only systemd status; never enable from browser."""
+    info=data.get("r4_schedule")
+    if not isinstance(info,dict):
+        info={"phase":"unverified","timer_enabled":False,
+              "blockers":["schedule_status_unavailable"]}
+    phase=info.get("phase","unverified")
+    if phase not in ("absent","prepared","staged","enabling",
+                     "enabled","disabling","disabled","recovering",
+                     "rolled_back","unknown","unverified"):
+        phase="unverified"
+    enabled=info.get("timer_enabled") is True
+    blocked=info.get("blockers")
+    if type(blocked) is not list:
+        blocked=["schedule_status_unavailable"]
+    rows=''.join('<li><code>'+e(x)+'</code></li>'
+                 for x in blocked[:8] if type(x) is str and len(x)<=90)
+    return (
+        '<section class="panel"><h3>R4 private proposal schedule</h3>'
+        '<p>State: <strong>'+e(phase.upper())+'</strong> · Timer: <strong>'+
+        ('ON' if enabled else 'OFF / not verified')+'</strong></p>'
+        '<p class="muted">Conservative 120-minute interval with up to '
+        '10-minute jitter. No missed-run catch-up, no automatic retries, '
+        'no R4 public sends. R3 Scout and publisher are separate and '
+        'are never modified by this schedule.</p>'
+        '<p class="muted">Schedule installation and activation are '
+        'separately owner-confirmed terminal commands. The dashboard '
+        'only observes schedule state; it cannot turn the timer on.</p>'
+        +(('<h3>Read-only blockers</h3><ul>'+rows+'</ul>') if rows else '')
+        +'</section>'
+    )
+
+
+
 def _controls(data,csrf):
     forms=[]
     modes=data["controls"]
@@ -381,7 +416,7 @@ def _controls(data,csrf):
             '<strong>'+('ON' if paused else 'OFF')+'</strong></p>'
             '<p class="muted">This controls R4 only. It does not reset '
             'historical attempts or turn on/off legacy Scout publication.'
-            '</p>'+pause_form+'</section>')
+            '</p>'+pause_form+'</section>'+_schedule_status(data))
 
 
 def _diagnostics(data):
@@ -396,7 +431,7 @@ def _diagnostics(data):
             '<p><a href="/investigate">Why no activity?</a> · '
             '<a href="/console">Console</a> · '
             '<a href="/settings/activity-limits">Existing worker limits</a>'
-            '</p></section>')
+            '</p></section>'+_schedule_status(data))
 
 
 def content(panel:str,data:dict,csrf:str) -> str:
@@ -433,6 +468,15 @@ class R4HandlerMixin:
         from navigation_shell import wrap
         data=snapshot()
         view=PANEL[path]
+        # Authenticated GET only. Never execute systemd changes, create a
+        # schedule or infer that an absent/malformed timer is enabled.
+        if view in ("controls","diagnostics"):
+            try:
+                from bob_r4_schedule import inspect as schedule_inspect
+                data["r4_schedule"]=schedule_inspect()
+            except (OSError,ValueError,TypeError,ImportError,KeyError):
+                data["r4_schedule"]={"phase":"unknown","timer_enabled":False,
+                                    "blockers":["schedule_status_unavailable"]}
         if data["available"] and view in ("bob","inbox"):
             from bob_r4_reflections import reasons
             data["bob_reasons"]=reasons()
