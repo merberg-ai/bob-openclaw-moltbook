@@ -272,10 +272,51 @@ def database(home: Path) -> dict:
                     (str(k) if TOKEN.fullmatch(str(k)) else "<other>"): n
                     for k, n in db.execute(
                         f"SELECT {col},COUNT(*) FROM {table} GROUP BY {col}")}
+            out["queue_explain"] = queue_explain(db, tables)
         finally:
             db.close()
     except sqlite3.Error as exc:
         out["error"] = "sqlite:" + type(exc).__name__
+    return out
+
+
+PUBLISHER_SKIP_CODES = frozenset((
+    "NO_QUEUE", "AUTO_DISABLED", "RATE_OR_BUDGET", "GLOBAL_PAUSE",
+    "PREFLIGHT_FAILED", "MANUAL_APPROVAL_CHANGED", "AUTO_REVIEW_BLOCKED",
+    "FRIEND_PROTECTED", "INTEGRITY_BLOCKED", "DRAFT_EXPIRED", "DUPLICATE",
+    "STALE_CLAIM"))
+
+
+def queue_explain(db, tables: set) -> dict:
+    """Why queued jobs are waiting: counts and fixed codes only, no text."""
+    out: dict = {}
+    if "publish_jobs" not in tables:
+        return out
+    out["queued_by_mode"] = {
+        (m if m in ("manual", "auto") else "<other>"): n for m, n in db.execute(
+            "SELECT mode,COUNT(*) FROM publish_jobs WHERE state='queued' GROUP BY mode")}
+    if "r3_proposals" in tables:
+        out["queued_held_as_r3_proposals"] = db.execute(
+            "SELECT COUNT(*) FROM publish_jobs j JOIN r3_proposals p "
+            "ON p.source_run=j.run_id WHERE j.state='queued'").fetchone()[0]
+    oldest = db.execute("SELECT MIN(created_at) FROM publish_jobs WHERE state='queued'").fetchone()[0]
+    out["oldest_queued_created_at"] = oldest if isinstance(oldest, str) and TOKEN.fullmatch(oldest) else None
+    if "publish_settings" in tables:
+        cols = {r[1] for r in db.execute("PRAGMA table_info(publish_settings)")}
+        if {"name", "value"} <= cols:
+            row = db.execute("SELECT value FROM publish_settings WHERE name='auto_enabled'").fetchone()
+            out["auto_enabled"] = (row[0] == "1") if row else False
+    if "publish_events" in tables:
+        rows = db.execute("SELECT at,details FROM publish_events WHERE kind='publisher_skip' "
+                          "ORDER BY id DESC LIMIT 20").fetchall()
+        codes: dict = {}
+        for _at, details in rows:
+            code = str(details).split()[0].removeprefix("code=")
+            code = code if code in PUBLISHER_SKIP_CODES else "<other>"
+            codes[code] = codes.get(code, 0) + 1
+        out["recent_publisher_skip_codes"] = codes
+        if rows and TOKEN.fullmatch(str(rows[0][0])):
+            out["last_publisher_skip_at"] = rows[0][0]
     return out
 
 

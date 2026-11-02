@@ -80,6 +80,21 @@ class EvidenceTests(unittest.TestCase):
                        [("a", "published", "private draft text"),
                         ("b", "published", "x"), ("c", "weird state!; drop", "y")])
         db.execute("CREATE TABLE r4_social_decisions(id TEXT, status TEXT)")
+        db.execute("ALTER TABLE publish_jobs ADD COLUMN mode TEXT")
+        db.execute("ALTER TABLE publish_jobs ADD COLUMN created_at TEXT")
+        db.executemany("INSERT INTO publish_jobs VALUES(?,?,?,?,?)",
+                       [("q1", "queued", "secret draft", "auto", "2026-11-01T10:00:00+00:00"),
+                        ("q2", "queued", "x", "manual", "2026-11-02T10:00:00+00:00"),
+                        ("q3", "queued", "x", "auto", "2026-11-02T11:00:00+00:00")])
+        db.execute("CREATE TABLE r3_proposals(source_run TEXT, state TEXT)")
+        db.execute("INSERT INTO r3_proposals VALUES('q3','queued')")
+        db.execute("CREATE TABLE publish_settings(name TEXT, value TEXT)")
+        db.execute("INSERT INTO publish_settings VALUES('auto_enabled','0')")
+        db.execute("CREATE TABLE publish_events(id INTEGER PRIMARY KEY, at TEXT, kind TEXT, details TEXT)")
+        db.executemany("INSERT INTO publish_events(at,kind,details) VALUES(?,?,?)",
+                       [("2026-11-02T17:00:00+00:00", "publisher_skip", "code=AUTO_DISABLED run=20261102T100000Z"),
+                        ("2026-11-02T17:01:00+00:00", "publisher_skip", "code=EVIL; drop"),
+                        ("2026-11-02T17:02:00+00:00", "published", "x")])
         db.execute("INSERT INTO r4_social_decisions VALUES('1','skipped')")
         db.commit()
         db.close()
@@ -104,7 +119,14 @@ class EvidenceTests(unittest.TestCase):
         before = hashlib.sha256(self.db_path.read_bytes()).hexdigest()
         _, data = self.collect()
         self.assertEqual(hashlib.sha256(self.db_path.read_bytes()).hexdigest(), before)
-        self.assertEqual(data["database"]["publish_jobs"], {"published": 2, "<other>": 1})
+        self.assertEqual(data["database"]["publish_jobs"], {"published": 2, "<other>": 1, "queued": 3})
+        q = data["database"]["queue_explain"]
+        self.assertEqual(q["queued_by_mode"], {"auto": 2, "manual": 1})
+        self.assertEqual(q["queued_held_as_r3_proposals"], 1)
+        self.assertIs(q["auto_enabled"], False)
+        self.assertEqual(q["oldest_queued_created_at"], "2026-11-01T10:00:00+00:00")
+        self.assertEqual(q["recent_publisher_skip_codes"], {"<other>": 1, "AUTO_DISABLED": 1})
+        self.assertNotIn("secret draft", ev.render(data))
         self.assertEqual(data["database"]["r4_social_decisions"], {"skipped": 1})
         self.assertNotIn("private draft text", ev.render(data))
 
