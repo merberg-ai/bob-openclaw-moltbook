@@ -1,3 +1,12 @@
+## R4 proposed-patch refusal: owner 10/10 read-only prearchive checks PASS (2026-11-01 PST)
+
+- [x] Owner ran `report_r4_patch_refusal.py --check` on OMEN. **All 10 current checks true, `current_blockers:[]`**: signed `autonomy1` baseline, completed journal, private updater and backup directories, valid lock metadata, original publisher idle at snapshot, loopback authenticated HTTPS, SQLite readable, no patch archive, exact four-file `r4propose1` offer. Probe changed no host/DB/services and made no public API calls.
+- [x] Source behavior clarified: original updater reached typed `UPDATE`, so its initial `preflight_r4_proposal_patch()` passed. Within `update()`, an independent publisher-idle check, journal check, hash and health checks, and verified backup run **before** creating the patch archive. The prior `ValueError` reason is NOT known. A transient publisher race is plausible, not confirmed.
+- [ ] **Next owner action: at most ONE separately typed retry** of the signed source updater from trusted clean `~/bob-next`; if `updated`, run read-only installed acceptance and then one manual private proposal trial. If any `REFUSED` or `failed at`, stop, do not repeat or force repair, and collect a sanitized targeted diagnosis. The report itself grants no retry authorization.
+- [ ] No R4 public sends, Auto modes or timers are authorized by this acceptance.
+
+---
+
 ## R4 proposal patch refusal: clean original install, failure reason not yet known (2026-11-01 PDT)
 
 - [x] Owner's read-only OMEN state check showed `installed_release:v0.8.0-autonomy1`, `installed_hashes_ok:true`, completed prior R4 journal, **no** `tx-v0.8.0-r4propose1` archive, idle publisher at time of check, signed-source/HTTPS/schema true, and zero attempted R4 public actions. No evidence the patch replaced installed code; do not run recovery or rollback.
