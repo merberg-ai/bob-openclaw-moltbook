@@ -30,19 +30,21 @@ def host_ready():
 
 
 class ProposalPatchTests(unittest.TestCase):
-    def test_exact_source_and_transport_are_reviewed_and_promoted(self):
-        report=audit.inspect()
-        self.assertEqual(report["promoted_release_manifest"],"v0.8.0-r4propose1")
-        self.assertEqual(report["previous_installed_release"],"v0.8.0-autonomy1")
-        self.assertTrue(report["exact_promoted_candidate"])
-        self.assertEqual(report["candidate_release"],"v0.8.0-r4propose1")
-        self.assertEqual(report["candidate_files"],4)
-        self.assertTrue(report["main_agent_transport_compatible"])
-        self.assertTrue(report["all_r4_public_sends_hard_off"])
-        for key in ("proposal_schedule_enabled","owner_modes_edited",
-                    "database_migrated","installed_on_omen"):
-            self.assertFalse(report[key])
-        self.assertEqual(set(report["verified_source_hashes"]),set(audit.ALLOWED))
+    def test_historical_four_file_proposal_patch_is_archived_not_offered(self):
+        from pathlib import Path
+        old=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json")
+                       .read_text())
+        self.assertEqual(old["release"],"v0.8.0-r4propose1")
+        self.assertEqual(old["from"],"v0.8.0-autonomy1")
+        self.assertEqual(len(old["files"]),4)
+        self.assertEqual(
+            {item["name"] for item in old["files"]},set(audit.ALLOWED))
+        # The signed old release is already installed on OMEN; re-offering
+        # or auditing it as the CURRENT offer is not permitted.
+        current=json.loads((ROOT/"releases/current.json").read_text())
+        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        with self.assertRaisesRegex(ValueError,"r4_proposal_patch_chain_unverified"):
+            audit.inspect()
 
     def test_patch_preflight_requires_previous_signed_live_R4_acceptance(self):
         with patch("report_r4_installed.inspect",return_value=host_ready()), \
@@ -72,22 +74,21 @@ class ProposalPatchTests(unittest.TestCase):
                    side_effect=ValueError("private credential, must not log")):
             self.assertFalse(updater.preflight_r4_proposal_patch())
 
-    def test_candidate_manifest_is_exact_and_promoted(self):
-        c=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
-        live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-r4propose1")
-        self.assertEqual(c["release"],"v0.8.0-r4propose1")
-        self.assertEqual(c["from"],"v0.8.0-autonomy1")
-        self.assertEqual(live,c)
-        self.assertTrue(c["restart_manager"])
-        self.assertEqual({f["name"] for f in c["files"]},set(audit.ALLOWED))
-        self.assertNotIn("bob-moltbook-publisher",{f["name"] for f in c["files"]})
-        self.assertNotIn("bob-r4-propose",{f["name"] for f in c["files"]})
-        self.assertNotIn("bob-r4-publisher",{f["name"] for f in c["files"]})
+    def test_historical_manifest_not_current_offer(self):
+        old=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json")
+                       .read_text())
+        current=json.loads((ROOT/"releases/current.json").read_text())
+        self.assertEqual(old["release"],"v0.8.0-r4propose1")
+        self.assertEqual(current["from"],old["release"])
+        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        self.assertNotIn("bob-moltbook-publisher",
+                         {f["name"] for f in current["files"]})
+        self.assertNotIn("bob-r4-publisher",
+                         {f["name"] for f in current["files"]})
 
     def test_source_report_has_no_install_or_network_cli(self):
         self.assertEqual(audit.main(["--install"]),2)
-        self.assertEqual(audit.main(["--check"]),0)
+        self.assertEqual(audit.main(["--check"]),1)
         source=(ROOT/"scripts/report_r4_proposal_candidate.py").read_text()
         for banned in ("systemctl restart","requests.post","migrate_candidate(",
                        "updater.update(", "subprocess.run(", "api_key(",
