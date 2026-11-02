@@ -1,6 +1,6 @@
 # R4 production-shaped rehearsal and release review
 
-**Status:** source rehearsal CI **PASS**: 1,262 Python tests plus Windows startup checks on code commit `7b07b75` (GitHub Actions run `41366703351`). **Not an OMEN installation**. The trusted
+**Status:** R4 canary-aware source checks **PASS**: **1,269 Python tests** plus Windows startup checks on code commit `0eb9342` (GitHub Actions run `41370228129`). **Not an OMEN installation**. The trusted
 `next` manifest remains `v0.8.0-r3canary1`. The separate candidate is
 `releases/candidates/r4-autonomy1-consolidated.json`. No public R4 action is
 authorized by this review.
@@ -88,7 +88,7 @@ actions.
 
 ## Remaining release gates
 
-- [x] Source CI on last code commit `7b07b75`: 1,262 Python tests and Windows workflow PASS. Future source changes require fresh checks.
+- [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The later CI path-trigger update must pass separately before closing the branch.
 - [ ] Review exact 23-file payload and four independent real-send Off markers.
 - [x] Source R4 preinstall probes review unique original publisher unit/timer, effective unit shape, current R3 canary hashes, existing Scout/R3 proposal schedule and competing-worker absence; migration repeats the topology check.
 - [ ] Verify the **actual** OMEN host output from `report_r4_preinstall.py --check` once the candidate is approved and promotion prepared. No live host report has been performed yet.
