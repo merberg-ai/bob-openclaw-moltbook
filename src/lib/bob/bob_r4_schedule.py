@@ -540,6 +540,29 @@ def disable(*,probe=_probe,control=_ctl)->str:
         os.close(fd)
 
 
+
+def _recoverable_owned_unit(name:str,unit:Unit)->bool:
+    """Permit exact journal-owned interrupted stage without daemon-reload.
+
+    During a crash after file creation but before reload, systemd may still
+    report the unit as not-found. During recovery after removing one file,
+    it may report the old loaded fragment until daemon-reload. Neither state
+    authorizes touching an unknown path, running worker, or active timer.
+    """
+    if _unit_absent(name,unit) or _unit_ok(name,unit):
+        return True
+    p=UNIT_DIR/name
+    if (unit.active!="inactive" or unit.enabled in ENABLED
+            or unit.load not in ("loaded","not-found")
+            or unit.dropins!="" or unit.fragment not in ("",str(p))
+            or p.is_symlink()):
+        return False
+    return (not p.exists() or (
+        _file(p,max_bytes=8192) and
+        p.read_bytes()==UNIT_TEXT[name].encode()))
+
+
+
 def recover(*,probe=_probe,control=_ctl)->str:
     """Explicit reversible code/unit rollback only; never restore SQLite."""
     _require_owner()
@@ -555,7 +578,10 @@ def recover(*,probe=_probe,control=_ctl)->str:
         # commands. For interrupted prepared phases unit files may be absent.
         for name in UNIT_TEXT:
             s=before[name]
-            if not (_unit_absent(name,s) or _unit_ok(name,s)):
+            allowed=(_unit_absent(name,s) or _unit_ok(name,s))
+            if not allowed and phase in ("prepared","recovering"):
+                allowed=_recoverable_owned_unit(name,s)
+            if not allowed:
                 raise ValueError("r4_schedule_recovery_unit_drift")
         _write_phase("recovering")
         if _unit_ok(TIMER,before[TIMER]):
