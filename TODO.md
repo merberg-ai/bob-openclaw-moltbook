@@ -1,3 +1,13 @@
+## R4 proposal patch refusal: clean original install, failure reason not yet known (2026-11-01 PDT)
+
+- [x] Owner's read-only OMEN state check showed `installed_release:v0.8.0-autonomy1`, `installed_hashes_ok:true`, completed prior R4 journal, **no** `tx-v0.8.0-r4propose1` archive, idle publisher at time of check, signed-source/HTTPS/schema true, and zero attempted R4 public actions. No evidence the patch replaced installed code; do not run recovery or rollback.
+- [x] From updater source, the generic `BOB UPDATE: REFUSED (ValueError)` after typed UPDATE but before stage marker/archive means an early fail-closed gate: publisher topology can change between preliminary preflight and update lock; health can change; backup destination/source may be unavailable; lock metadata or another pre-archive condition may refuse. **The original failing condition was not logged, and cannot be reconstructed from a later successful snapshot.** A transient publisher timer race is plausible, not established.
+- [x] Added read-only sanitized `scripts/report_r4_patch_refusal.py --check` to test the *current* signed R4 state, journal, lock metadata, publisher idle, local authenticated HTTPS, read-only SQLite access, private backup folder, clean patch archive and exact four-file source offer. No changes to signed release files, release manifest, owner preferences, service units, DB or Moltbook.
+- [ ] Require CI/review and merge diagnostics only, then owner to run one read-only command in trusted `~/bob-next`. A fully green **current** snapshot is evidence to consider one separately typed attempt, not proof of the original error or authorization to retry automatically.
+- [ ] If pre-archive refusal repeats, add narrowly classified, preapproved non-sensitive error reporting in the *next separately signed patch release* rather than bypassing topology/backup/HTTPS gates.
+
+---
+
 ## R4 proposal patch: owner-reported updater refusal (2026-11-01 PDT)
 
 - [ ] **DO NOT RETRY / DO NOT ENABLE CONTROLS YET.** Owner's actual OMEN source audit `report_r4_proposal_candidate.py --check` PASSED (exact promoted four-file `v0.8.0-r4propose1`, source gates Off). The source updater offered the correct four files and received typed `UPDATE`, but returned `BOB UPDATE: REFUSED (ValueError)` without a `BOB UPDATE: failed at …` transaction-stage line. **Patch installation NOT confirmed.** Original `v0.8.0-autonomy1` acceptance was previously PASS.
