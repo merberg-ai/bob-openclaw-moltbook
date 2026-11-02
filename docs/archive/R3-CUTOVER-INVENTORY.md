@@ -80,7 +80,7 @@ R3.7 must gate each proposed new Bob-authored comment through a single credentia
 
 `src/bob_v08/r36_admission_contract.py` is a second independent non-dispatch classification check. It uses real locally saved Scout result/feed hashes through `verified_source`, validates the *exact* old draft hash for legacy jobs, or the new Bob draft seal and attached `r3_proposals` fingerprint for R3 jobs. Any attempted or uncertain job, altered payload or missing source record is rejected. `dispatch_authorized` stays false even for well-formed test examples. The existing credentialed publisher remains unchanged and would still reject the new Bob seal.
 
-**Owner acceptance:** [one safe read-only host command and interpretation](docs/R36-HOST-READINESS.md). A baseline-consistent report is not cutover approval. Real installed unit/drop-in shape, WSL reboot, trusted owner/friend/GET authority and final pre-send behavior remain future gates. The installed Shadow4 and v0.7 publisher remain the sole running decision/publishing systems respectively.
+**Owner acceptance:** [one safe read-only host command and interpretation](R36-HOST-READINESS.md). A baseline-consistent report is not cutover approval. Real installed unit/drop-in shape, WSL reboot, trusted owner/friend/GET authority and final pre-send behavior remain future gates. The installed Shadow4 and v0.7 publisher remain the sole running decision/publishing systems respectively.
 
 ---
 

@@ -39,6 +39,6 @@ After offline CI passes and the PR is merged:
 
 ## Roadmap pause
 
-**FM3 is COMPLETE and accepted.** **Do not start FM4 or FM5** until the operator's reported issues and requested intervening feature have been discussed, prioritized and addressed, and the operator expressly agrees to resume Friends work. The next Friends engineering step is **FM4.1: evidence-linked private Social Memory Timeline**. Detailed scoping, source boundaries, release-baseline rules and a copyable fresh-chat kickoff are recorded in [FRIENDS-ROADMAP-AND-HANDOFF.md](FRIENDS-ROADMAP-AND-HANDOFF.md).
+**FM3 is COMPLETE and accepted.** **Do not start FM4 or FM5** until the operator's reported issues and requested intervening feature have been discussed, prioritized and addressed, and the operator expressly agrees to resume Friends work. The next Friends engineering step is **FM4.1: evidence-linked private Social Memory Timeline**. Detailed scoping, source boundaries, release-baseline rules and a copyable fresh-chat kickoff are recorded in [FRIENDS-ROADMAP-AND-HANDOFF.md](../FRIENDS-ROADMAP-AND-HANDOFF.md).
 
-The separate Activity Manager ↔ Bob agent chat plan remains in root [TODO.md](../TODO.md), not assumed to be the requested new feature. This documentation acceptance change **does not modify `releases/current.json`, issue a new version, or require another `bobctl update`**.
+The separate Activity Manager ↔ Bob agent chat plan remains in root [TODO.md](TODO-log-v0.8.md), not assumed to be the requested new feature. This documentation acceptance change **does not modify `releases/current.json`, issue a new version, or require another `bobctl update`**.

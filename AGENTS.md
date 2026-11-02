@@ -24,4 +24,4 @@ This file governs new v0.8 engineering on `next`. **Do not silently change the w
 - Full offline/synthetic tests and GitHub CI before merge; no live Moltbook, model or systemd writes in CI. Real-host probes require explicit owner authorization and are separate from offline tests.
 - Prefer meaningful integration PRs and only **four owner-facing release checkpoints** (R1 done, R2 shadow, R3 guarded cutover, R4 social/UI), rather than repeated micro-installs.
 - No release cutover or branch switch simply because a GitHub commit exists. Existing `bobctl update` backups, hashes, typed confirmation, manifest chain and rollback are mandatory.
-- Keep living docs accurate. Avoid version claims contradicted by `releases/current.json` or the last operator-confirmed installed registry.
+- Keep living docs accurate. [`docs/STATUS.md`](docs/STATUS.md) is the single installed-state record: update it in the same PR as any operator-confirmed host change. Historical step docs go in `docs/archive/`; do not add new per-step docs at the top of `docs/`. Avoid version claims contradicted by `releases/current.json` or the last operator-confirmed installed registry.

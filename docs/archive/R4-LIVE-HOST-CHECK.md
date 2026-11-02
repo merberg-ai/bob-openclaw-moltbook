@@ -20,7 +20,7 @@ cd ~/bob-next && git pull --ff-only && PYTHONDONTWRITEBYTECODE=1 \\
 A PASS now means `promoted_manifest_verified:true`, the new current manifest
 matches the reviewed candidate exactly, and seven host probes still pass
 against the independently unchanged installed R3 canary. It is NOT the owner
-installation prompt. See [R4 promotion and installation](R4-PROMOTION-AND-INSTALL.md).
+installation prompt. See [R4 promotion and installation](../R4-PROMOTION-AND-INSTALL.md).
 
 ## Run once in OpenClawLab as the normal openclaw account
 

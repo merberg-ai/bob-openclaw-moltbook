@@ -116,7 +116,7 @@ mistaking current source promotion for a mutation to the running OMEN host.
 *and* the unchanged installed R3 canary with its existing HTTPS/one-publisher
 systemd topology. The trusted `~/bob-next` checkout must be fast-forwarded
 before checking; `bobctl update` from the old installed R3 release is not a
-valid bridge to R4. See [R4 promotion and installation](R4-PROMOTION-AND-INSTALL.md).
+valid bridge to R4. See [R4 promotion and installation](../R4-PROMOTION-AND-INSTALL.md).
 
 ## Remaining release gates
 

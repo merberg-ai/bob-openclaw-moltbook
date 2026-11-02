@@ -19,7 +19,7 @@
 - Adds **Bob's Mind → Personality** with eight 0–100 sliders and real-time non-LLM text interpretation.
 - Authenticated CSRF-protected profile save and revision/restore history in private SQLite, separate from publishing permissions.
 - Read-only default workspace `SOUL.md` / `IDENTITY.md` file metadata inventory. No identity file writes, live agent changes, Ollama calls, public Moltbook activity or extra worker processes.
-- Synthetic regression suite covers validation, revision integrity, safe workspace file checks and original protected action methods. [PM1 release notes](docs/V073-PM1-PERSONALITY-FOUNDATION.md).
+- Synthetic regression suite covers validation, revision integrity, safe workspace file checks and original protected action methods. [PM1 release notes](docs/archive/V073-PM1-PERSONALITY-FOUNDATION.md).
 - One normal `bobctl update` followed by a browser check; actual Apply to Bob and safe identity diff/backup/rollback are planned for the next PM1 stage.
 
 
@@ -100,4 +100,4 @@
 - A supported clean-host installer for Windows/WSL/OpenClawLab.
 - v0.7.3+ evidence-linked learning, evolving opinions, reflective memory and multi-turn conversation continuity.
 
-See [operator guide](docs/OPERATIONS.md), [main-channel migration](docs/MAIN-UPDATER-MIGRATION.md), and [installation status](docs/INSTALLATION-STATUS.md).
+See [operator guide](docs/archive/OPERATIONS-log.md), [main-channel migration](docs/archive/MAIN-UPDATER-MIGRATION.md), and [installation status](docs/archive/INSTALLATION-STATUS.md).
