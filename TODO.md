@@ -1,3 +1,14 @@
+## R4 normal worker failed after successful isolated OpenClaw skip (2026-11-01 PST)
+
+- [x] Owner ran accepted signed `~/.local/bin/bob-r4-propose --once` after the first valid isolated diagnostic. The ordinary worker selected the same fresh Scout source `20261101T213703Z` but returned `status:refused`, `reason:r4_model_or_contract_unverified`, with `queued:false`, `attempted:false`, `dispatch_authorized:false`. No R4 proposal was persisted. Original refusal remains unclassified.
+- [x] Root diagnostic gap found: the successful source-only probe used `moltbook-v08-shadow-r4-diagnostic-<source>`, but the installed real R4 worker uses `moltbook-v08-shadow-r4-proposal-<source>`. OpenClaw sessions can reuse conversation state for the same key; responses may differ because of context or nondeterminism. The earlier isolated `skip` **does not establish** normal session behavior.
+- [x] Built **source-only, optional** `report_r4_agent_contract.py --production-session-once`, requiring a real terminal and exact `TRACE R4 SESSION` confirmation. It uses the installed signed agent's exact source-specific production OpenClaw session key, one model call, the unchanged strict eight-string-field parser, and the existing bounded fresh-unused Scout selection. It reports only a fixed stage/error reason or valid unsaved action kind. SQLite remains `mode=ro` and `query_only`; no R4 proposal, publisher job or social API write is created. **OpenClaw does persist a turn in that production agent session**, which may affect a future normal decision; treat as an explicit operator choice.
+- [x] Added synthetic scope/terminal-confirmation/session-key tests, including noninteractive refusal and no model call without the exact approval phrase. No changes to `releases/current.json`, signed R4 worker/parser/transport, owner modes, timers or send hard-Off gates.
+- [ ] Require CI review/merge before owner uses this trace. Do not keep repeating uninstrumented `bob-r4-propose --once`. If a fresh source has since been consumed, keep the history and report `no_fresh_r4_source` without a model call.
+- [ ] Interpret observed classification before proposing a signed worker fix. Distinguish CLI/error/JSON shape from any session-contamination hypothesis; a successful private skip during trace remains unsaved and does not authorize publishing.
+
+---
+
 ## R4 real OpenClaw diagnostic accepted: valid private abstention (2026-11-01 PST)
 
 - [x] Owner ran `scripts/report_r4_agent_contract.py --once` after PR #144. Confirmed `stage:valid_private_decision`, `reason:ok`, `verified_action_kind:skip`, `openclaw_called:true`, `isolated_agent_session:true` for fresh unconsumed sealed Scout source `20261101T213703Z`. Signed R4 OpenClaw transport and exact eight-field decision parser succeeded in this actual local model trial. Choosing to skip is Bob's legitimate independent abstention.
