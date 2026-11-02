@@ -6,8 +6,8 @@ R4 `v0.8.0-autonomy1` is installed and accepted on the OMEN. The owner
 confirmed the private-LAN Activity Manager and `/r4/` work correctly. All
 R4 public social sends and automatic social worker modes remain compiled Off.
 
-**Release candidate `v0.8.0-r4propose1` is NOT current, NOT installed
-and NOT authorized yet.** It fixes a real mismatch between the R4 producer's
+**Source release promotion PR #140 offers `v0.8.0-r4propose1`, but it
+is NOT installed and does NOT authorize any public action.** It fixes a real mismatch between the R4 producer's
 session key and `bob_v08.shadow.openclaw_decide`'s trusted prefix. Synthetic
 model callback tests previously bypassed the strict transport check.
 
@@ -44,6 +44,43 @@ private proposals.
 
 No systemd timer/service is created for R4 proposals by this patch.
 The **first trial is a deliberate single manual decision**.
+
+## Exact operator installation handoff, only AFTER PR #140 merges
+
+In OpenClawLab as the normal non-root `openclaw` account, using the
+reviewed and clean `next` checkout:
+
+```bash
+cd ~/bob-next && git pull --ff-only && \
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/report_r4_proposal_candidate.py --check && \
+python3 scripts/bob_release_updater.py --check
+```
+
+Expected: the source report identifies the exact **four-file**
+`v0.8.0-r4propose1` release, with `all_r4_public_sends_hard_off:true`.
+The updater `--check` only displays the offer. **No installation yet.**
+
+After you have reviewed the output and chosen to install, run separately:
+
+```bash
+cd ~/bob-next && python3 scripts/bob_release_updater.py
+```
+
+The trusted updater repeats the host acceptance gate and requires that you
+type `UPDATE` for exactly `v0.8.0-r4propose1` and the expected four
+files. This is a real, one-time signed update and restarts the existing
+private HTTPS manager. It does not migrate SQLite or set proposal modes.
+
+Verify the resulting installed state before attempting a model call:
+
+```bash
+cd ~/bob-next && python3 scripts/report_r4_installed.py --check
+```
+
+Expected: `release:v0.8.0-r4propose1`,
+`acceptance:PASS`, `new_r4_actions_attempted:0` and
+`public_send_armed_by_report:false`. If a check refuses, do not enable
+controls or try to repair the DB/installed files manually.
 
 ## First private proposal trial: once, not scheduled
 
