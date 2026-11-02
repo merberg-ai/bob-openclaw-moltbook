@@ -70,10 +70,16 @@ def inspect(*, root=ROOT, build=True) -> dict:
         raise ValueError("symlinked release manifest")
     current=json.loads(current_path.read_text(encoding="utf-8"))
     proposed=json.loads(manifest_path.read_text(encoding="utf-8"))
-    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1")
+    promoted=current.get("release") in ("v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1","v0.8.0-r4propose1")
     if current.get("release") not in (
-            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1"):
+            "v0.8.0-chhttps3","v0.8.0-cutover1","v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1","v0.8.0-autonomy1","v0.8.0-r4propose1"):
         raise ValueError("unreviewed_source_release_or_promotion")
+    if current.get("release")=="v0.8.0-r4propose1":
+        patch=json.loads((root/"releases/candidates/r4-propose1-one-shot.json").read_text())
+        if (current!=patch or patch.get("from")!="v0.8.0-autonomy1"
+                or len(patch.get("files",[]))!=4
+                or patch.get("restart_manager") is not True):
+            raise ValueError("r4_proposal_patch_not_exact_reviewed_candidate")
     if current.get("release")=="v0.8.0-autonomy1":
         r4=json.loads((root/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
         if (current!=r4 or r4.get("from")!="v0.8.0-r3canary1"
@@ -113,7 +119,7 @@ def inspect(*, root=ROOT, build=True) -> dict:
     controller=(root/"src/bin/bobctl").read_text(encoding="utf-8")
     if '"v0.8.0-cutover1": "https"' not in controller:
         raise ValueError("bobctl candidate HTTPS mode unavailable")
-    exact=current.get("release") in ("v0.8.0-r3canary1","v0.8.0-autonomy1")
+    exact=current.get("release") in ("v0.8.0-r3canary1","v0.8.0-autonomy1","v0.8.0-r4propose1")
     if exact:
         # The historic integration-off audit must NEVER label an exact
         # owner-arm canary as globally compiled Off, or as a cutover release.
