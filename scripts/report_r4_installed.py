@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R4 consolidated signed installation acceptance. Read-only / no send.
 
-Run after an approved signed autonomy1 or r4propose1 installation.
+Run after approved signed autonomy1, r4propose1 or r4format1 installation.
 Never installs schema, starts services, modifies queues, approves proposals,
 arms public requests, downloads code or initiates any Moltbook network call.
 All HTTP probes target authenticated 127.0.0.1:18790 over private HTTPS.
@@ -20,7 +20,8 @@ import bob_release_updater as updater
 
 RELEASE="v0.8.0-autonomy1"
 PROPOSAL_RELEASE="v0.8.0-r4propose1"
-SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE))
+FORMAT_RELEASE="v0.8.0-r4format1"
+SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE))
 ROUTES=("/r4/now","/r4/inbox","/r4/bob",
         "/r4/controls","/r4/diagnostics")
 
