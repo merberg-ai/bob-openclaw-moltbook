@@ -1,6 +1,27 @@
 # R4 autonomy1 manifest promotion and single-owner installation
 
-**Source:** promotion PR #138. **Installed on OMEN:** `v0.8.0-r3canary1` until the owner separately authorizes and executes one update.
+**Source:** PR #138, merged to `next`. **Installed on OMEN:** `v0.8.0-autonomy1` by an explicitly owner-typed `UPDATE`, with independent installed acceptance **PASS** reported 2026-11-01 PDT. R4 social dispatch remains hard-Off.
+
+## Installation outcome and browser acceptance
+
+On 2026-11-01 PDT the owner provided the actual OpenClawLab terminal outcome:
+`BOB UPDATE: updated`, followed by a separate
+`report_r4_installed.py --check` response with `acceptance:PASS`,
+`release:v0.8.0-autonomy1`, verified signed source and legacy/R3 registry,
+authenticated HTTPS, new R4 routes, additive versioned schema, idle original
+publisher, `new_r4_actions_attempted:0` and
+`public_send_armed_by_report:false`. The acceptance *report* is read-only;
+the earlier approved installer actually performed the additive schema migration.
+These results are owner-provided evidence, not independently issued host probes.
+
+**Remaining acceptance:** in the normal remote LAN browser, open
+`https://192.168.1.24:18790/r4/now`, authenticate using the existing
+Activity Manager credentials and visually inspect R4 Now, Inbox, Bob,
+Controls and Diagnostics. Confirm the original R3/Scout/PM/FM navigation
+still works and check mobile-width layout if practical. The inert Chat
+placeholder is not yet a live agent conversation. Do not change Auto dials,
+submit proposal/approval/social actions, restart timers or test Moltbook
+network sends during the passive visual smoke.
 
 ## Release boundaries
 
