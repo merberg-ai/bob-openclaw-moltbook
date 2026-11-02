@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R4 consolidated signed installation acceptance. Read-only / no send.
 
-Run ONLY after an eventual owner-approved, signed v0.8.0-autonomy1 install.
+Run after an approved signed autonomy1 or r4propose1 installation.
 Never installs schema, starts services, modifies queues, approves proposals,
 arms public requests, downloads code or initiates any Moltbook network call.
 All HTTP probes target authenticated 127.0.0.1:18790 over private HTTPS.
@@ -19,16 +19,18 @@ sys.path.insert(0,str(ROOT/"scripts"))
 import bob_release_updater as updater
 
 RELEASE="v0.8.0-autonomy1"
+PROPOSAL_RELEASE="v0.8.0-r4propose1"
+SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE))
 ROUTES=("/r4/now","/r4/inbox","/r4/bob",
         "/r4/controls","/r4/diagnostics")
 
 
-def authenticated_r4_routes(auth) -> bool:
+def authenticated_r4_routes(auth, *, release=RELEASE) -> bool:
     try:
-        if updater.manager_transport(RELEASE)!="https":
+        if updater.manager_transport(release)!="https":
             return False
         for path in ROUTES:
-            conn=updater._manager_connection(release=RELEASE,timeout=8)
+            conn=updater._manager_connection(release=release,timeout=8)
             try:
                 conn.request("GET",path,headers={
                     "Host":"127.0.0.1:18790","Authorization":auth})
@@ -60,9 +62,11 @@ def inspect()->dict:
     }
     try:
         installed=updater.registry()
-        if installed["release"]!=RELEASE or not updater.live_ok(installed):
+        release=installed.get("release")
+        if release not in SUPPORTED or not updater.live_ok(installed):
             return out
-        if updater.manager_transport(RELEASE)!="https":
+        out["release"]=release
+        if updater.manager_transport(release)!="https":
             return out
         # These modules are installed source, not arbitrary checkout imports.
         sys.path.insert(0,str(updater.BIN))
@@ -93,9 +97,9 @@ def inspect()->dict:
             sys.path.remove(str(updater.BIN))
         out["publisher_inactive_at_check"]=updater.r4_publisher_inactive()
         auth=updater.authorization()
-        out["authenticated_https"]=updater.healthy(auth,release=RELEASE)
+        out["authenticated_https"]=updater.healthy(auth,release=release)
         if out["authenticated_https"]:
-            out["new_r4_routes"]=authenticated_r4_routes(auth)
+            out["new_r4_routes"]=authenticated_r4_routes(auth,release=release)
     except (OSError,ValueError,TypeError,sqlite3.Error,ImportError,
             RuntimeError,KeyError,AttributeError):
         return out
