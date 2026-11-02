@@ -16,6 +16,8 @@ import re
 import stat
 
 RELEASE="v0.8.0-autonomy1"
+PROPOSAL_RELEASE="v0.8.0-r4propose1"
+SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE))
 REGISTRY_FORMAT="bob-updater-v1"
 REQUIRED=frozenset((
     "bob-moltbook-publisher","bob-activity-manager","bob_r3_package.pyz",
@@ -24,6 +26,7 @@ REQUIRED=frozenset((
     "bob_r4_outbox.py","bob_r4_budget.py","bob_r4_remote_gate.py",
     "bob_r4_final_gate.py","bob_r4_publisher_adapter.py",
     "bob_r4_installed_gate.py","bob_r4_web.py",
+    "bob_r4_agent.py","bob_r4_producer.py","bob-r4-propose",
 ))
 DIGEST=re.compile(r"[a-f0-9]{64}\Z")
 MAX_SIZE=524288
@@ -65,7 +68,7 @@ def verify(*,home:Path|None=None)->bool:
         detail=json.loads(journal.read_text(encoding="utf-8"))
         if (type(detail) is not dict or
                 detail.get("format")!=REGISTRY_FORMAT
-                or detail.get("release")!=RELEASE
+                or detail.get("release") not in SUPPORTED
                 or detail.get("phase")!="complete"
                 or detail.get("restart_manager") is not True):
             return False
@@ -75,7 +78,8 @@ def verify(*,home:Path|None=None)->bool:
         if (type(info) is not dict or
                 set(info)!={"format","release","files"} or
                 info["format"]!=REGISTRY_FORMAT or
-                info["release"]!=RELEASE or
+                info["release"] not in SUPPORTED
+                or detail["release"]!=info["release"] or
                 type(info["files"]) is not dict):
             return False
         hashes=info["files"]
