@@ -242,3 +242,43 @@ The operator invocation remains the same single `--once` command after
 pulling the reviewed change. A successful diagnostic means the model
 completed a valid **unsaved** decision; an OpenClaw call may persist an
 isolated agent session even though it never creates a social proposal.
+
+
+## Exact production OpenClaw session trace after isolated skip / normal refusal
+
+Owner's isolated model diagnostic yielded a valid `skip` on saved Scout
+run `20261101T213703Z`. A subsequent ordinary signed R4 one-shot chose
+that same run and returned `r4_model_or_contract_unverified` with
+all public/social attempt flags false. This **does not** demonstrate that
+the signed agent bridge is always healthy. The isolated diagnostic's
+`moltbook-v08-shadow-r4-diagnostic-<run>` session differs from the
+normal worker's `moltbook-v08-shadow-r4-proposal-<run>` session. OpenClaw
+can retain prior conversation context in a session.
+
+A separately reviewed **source-only** diagnostic adds an explicit
+`--production-session-once` mode. After pulling reviewed `next`, an
+operator can run:
+
+```bash
+cd ~/bob-next && git pull --ff-only && PYTHONDONTWRITEBYTECODE=1 python3 scripts/report_r4_agent_contract.py --production-session-once
+```
+
+This requires an actual interactive terminal, then the exact typed
+confirmation `TRACE R4 SESSION`. The flag/phrase is intentional:
+OpenClaw may append one turn to the **same source-specific production
+agent session** that the normal R4 worker uses. This can affect its
+future context. The trace does not use arbitrary sessions, alter owner
+controls, or change the installed binary/agent/parser. It loads the
+already signed installed R4 and R3 modules, validates the sealed
+fresh unused Scout source as usual, and uses the same strict eight-field
+JSON parser. Its private SQLite connection is read-only, and it records
+no R4 decision or queued Moltbook job. This trace itself performs no
+Moltbook API write. A fresh/unused source is still required; the trace
+may select another eligible run if R3 claimed the previous one.
+
+Review the sanitized returned `stage`, `reason`,
+`requested_session_scope`, `production_session_touched`,
+`openclaw_called`, `verified_action_kind` and `source_run`.
+Do **not** paste raw OpenClaw session logs, model replies or credentials.
+Even a valid result is only a diagnostic and **not** a saved R4 Inbox
+proposal. Public sending, scheduled R4 proposals and Auto remain Off.
