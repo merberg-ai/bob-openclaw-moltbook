@@ -214,7 +214,7 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
             with redirect_stdout(StringIO()) as output:
                 self.assertEqual(probe.main(["--production-session-once"]),0)
         confirm.assert_called_once()
-        diagnose.assert_called_once_with(production_session=True)
+        diagnose.assert_called_once_with(production_session=True,fresh_format=False)
         self.assertIn('"production_session_touched":true',output.getvalue())
         self.assertNotIn('"isolated_agent_session":true',output.getvalue())
         self.assertFalse(valid["r4_decision_recorded"])
@@ -252,7 +252,7 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
             'response_shape=sanitized_shape(raw_reply)',
             'key=_session_key(session,run,production=production_session)',
 
-            'approval!="TRACE R4 SESSION"',
+            'approval!=phrase',
             'if not sys.stdin.isatty():',
             'from bob_r4_agent import decide,AVAILABLE',
             'from bob_v08.shadow import openclaw_decide',
