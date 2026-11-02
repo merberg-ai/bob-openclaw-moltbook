@@ -148,8 +148,9 @@ class R4PreinstallTests(unittest.TestCase):
         candidate=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"], "v0.8.0-autonomy1")
-        self.assertEqual(candidate, live)
+        self.assertEqual(live["release"], "v0.8.0-r4propose1")
+        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text()))
+        self.assertEqual(live["from"],"v0.8.0-autonomy1")
         self.assertEqual(candidate["from"], "v0.8.0-r3canary1")
         source=inspect.getsource(updater.main)
         self.assertIn('not preflight_r4_installation()', source)

@@ -33,8 +33,7 @@ def inspect(root:Path=ROOT)->dict:
         raise ValueError("r4_patch_manifest_symlink")
     current=json.loads(live.read_text("utf-8"))
     candidate=json.loads(patch.read_text("utf-8"))
-    if (current.get("release")!=CURRENT
-            or current.get("from")!="v0.8.0-r3canary1"
+    if (current!=candidate or current.get("release")!=PATCH
             or candidate.get("release")!=PATCH
             or candidate.get("from")!=CURRENT
             or candidate.get("format")!="bob-updater-v1"
@@ -86,7 +85,9 @@ def inspect(root:Path=ROOT)->dict:
             raise ValueError("r4_proposal_patch_public_send_not_hard_off")
     return {
         "format":"r4-propose1-source-review-v1",
-        "current_release_unchanged":current["release"],
+        "promoted_release_manifest":current["release"],
+        "previous_installed_release":candidate["from"],
+        "exact_promoted_candidate":True,
         "candidate_release":candidate["release"],
         "from_release":candidate["from"],
         "candidate_files":len(files),

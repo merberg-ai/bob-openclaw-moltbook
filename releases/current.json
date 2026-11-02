@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-autonomy1",
-  "from": "v0.8.0-r3canary1",
-  "notes": "R4 consolidated authenticated HTTPS workspace, source-sealed Bob proposals, owner-reviewed PM2/FM suggestions and private owner-queued upvotes. One original publisher; every real R4 API send remains compiled Off. One signed updater transaction is prepared to verify private SQLite backup/restore, migrate additive R4 schema, journal migrated phase and preserve R3 receipts on code-only rollback. No database change on source pull, no automatic approval, real R4 send or second publisher. Requires separate owner release promotion and typed UPDATE.",
+  "release": "v0.8.0-r4propose1",
+  "from": "v0.8.0-autonomy1",
+  "notes": "R4 proposal-only OpenClaw session compatibility patch. One original signed main agent; one-shot private proposals only after owner sets Propose and RESUME R4. No scheduled worker, public dispatch, queueing, following, voting, database migration, or new publisher. Four public-send source gates stay hard Off. Existing R4 HTTPS dashboard restarts under signed updater with prior-code rollback.",
   "files": [
     {
       "name": "bob-release-updater",
@@ -13,86 +13,8 @@
       "source": "src/bin/bobctl"
     },
     {
-      "name": "bob-activity-manager",
-      "builder": "scripts/build_r4_manager_candidate.py",
-      "index": 0
-    },
-    {
-      "name": "navigation_shell.py",
-      "builder": "scripts/build_r4_manager_candidate.py",
-      "index": 1
-    },
-    {
-      "name": "bob_r4_policy.py",
-      "source": "src/lib/bob/bob_r4_policy.py"
-    },
-    {
-      "name": "bob_r4_controls.py",
-      "source": "src/lib/bob/bob_r4_controls.py"
-    },
-    {
-      "name": "bob_r4_projection.py",
-      "source": "src/lib/bob/bob_r4_projection.py"
-    },
-    {
       "name": "bob_r4_agent.py",
       "source": "src/lib/bob/bob_r4_agent.py"
-    },
-    {
-      "name": "bob_r4_decision.py",
-      "source": "src/lib/bob/bob_r4_decision.py"
-    },
-    {
-      "name": "bob_r4_ledger.py",
-      "source": "src/lib/bob/bob_r4_ledger.py"
-    },
-    {
-      "name": "bob_r4_suggestions.py",
-      "source": "src/lib/bob/bob_r4_suggestions.py"
-    },
-    {
-      "name": "bob_r4_schema.py",
-      "source": "src/lib/bob/bob_r4_schema.py"
-    },
-    {
-      "name": "bob_r4_reflections.py",
-      "source": "src/lib/bob/bob_r4_reflections.py"
-    },
-    {
-      "name": "bob_r4_web.py",
-      "source": "src/lib/bob/bob_r4_web.py"
-    },
-    {
-      "name": "bob-r4-propose",
-      "source": "src/bin/bob-r4-propose"
-    },
-    {
-      "name": "bob_r4_producer.py",
-      "source": "src/lib/bob/bob_r4_producer.py"
-    },
-    {
-      "name": "bob_r4_outbox.py",
-      "source": "src/lib/bob/bob_r4_outbox.py"
-    },
-    {
-      "name": "bob_r4_publisher_adapter.py",
-      "source": "src/lib/bob/bob_r4_publisher_adapter.py"
-    },
-    {
-      "name": "bob-moltbook-publisher",
-      "source": "src/bin/bob-moltbook-publisher"
-    },
-    {
-      "name": "bob_r4_budget.py",
-      "source": "src/lib/bob/bob_r4_budget.py"
-    },
-    {
-      "name": "bob_r4_remote_gate.py",
-      "source": "src/lib/bob/bob_r4_remote_gate.py"
-    },
-    {
-      "name": "bob_r4_final_gate.py",
-      "source": "src/lib/bob/bob_r4_final_gate.py"
     },
     {
       "name": "bob_r4_installed_gate.py",

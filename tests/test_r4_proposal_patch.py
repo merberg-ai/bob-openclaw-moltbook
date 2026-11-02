@@ -30,9 +30,11 @@ def host_ready():
 
 
 class ProposalPatchTests(unittest.TestCase):
-    def test_exact_source_and_transport_are_reviewed_but_not_promoted(self):
+    def test_exact_source_and_transport_are_reviewed_and_promoted(self):
         report=audit.inspect()
-        self.assertEqual(report["current_release_unchanged"],"v0.8.0-autonomy1")
+        self.assertEqual(report["promoted_release_manifest"],"v0.8.0-r4propose1")
+        self.assertEqual(report["previous_installed_release"],"v0.8.0-autonomy1")
+        self.assertTrue(report["exact_promoted_candidate"])
         self.assertEqual(report["candidate_release"],"v0.8.0-r4propose1")
         self.assertEqual(report["candidate_files"],4)
         self.assertTrue(report["main_agent_transport_compatible"])
@@ -70,12 +72,13 @@ class ProposalPatchTests(unittest.TestCase):
                    side_effect=ValueError("private credential, must not log")):
             self.assertFalse(updater.preflight_r4_proposal_patch())
 
-    def test_candidate_manifest_is_exact_and_unpromoted(self):
+    def test_candidate_manifest_is_exact_and_promoted(self):
         c=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-autonomy1")
+        self.assertEqual(live["release"],"v0.8.0-r4propose1")
         self.assertEqual(c["release"],"v0.8.0-r4propose1")
-        self.assertEqual(c["from"],live["release"])
+        self.assertEqual(c["from"],"v0.8.0-autonomy1")
+        self.assertEqual(live,c)
         self.assertTrue(c["restart_manager"])
         self.assertEqual({f["name"] for f in c["files"]},set(audit.ALLOWED))
         self.assertNotIn("bob-moltbook-publisher",{f["name"] for f in c["files"]})
