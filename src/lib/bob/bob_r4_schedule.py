@@ -44,7 +44,7 @@ SHADOW_TIMER="bob-v08-shadow.timer"
 # fail closed; the approved R3 timer is never edited/restarted here.
 R3_BOOTSTRAP_DIR=UNIT_DIR/(R3_TIMER+".d")
 R3_BOOTSTRAP=R3_BOOTSTRAP_DIR/"10-first-run.conf"
-R3_BOOTSTRAP_BYTES=b"[Timer]\\nOnActiveSec=2min\\n"
+R3_BOOTSTRAP_BYTES=b"[Timer]\nOnActiveSec=2min\n"
 UNITS=(SERVICE,TIMER,R3_SERVICE,R3_TIMER,PUBLISHER_SERVICE,
        PUBLISHER_TIMER,SCOUT_TIMER,SHADOW_SERVICE,SHADOW_TIMER)
 ENABLED=frozenset(("enabled","enabled-runtime"))
