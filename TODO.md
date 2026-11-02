@@ -1,3 +1,12 @@
+## R4 schedule2 owner-typed install refused at initial publisher_topology gate (2026-11-02)
+
+- [x] Owner's signed source-only `v0.8.0-r4schedule2` checks were PASS, but separately typed `UPDATE` returned `BOB R4 PATCH PREFLIGHT: refused at publisher_topology (ValueError)` then `BOB UPDATE: REFUSED (ValueError)`. This stage is **before** private SQLite backup, archive creation or code replacement in `update()`. Installed `r4schedule1` remains expected, pending independent read-only verification.
+- [ ] Distinguish the **two** initial gate predicates instead of retrying: `r4_publisher_inactive()` (original publisher service idle, reviewed effective service/timer, R3/Scout/Shadow unit topology) and `r4_schedule_units_absent()` (both R4 unit paths and any enable symlink absent; private journal only if rolled back). User previously observed `bob-r4-schedule --status` phase absent/timer OFF; no proof yet which predicate failed at update time.
+- [ ] Run ONE sanitized read-only host snapshot reporting publisher gate, R4 unit absence, effective publisher blockers, current R3/Scout/Shadow topology and publisher service state. If a transient R3/publisher one-shot was active, retain strict refusal; schedule install only in a verified idle window with separate owner approval. If stable topology is invalid or a stale R4 unit exists, diagnose narrowly without deleting units, weakening checks, or manually modifying signed code. **Do not retry UPDATE before evidence.**
+- [ ] R3 approved first-tick `10-first-run.conf` remains untouched and R4 schedule still OFF. No Moltbook public R4 dispatch authorized.
+
+---
+
 ## R4 schedule1 OMEN staging blocker traced to approved R3 first-tick bootstrap (2026-11-02)
 
 - [x] **Owner host evidence:** signed `v0.8.0-r4schedule1` installed acceptance PASS; `bob-r4-schedule --status` showed `phase:absent`, `timer_enabled:false`, `ready_to_stage:false`, sole blocker `scout_r3_or_publisher_topology_not_idle`. Owner supplied read-only systemd snapshot: R3/publisher/Scout timers all loaded+active+enabled, R3/publisher/old Shadow services inactive, old Shadow timer inactive+disabled. The R3 timer has `DropInPaths=/home/openclaw/.config/systemd/user/bob-r3-propose.timer.d/10-first-run.conf`; other units have no drop-ins.
