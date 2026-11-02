@@ -724,6 +724,36 @@ def update(folder, current, plan, contents, *, auth):
 
 
 
+
+def rollback_completed_r4(*, auth):
+    """Owner-only R4-to-R3 code recovery AFTER a successfully completed install.
+
+    Unlike --recover (interrupted installs), this deliberately permits only
+    the exact completed autonomy1 journal and its archived r3canary1 baseline.
+    The same existing archive/hash checks perform code-only restoration:
+    NEVER restore an older SQLite snapshot over later public attempts.
+    """
+    fd = locked()
+    try:
+        journal = read_journal()
+        installed = registry()
+        if (not journal or journal.get("phase") != "complete"
+                or journal.get("release") != "v0.8.0-autonomy1"
+                or journal.get("restart_manager") is not True
+                or installed["release"] != "v0.8.0-autonomy1"
+                or not live_ok(installed) or not r4_publisher_inactive()):
+            raise ValueError("r4_completed_rollback_scope_unverified")
+        archive = STATE_DIR / "tx-v0.8.0-autonomy1"
+        safe_private(archive, directory=True)
+        before = read_json(archive / "registry-before.json")
+        if (before.get("format") != FORMAT or
+                before.get("release") != "v0.8.0-r3canary1" or
+                not isinstance(before.get("files"), dict)):
+            raise ValueError("r4_completed_rollback_archive_unverified")
+        return rollback(journal, auth=auth)
+    finally:
+        os.close(fd)
+
 def rollback_shadow_to(target, *, auth):
     """Only roll back the exact just-installed R2 release to verified R1 bytes.
 
@@ -771,6 +801,8 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true")
     group.add_argument("--recover", action="store_true")
+    group.add_argument("--rollback-r4", action="store_true",
+                       help="owner-typed, code-only rollback of completed autonomy1 to r3canary1")
     group.add_argument("--channel", choices=sorted(CHANNELS))
     group.add_argument("--rollback-to", metavar="RELEASE")
     args = parser.parse_args()
@@ -786,6 +818,13 @@ def main():
                 raise ValueError("channel change approval not granted")
             result = switch_channel(folder, args.channel)
             print("BOB UPDATE: channel " + args.channel + " (" + result + "); no production changes")
+            return 0
+        if args.rollback_r4:
+            if not sys.stdin.isatty() or input(
+                    "Type ROLLBACK-R4 to restore R3 code ONLY (never SQLite): "
+            ) != "ROLLBACK-R4":
+                raise ValueError("r4_completed_rollback_approval_not_granted")
+            print("BOB UPDATE:", rollback_completed_r4(auth=authorization()))
             return 0
         if args.rollback_to is not None:
             if args.rollback_to != "v0.7.8-updater2":
