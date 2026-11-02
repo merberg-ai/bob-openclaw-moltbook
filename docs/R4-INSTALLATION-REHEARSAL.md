@@ -59,15 +59,15 @@ newer publication attempts.
 ## Final R3-canary-aware host preflight
 
 An important last-review incompatibility was corrected: the previous R4
-\`bob_release_updater.py\` called \`preflight_r3_diagnostics_only()\`, whose
-historical \`_installed_cutover_off()\` check deliberately accepts older R3
+`bob_release_updater.py` called `preflight_r3_diagnostics_only()`, whose
+historical `_installed_cutover_off()` check deliberately accepts older R3
 release identities **but not the actually installed
-\`v0.8.0-r3canary1\`**. An otherwise healthy owner installation would have
+`v0.8.0-r3canary1`**. An otherwise healthy owner installation would have
 been refused before the R4 UPDATE prompt.
 
-The R4 path now calls \`preflight_r4_installation()\`, which delegates only
-to the new **read-only** \`scripts/report_r4_preinstall.py --check\` and
-requires the exact signed R3 canary source, matching \`openclaw\` owner,
+The R4 path now calls `preflight_r4_installation()`, which delegates only
+to the new **read-only** `scripts/report_r4_preinstall.py --check` and
+requires the exact signed R3 canary source, matching `openclaw` owner,
 active existing publisher/Scout/R3 proposal timers, inactive original
 publisher, disabled shadow and absent competing publisher, reviewed effective
 publisher service/timer with no unknown blockers, verified CA HTTPS Manager
@@ -81,17 +81,33 @@ changed/unknown unit fails closed and invokes the normal code-only rollback.
 This is not a guarantee against arbitrary subsequent host changes; running
 the reviewed report on the actual OMEN remains essential before install.
 
-These checks are offline-mocked in \`tests/test_r4_preinstall.py\`. The
+These checks are offline-mocked in `tests/test_r4_preinstall.py`. The
 read-only host report has **not yet run on the OMEN**. Running it later does
 not stop timers, disable Scout, change HTTPS, migrate schema or send Moltbook
 actions.
+
+## Source-to-host handoff (no release promotion)
+
+A consolidated **read-only** check now exists: `scripts/report_r4_go_nogo.py --check`.
+It independently runs the complete exact 23-file candidate-source audit and the
+live R3-canary-specific OMEN systemd/CA HTTPS/updater-journal gates. The output
+contains only named booleans and fixed refusal codes. No host state is changed.
+The tested one-paste procedure clones the draft branch into a separate
+`~/bob-r4-review` checkout, leaving the trusted `~/bob-next` channel and
+installed R3 binaries alone. See [R4 live host check](R4-LIVE-HOST-CHECK.md).
+
+**GitHub CI cannot supply host evidence.** The OMEN read-only check must
+execute under the actual `openclaw` account before promotion is considered.
+No PR merge, manifest promotion, migration, or public social send is authorized
+by a check passing. A live host failure is not automatically repaired.
 
 ## Remaining release gates
 
 - [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The CI path-trigger update also passed: 1,269 Python tests and Windows checks on `2d191b4` (run `41370326709`).
 - [ ] Review exact 23-file payload and four independent real-send Off markers.
 - [x] Source R4 preinstall probes review unique original publisher unit/timer, effective unit shape, current R3 canary hashes, existing Scout/R3 proposal schedule and competing-worker absence; migration repeats the topology check.
-- [ ] Verify the **actual** OMEN host output from `report_r4_preinstall.py --check` once the candidate is approved and promotion prepared. No live host report has been performed yet.
+- [x] Prepare one consolidated source+host check and isolated review checkout, tested with fail-closed synthetic cases; no production modification.
+- [ ] Verify **actual** OMEN output of `report_r4_go_nogo.py --check` (includes `report_r4_preinstall.py`) before release promotion. No real host report has been performed yet.
 - [ ] Review the authenticated CA-verified HTTPS route behavior in an isolated
       service-shaped smoke; no fallback to HTTP or public listener.
 - [x] Add a separate owner-typed **post-`complete`** rollback:
