@@ -45,6 +45,24 @@ class R4AttestationTests(unittest.TestCase):
         self.assertTrue(gate.verify(home=self.home))
         self.assertGreater(len(gate.REQUIRED),10)
 
+    def test_new_proposal_patch_attestation_requires_matching_completed_journal(self):
+        self.data["release"]=gate.PROPOSAL_RELEASE
+        self.write_registry()
+        journal=self.home/".local/state/bob-updater/transaction.json"
+        journal.write_text(json.dumps({
+            "format":"bob-updater-v1","release":gate.PROPOSAL_RELEASE,
+            "phase":"complete","restart_manager":True}))
+        journal.chmod(0o600)
+        self.assertTrue(gate.verify(home=self.home))
+        journal.write_text(json.dumps({
+            "format":"bob-updater-v1","release":gate.RELEASE,
+            "phase":"complete","restart_manager":True}))
+        self.assertFalse(gate.verify(home=self.home))
+        journal.write_text(json.dumps({
+            "format":"bob-updater-v1","release":gate.PROPOSAL_RELEASE,
+            "phase":"prepared","restart_manager":True}))
+        self.assertFalse(gate.verify(home=self.home))
+
     def test_release_mismatch_or_missing_required_source_fails(self):
         self.data["release"]="v0.8.0-r3canary1"
         self.write_registry()
