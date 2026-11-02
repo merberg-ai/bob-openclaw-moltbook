@@ -88,7 +88,7 @@ actions.
 
 ## Remaining release gates
 
-- [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The later CI path-trigger update must pass separately before closing the branch.
+- [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The CI path-trigger update also passed: 1,269 Python tests and Windows checks on `2d191b4` (run `41370326709`).
 - [ ] Review exact 23-file payload and four independent real-send Off markers.
 - [x] Source R4 preinstall probes review unique original publisher unit/timer, effective unit shape, current R3 canary hashes, existing Scout/R3 proposal schedule and competing-worker absence; migration repeats the topology check.
 - [ ] Verify the **actual** OMEN host output from `report_r4_preinstall.py --check` once the candidate is approved and promotion prepared. No live host report has been performed yet.
