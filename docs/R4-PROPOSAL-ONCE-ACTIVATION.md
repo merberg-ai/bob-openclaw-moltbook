@@ -1,5 +1,16 @@
 # R4 private proposal-only activation: signed compatibility patch
 
+**Installed and accepted on OMEN (owner-confirmed, 2026-11-01 PST):**
+`v0.8.0-r4propose1` completed the owner-typed `UPDATE` and independent
+`report_r4_installed.py --check` returned `acceptance:PASS`.
+All signed registry, authenticated private HTTPS, R4 routes and versioned
+schema checks passed. The original publisher was inactive and there were
+zero R4 public action attempts; public dispatch stays disabled. Earlier
+pre-installation/failed-attempt instructions below are preserved for audit,
+not an instruction to repeat installation. **Next step is only the manual
+private one-shot trial under the existing authenticated R4 Controls.**
+
+
 ## Status and boundary
 
 R4 `v0.8.0-autonomy1` is installed and accepted on the OMEN. The owner
