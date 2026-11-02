@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One read-only R4 source + live OMEN host GO/NO-GO review.
+"""One read-only R4 PROMOTED source + live OMEN host GO/NO-GO review.
 
 No updater, schema migration, service mutation, R4 proposal run, Moltbook
 request, release promotion, or permission change. A passing report means
@@ -38,7 +38,9 @@ def inspect(*, source_probe=None, host_probe=None) -> dict:
     try:
         candidate = get_source()
         source_ok = (candidate.get("candidate") == EXPECTED_SOURCE
-                     and candidate.get("current_unchanged") == EXPECTED_INSTALLED
+                     and candidate.get("release_manifest") == EXPECTED_SOURCE
+                     and candidate.get("promotion_state") == "promoted_exact_candidate"
+                     and candidate.get("previous_installed_release") == EXPECTED_INSTALLED
                      and candidate.get("files") == 23
                      and candidate.get("candidate_source_build") == "PASS"
                      and candidate.get("exact_https_generated_manager") is True
@@ -77,11 +79,13 @@ def inspect(*, source_probe=None, host_probe=None) -> dict:
         "source_candidate": EXPECTED_SOURCE,
         "currently_installed_expected": EXPECTED_INSTALLED,
         "candidate_source_verified": source_ok,
+        "promoted_manifest_verified": source_ok,
         "candidate_files_checked": files,
         "live_host_readiness_verified": host_ok,
         "host_checks": host_checks,
         "blockers": sorted(set(blockers)),
         "ready_for_separate_release_review": source_ok and host_ok,
+        "ready_for_separate_owner_install_prompt": source_ok and host_ok,
         "r4_installed_by_report": False,
         "install_authorized_by_report": False,
         "real_r4_social_sends_authorized": False,

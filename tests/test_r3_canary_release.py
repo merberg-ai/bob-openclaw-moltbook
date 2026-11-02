@@ -21,10 +21,11 @@ import bob_r313c_adapter as adapter
 
 
 class ExactCanaryReleaseTests(unittest.TestCase):
-    def test_reviewed_candidate_and_installed_manifest_are_same_seven_file_scope(self):
-        m=json.loads((ROOT/"releases/current.json").read_text())
-        c=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
-        self.assertEqual(m,c)
+    def test_reviewed_historical_r3_canary_is_still_exact_seven_file_scope(self):
+        live=json.loads((ROOT/"releases/current.json").read_text())
+        m=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
+        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text()))
+        self.assertEqual(live["from"],m["release"])
         self.assertEqual(m["release"],"v0.8.0-r3canary1")
         self.assertEqual(m["from"],"v0.8.0-r3skip1")
         self.assertFalse(m["restart_manager"])

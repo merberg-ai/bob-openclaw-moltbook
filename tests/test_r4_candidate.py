@@ -1,4 +1,4 @@
-"""The R4 future release is NOT promoted: source hash and SSL gate review."""
+"""The exact promoted R4 current manifest must equal the reviewed candidate."""
 from pathlib import Path
 import json
 import shutil
@@ -12,9 +12,11 @@ import report_r4_candidate as source
 
 
 class R4CandidateReportTests(unittest.TestCase):
-    def test_source_scope_is_one_unpromoted_https_release(self):
+    def test_source_scope_is_one_promoted_https_release(self):
         audit=source.inspect()
-        self.assertEqual(audit["current_unchanged"],"v0.8.0-r3canary1")
+        self.assertEqual(audit["release_manifest"],"v0.8.0-autonomy1")
+        self.assertEqual(audit["previous_installed_release"],"v0.8.0-r3canary1")
+        self.assertEqual(audit["promotion_state"],"promoted_exact_candidate")
         self.assertEqual(audit["candidate"],"v0.8.0-autonomy1")
         self.assertEqual(audit["candidate_source_build"],"PASS")
         self.assertTrue(audit["legacy_r3_publisher_not_replaced"])
@@ -35,6 +37,7 @@ class R4CandidateReportTests(unittest.TestCase):
             candidate=json.loads((ROOT/
                 "releases/candidates/r4-autonomy1-consolidated.json").read_text())
             candidate["files"][4]["source"]="src/lib/bob/bob_r4_WRONG.py"
+            (root/"releases/current.json").write_text(json.dumps(candidate))
             (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(
                 json.dumps(candidate))
             with self.assertRaisesRegex(ValueError,"r4_unreviewed_source_target"):
@@ -45,13 +48,33 @@ class R4CandidateReportTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
                 source.inspect(root=root)
 
-    def test_unpromoted_manifest_must_not_replace_current(self):
+    def test_promotion_rejects_any_manifest_drift_even_with_same_release_name(self):
+        with tempfile.TemporaryDirectory(prefix="r4-promotion-drift-") as t:
+            root=Path(t)
+            (root/"releases/candidates").mkdir(parents=True)
+            original=json.loads((ROOT/"releases/current.json").read_text())
+            candidate=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
+            (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(json.dumps(candidate))
+            for mutation in (
+                {"restart_manager":False},
+                {"files":candidate["files"][:-1]},
+                {"from":"v0.8.0-r3skip1"},
+                {"notes":"unreviewed release notes"},
+            ):
+                with self.subTest(mutation=list(mutation)):
+                    (root/"releases/current.json").write_text(
+                        json.dumps({**original,**mutation}))
+                    with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
+                        source.inspect(root=root)
+
+    def test_promoted_manifest_must_exactly_match_candidate(self):
         live=json.loads((ROOT/"releases/current.json").read_text())
         candidate=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-r3canary1")
-        self.assertEqual(candidate["from"],live["release"])
-        self.assertNotEqual(candidate["release"],live["release"])
+        self.assertEqual(live,candidate)
+        self.assertEqual(live["release"],"v0.8.0-autonomy1")
+        self.assertEqual(live["from"],"v0.8.0-r3canary1")
+        self.assertTrue(live["restart_manager"])
         # The ONE original publisher is included, not a second worker.
         self.assertIn("bob-moltbook-publisher",
                       {f["name"] for f in candidate["files"]})

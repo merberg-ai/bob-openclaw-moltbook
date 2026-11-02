@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only R4 integrated source/release boundary. NEVER an installer.
+"""Read-only R4 PROMOTED source/release boundary. NEVER an installer.
 
-Full source candidate must be one manifest and one authenticated HTTPS
-generated manager with no new public credentials or Moltbook send path.
-This checks code shape, not live OMEN readiness, and grants NO authority.
+The promoted current manifest must be EXACTLY byte-for-byte identical to the
+separately reviewed 23-file autonomy1 candidate (same release/from/files and
+metadata), with the same authenticated HTTPS generated manager and compiled-Off
+social API paths. This checks source shape, not OMEN readiness or owner consent.
 """
 from __future__ import annotations
 
@@ -43,7 +44,7 @@ def inspect(root:Path=ROOT) -> dict:
         raise ValueError("r4_untrusted_manifest_symlink")
     candidate=json.loads(m.read_text("utf-8"))
     current=json.loads(live.read_text("utf-8"))
-    if (current.get("release")!=CURRENT or
+    if (current!=candidate or current.get("release")!=CANDIDATE or
             candidate.get("release")!=CANDIDATE or
             candidate.get("from")!=CURRENT or
             candidate.get("format")!="bob-updater-v1" or
@@ -140,7 +141,9 @@ def inspect(root:Path=ROOT) -> dict:
         digests[item["name"]]=hashlib.sha256(data).hexdigest()
     return {
         "format":"r4-source-candidate-v1",
-        "current_unchanged":current["release"],
+        "release_manifest":current["release"],
+        "promotion_state":"promoted_exact_candidate",
+        "previous_installed_release":candidate["from"],
         "candidate":candidate["release"],
         "files":len(digests),
         "exact_https_generated_manager":True,
@@ -165,8 +168,8 @@ def main(argv=None):
             json.JSONDecodeError,UnicodeError):
         print("R4 CANDIDATE: REFUSED")
         return 1
-    print("R4 AUTONOMY1 SOURCE CANDIDATE (NO INSTALL)")
-    for key in ("current_unchanged","candidate","files",
+    print("R4 AUTONOMY1 PROMOTED SOURCE MANIFEST (NO INSTALL)")
+    for key in ("release_manifest","promotion_state","candidate","files",
                 "candidate_source_build","exact_https_generated_manager",
                 "all_new_auto_modes_compiled_off"):
         print(key.replace("_"," ")+":",info[key])

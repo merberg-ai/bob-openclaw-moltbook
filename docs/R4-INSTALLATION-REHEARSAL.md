@@ -1,9 +1,10 @@
 # R4 production-shaped rehearsal and release review
 
-**Status:** R4 canary-aware source checks **PASS**: **1,269 Python tests** plus Windows startup checks on code commit `0eb9342` (GitHub Actions run `41370228129`). **Not an OMEN installation**. The trusted
-`next` manifest remains `v0.8.0-r3canary1`. The separate candidate is
-`releases/candidates/r4-autonomy1-consolidated.json`. No public R4 action is
-authorized by this review.
+**Status:** R4 canary-aware source checks **PASS**: **1,269 Python tests** plus Windows startup checks on code commit `0eb9342` (GitHub Actions run `41370228129`). **Not an OMEN installation**. In source-only release promotion PR #138,
+`next` will advertise `v0.8.0-autonomy1` using the exact separately reviewed
+candidate manifest in `releases/candidates/r4-autonomy1-consolidated.json`.
+The actually installed OMEN release remains `v0.8.0-r3canary1` until a separate
+owner-confirmed updater transaction. No public R4 action is authorized.
 
 ## What the isolated rehearsal actually executes
 
@@ -104,6 +105,19 @@ systemd, and zero Moltbook API requests. This is owner-supplied observed output,
 not evidence of an install. A report PASS does not authorize manifest promotion,
 migration or any public social send.
 
+## Promotion-only update (PR #138)
+
+The original source audit ran while `releases/current.json` still pointed to
+R3 canary. After the source-only promotion, `report_r4_candidate.py --check`
+requires `current.json` to **exactly equal** the reviewed 23-file R4 candidate.
+Historical R3 canary tests now use their archived release manifest instead of
+mistaking current source promotion for a mutation to the running OMEN host.
+`report_r4_go_nogo.py --check` requires the promoted exact current manifest
+*and* the unchanged installed R3 canary with its existing HTTPS/one-publisher
+systemd topology. The trusted `~/bob-next` checkout must be fast-forwarded
+before checking; `bobctl update` from the old installed R3 release is not a
+valid bridge to R4. See [R4 promotion and installation](R4-PROMOTION-AND-INSTALL.md).
+
 ## Remaining release gates
 
 - [x] Final code source CI on `0eb9342`: **1,269 Python tests** and Windows workflow PASS. The CI path-trigger update also passed: 1,269 Python tests and Windows checks on `2d191b4` (run `41370326709`).
@@ -121,8 +135,7 @@ migration or any public social send.
       publication preservation, invalid archive and active publisher refusal.
       **Do not invoke until an actual owner decision to roll back.**
       This differs from `--recover`, which remains interruption-only.
-- [ ] Merge this source PR to `next` **only after** review. A distinct explicit
-      release-promotion change to `releases/current.json` comes later.
+- [x] Source PR #137 was merged into `next` after the owner-submitted live host read-only PASS. The separate release-promotion change is PR #138. It does not touch the OMEN installation.
 - [ ] One owner-confirmed OMEN R4 install, then read-only
       `python3 scripts/report_r4_installed.py --check` and LAN browser smoke.
 - [ ] Independent, subsequent owner decision and new signed release for any

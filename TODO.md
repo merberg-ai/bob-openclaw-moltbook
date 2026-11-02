@@ -1,3 +1,14 @@
+## R4 exact release promotion (PR #138, source only)
+
+- [x] Owner read-only OMEN host gate passed 7/7, zero blockers, 23-file source audit passed; previous PR #137 merged to `next`. This was a point-in-time snapshot, not installation approval.
+- [x] Proposed exact `v0.8.0-r3canary1 → v0.8.0-autonomy1` current-manifest promotion using reviewed 23-file candidate, no service/host changes. Source auditor now refuses any divergence between current and candidate manifests, including path, release notes and restart-policy changes.
+- [x] Converted promotion-source and host GO-NO-GO regression checks to distinguish promoted source from still-installed R3. R4 dispatch remains compiled Off, no second publisher.
+- [ ] **PR #138 CI/review before source merge:** test exact manifest and updater guards; merging only changes the Git release offer, NOT installed OMEN binaries or SQLite.
+- [ ] **Owner's separate install gate:** on OMEN, fast-forward clean `~/bob-next`, run read-only `report_r4_go_nogo.py --check` and updater `--check`; if approved, run source-updater with typed `UPDATE`, then `report_r4_installed.py --check` and LAN HTTPS browser smoke. See [R4 promotion runbook](docs/R4-PROMOTION-AND-INSTALL.md).
+- [ ] **Separate later authorization:** no real R4 public upvote/follow/reply/post dispatch in autonomy1. All four source hard-Off barriers remain closed.
+
+---
+
 ## R4 OMEN source/host GO-NO-GO handoff (2026-11-01, draft PR #137)
 
 - [x] Added `scripts/report_r4_go_nogo.py --check`: a single no-install, no-public-send, sanitized combined **23-file source candidate audit + actual-host R3-canary/HTTPS/service/journal review**. One PASS only means ready for *separate* release review, never owner authorization.
