@@ -90,6 +90,40 @@ class R4PreinstallTests(unittest.TestCase):
         }):
             self.assertFalse(gate.effective_original_publisher_units())
 
+    def test_migration_boundary_rechecks_effective_units_and_competing_workers(self):
+        import report_r3_cutover_inventory as inventory
+        import report_r38_effective_units as effective
+        import report_r3_diagnostic_installed as diag
+        valid = {
+            "effective_service": "reviewed_shape",
+            "effective_timer": "reviewed_shape",
+            "review_blockers": [],
+        }
+        with patch.object(inventory, "unit_facts", return_value={
+                 "load": "loaded", "active": "inactive"}) as state, \
+             patch.object(effective, "report", return_value=valid) as shape, \
+             patch.object(diag, "_units_ok", return_value=True) as units:
+            self.assertTrue(updater.r4_publisher_inactive())
+            state.assert_called_once_with("user", effective.SERVICE)
+            shape.assert_called_once()
+            units.assert_called_once()
+        with patch.object(inventory, "unit_facts", return_value={
+                 "load": "loaded", "active": "active"}), \
+             patch.object(effective, "report", return_value=valid), \
+             patch.object(diag, "_units_ok", return_value=True):
+            self.assertFalse(updater.r4_publisher_inactive())
+        with patch.object(inventory, "unit_facts", return_value={
+                 "load": "loaded", "active": "inactive"}), \
+             patch.object(effective, "report", return_value={
+                 **valid, "review_blockers": ["unexpected drop-in"]}), \
+             patch.object(diag, "_units_ok", return_value=True):
+            self.assertFalse(updater.r4_publisher_inactive())
+        with patch.object(inventory, "unit_facts", return_value={
+                 "load": "loaded", "active": "inactive"}), \
+             patch.object(effective, "report", return_value=valid), \
+             patch.object(diag, "_units_ok", return_value=False):
+            self.assertFalse(updater.r4_publisher_inactive())
+
     def test_no_incomplete_update_journal_and_cli_safe(self):
         with patch.object(updater, "read_journal", return_value={
             "phase": "migrated"}):
