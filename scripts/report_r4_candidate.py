@@ -44,8 +44,16 @@ def inspect(root:Path=ROOT) -> dict:
         raise ValueError("r4_untrusted_manifest_symlink")
     candidate=json.loads(m.read_text("utf-8"))
     current=json.loads(live.read_text("utf-8"))
-    if (current!=candidate or current.get("release")!=CANDIDATE or
-            candidate.get("release")!=CANDIDATE or
+    patch_path=root/"releases/candidates/r4-propose1-one-shot.json"
+    if patch_path.is_symlink():
+        raise ValueError("r4_untrusted_patch_manifest_symlink")
+    patch=json.loads(patch_path.read_text("utf-8"))
+    if (current!=patch or current.get("release")!="v0.8.0-r4propose1"
+            or patch.get("from")!=CANDIDATE
+            or patch.get("restart_manager") is not True
+            or type(patch.get("files")) is not list
+            or len(patch["files"])!=4
+            or candidate.get("release")!=CANDIDATE or
             candidate.get("from")!=CURRENT or
             candidate.get("format")!="bob-updater-v1" or
             candidate.get("restart_manager") is not True or
@@ -142,8 +150,8 @@ def inspect(root:Path=ROOT) -> dict:
     return {
         "format":"r4-source-candidate-v1",
         "release_manifest":current["release"],
-        "promotion_state":"promoted_exact_candidate",
-        "previous_installed_release":candidate["from"],
+        "promotion_state":"promoted_exact_r4_proposal_patch",
+        "previous_installed_release":patch["from"],
         "candidate":candidate["release"],
         "files":len(digests),
         "exact_https_generated_manager":True,
