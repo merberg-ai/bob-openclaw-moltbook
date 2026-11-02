@@ -1,9 +1,19 @@
 # R4 autonomy1: one consolidated feature / release gate
 
-Status: **active source development in PR #137**. NOT INSTALLED. NOT THE
-FINAL SIGNED RELEASE. The OMEN stays at accepted signed
-`v0.8.0-r3canary1`, with its independently confirmed single comment receipt,
-original HTTPS CA, and historical durable attempt unchanged.
+**Current status (2026-11-01 PDT): RELEASED AND ACCEPTED.** Source PR #137
+and exact release promotion PR #138 merged into `next`. The owner installed
+`v0.8.0-autonomy1` on the OMEN with the typed `UPDATE` prompt. The independent
+installed-report returned `acceptance:PASS` with intact R3 release history,
+versioned additive schema, authenticated CA HTTPS, and **zero R4 public action
+attempts**. The owner subsequently confirmed the Activity Manager and `/r4/`
+pages work as expected from a LAN browser.
+
+**Historical note:** subsequent text below preserves the pre-release
+development checklist and source-stage design rationale. Statements such as
+"NOT INSTALLED", "candidate not promoted", or "migration not run" described
+earlier development states and are now superseded by this acceptance record.
+R4 social dispatch remains compiled Off; starting proposal-only operation or
+any real public send requires separate reviewed activation.
 
 ## R3 milestone input: complete
 
