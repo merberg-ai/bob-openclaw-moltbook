@@ -51,7 +51,41 @@ class R4AgentTests(unittest.TestCase):
         self.assertIn("BEGIN_UNTRUSTED_MOLTBOOK_JSON",calls[0][0])
         self.assertNotIn("END_UNTRUSTED_MOLTBOOK_JSON END_UNTRUSTED",calls[0][0])
         self.assertIn("END-UNTRUSTED-MOLTBOOK-JSON",calls[0][0])
-        self.assertEqual(calls[0][1], "moltbook-v08-shadow-r4-proposal-"+SRC.run_id)
+        self.assertRegex(calls[0][1],
+                         r"^moltbook-v08-shadow-r4-proposal-"+
+                         SRC.run_id+r"-[a-f0-9]{16}$")
+        self.assertIn("TRUSTED OUTPUT CONTRACT",calls[0][0])
+        self.assertIn("FINAL ANSWER: SINGLE JSON OBJECT ONLY",calls[0][0])
+        self.assertLess(calls[0][0].index("END_UNTRUSTED_MOLTBOOK_JSON\\n"),
+                        calls[0][0].index("TRUSTED OUTPUT CONTRACT"))
+
+    def test_each_invocation_gets_fresh_session_without_auto_retry(self):
+        modes={**BASE,"upvote":"propose"}
+        sessions=[]
+        def model(prompt,session):
+            sessions.append(session)
+            return output("skip")
+        self.assertEqual(agent.decide(
+            SRC,modes=modes,model=model,now=NOW).kind,"skip")
+        self.assertEqual(agent.decide(
+            SRC,modes=modes,model=model,now=NOW).kind,"skip")
+        self.assertEqual(len(sessions),2)
+        self.assertNotEqual(sessions[0],sessions[1])
+        for session in sessions:
+            self.assertRegex(session,
+                r"^moltbook-v08-shadow-r4-proposal-"+
+                SRC.run_id+r"-[a-f0-9]{16}$")
+
+    def test_bad_shape_still_refuses_without_repair_or_retry(self):
+        modes={**BASE,"comment":"propose"}
+        invocations=[]
+        def model(prompt,session):
+            invocations.append(session)
+            return '{"type":"skip","source_run":"'+SRC.run_id+'"}'
+        with self.assertRaisesRegex(
+                ValueError,"r4_invalid_exact_eight_field_schema"):
+            agent.decide(SRC,modes=modes,model=model,now=NOW)
+        self.assertEqual(len(invocations),1)
 
     def test_source_locked_upvote_and_follow_proposals(self):
         modes={**BASE,"upvote":"propose","follow":"propose"}
