@@ -1,3 +1,11 @@
+## R4 proposal patch: second owner-confirmed refusal after typed UPDATE (2026-11-01 PST)
+
+- [x] The owner ran the one reviewed retry of `v0.8.0-r4propose1`, with exact four-file offer and typed `UPDATE`. The updater **again** returned `BOB UPDATE: REFUSED (ValueError)` without an inner transaction-stage reason; `report_r4_installed.py --check` did not execute due to `&&`. The current installed state after this SECOND refusal is not yet independently reported.
+- [ ] **Stop further retries.** Earlier 10/10 prearchive snapshot proves only point-in-time readiness, not the failing step. Need a read-only **post-refusal** probe: current installed registry/journal, patch archive presence, timestamps/count of recent verified database backup files (without paths or contents), and sanitized publisher service start/finish events around the refusal. This may distinguish backup-stage from an idle-publisher race; it cannot reconstruct an unrecorded exception exactly.
+- [ ] If new evidence still cannot isolate the specific gate, prepare a source-reviewed narrow categorical error reporter or isolated backup acceptance rather than repeating `UPDATE`. Preserve R3/R4 receipts and one signed publisher. Public sends and Auto stay compiled Off.
+
+---
+
 ## R4 proposed-patch refusal: owner 10/10 read-only prearchive checks PASS (2026-11-01 PST)
 
 - [x] Owner ran `report_r4_patch_refusal.py --check` on OMEN. **All 10 current checks true, `current_blockers:[]`**: signed `autonomy1` baseline, completed journal, private updater and backup directories, valid lock metadata, original publisher idle at snapshot, loopback authenticated HTTPS, SQLite readable, no patch archive, exact four-file `r4propose1` offer. Probe changed no host/DB/services and made no public API calls.
