@@ -18,6 +18,7 @@ import pwd
 import sqlite3
 import stat
 import subprocess
+import sys
 import tempfile
 from typing import Callable
 
