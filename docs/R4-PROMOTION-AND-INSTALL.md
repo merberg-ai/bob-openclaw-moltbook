@@ -14,14 +14,13 @@ publisher, `new_r4_actions_attempted:0` and
 the earlier approved installer actually performed the additive schema migration.
 These results are owner-provided evidence, not independently issued host probes.
 
-**Remaining acceptance:** in the normal remote LAN browser, open
-`https://192.168.1.24:18790/r4/now`, authenticate using the existing
-Activity Manager credentials and visually inspect R4 Now, Inbox, Bob,
-Controls and Diagnostics. Confirm the original R3/Scout/PM/FM navigation
-still works and check mobile-width layout if practical. The inert Chat
-placeholder is not yet a live agent conversation. Do not change Auto dials,
-submit proposal/approval/social actions, restart timers or test Moltbook
-network sends during the passive visual smoke.
+**LAN visual acceptance completed, owner-reported PASS (2026-11-01 PDT):**
+the existing Activity Manager dashboard and `/r4/` routes work as expected in
+the user's regular browser over private HTTPS. The separate installed report
+previously verified the signed release, real local CA HTTPS routes and zero
+R4 action attempts. This closes the R4 deployment/browser acceptance milestone.
+It does **not** mean the reserved Chat placeholder is a live OpenClaw chat,
+nor that any R4 proposal schedule or public social send has been enabled.
 
 ## Release boundaries
 
