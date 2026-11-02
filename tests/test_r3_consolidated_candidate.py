@@ -15,27 +15,25 @@ import bob_release_updater as updater
 
 
 class R3IntegratedOffCandidateTests(unittest.TestCase):
-    def test_package_builds_from_exact_current_https_release_but_cannot_install(self):
-        result = candidate.inspect()
-        self.assertEqual(result["source_candidate"],"verified")
-        self.assertEqual(result["files_built"],12)
-        self.assertEqual(len(result["source_hashes"]),12)
-        self.assertEqual(result["source_gates"],"one_exact_manual_owner_arm_only")
-        self.assertEqual(result["dashboard_transport"],"https_only")
-        self.assertFalse(result["ready_to_install_or_cutover"])
-        self.assertFalse(result["r3_real_publishing_authorized"])
-        self.assertFalse(result["private_db_or_credentials_read"])
-        self.assertFalse(result["installed_files_or_systemd_modified"])
-        self.assertEqual(result["moltbook_requests"],0)
+    def test_historical_r3_candidate_refuses_to_masquerade_as_current(self):
+        # The R3 integration candidate remains archived and available for
+        # source review, but current.json has advanced past it. The old
+        # source audit must refuse to call it a current release candidate.
+        historic=json.loads((ROOT/
+            "releases/candidates/r3-cutover1-integration-off.json").read_text())
+        self.assertEqual(historic["release"],"v0.8.0-cutover1")
+        self.assertEqual(historic["from"],"v0.8.0-chhttps3")
+        self.assertEqual(len(historic["files"]),12)
+        self.assertNotEqual(updater.manifest(ROOT)["release"],
+                            historic["release"])
+        with self.assertRaisesRegex(
+                ValueError,"unreviewed_source_release_or_promotion"):
+            candidate.inspect()
 
-    def test_verification_and_build_are_stable(self):
-        first=candidate.inspect()
-        second=candidate.inspect()
-        self.assertEqual(first["source_hashes"],second["source_hashes"])
-        self.assertEqual(
-            updater.manager_transport("v0.8.0-chhttps3"),"https")
-        self.assertEqual(
-            updater.manager_transport("v0.8.0-cutover1"),"https")
+    def test_historical_https_transport_and_untrusted_release_refusal(self):
+        for known in ("v0.8.0-chhttps3","v0.8.0-cutover1",
+                      "v0.8.0-r4propose1","v0.8.0-r4format1"):
+            self.assertEqual(updater.manager_transport(known),"https")
         for unexpected in ("v0.8.0-cutover0","v0.8.0-cutover2"):
             with self.assertRaises(ValueError):
                 updater.manager_transport(unexpected)
@@ -43,15 +41,17 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-r4propose1")
+        self.assertEqual(current["release"],"v0.8.0-r4format1")
         self.assertEqual(plan["from"],"v0.8.0-chhttps3")
         self.assertEqual(plan["release"],"v0.8.0-cutover1")
-        self.assertEqual(current["from"],"v0.8.0-autonomy1")
-        self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text()))
+        self.assertEqual(current["from"],"v0.8.0-r4propose1")
+        self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-format1-json-reliability.json").read_text()))
         self.assertEqual(len(current["files"]),4)
         self.assertIn("bob_r4_agent.py",{row["name"] for row in current["files"]})
         self.assertNotIn("bob-r4-publisher",{row["name"] for row in current["files"]})
-        self.assertTrue(candidate.inspect(build=False)["releases_current_json_modified"])
+        with self.assertRaisesRegex(
+                ValueError,"unreviewed_source_release_or_promotion"):
+            candidate.inspect(build=False)
         self.assertTrue(plan["restart_manager"])
         self.assertTrue(current["restart_manager"])
         self.assertIn("bob-moltbook-publisher",{x["name"] for x in plan["files"]})
@@ -112,7 +112,10 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
 
     def test_source_gate_drift_prevents_candidate(self):
         with patch.object(candidate,"_literal_constant",return_value=False):
-            with self.assertRaisesRegex(ValueError,"gate is not Off"):
+            # Source review refuses the outdated promotion before it even
+            # touches the historical R3 hard-Off marker.
+            with self.assertRaisesRegex(
+                    ValueError,"unreviewed_source_release_or_promotion"):
                 candidate.inspect(build=False)
 
     def test_extra_target_or_release_chain_drift_rejected(self):
