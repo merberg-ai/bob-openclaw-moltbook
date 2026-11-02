@@ -22,7 +22,9 @@ import report_r4_preinstall
 def source_ok():
     return {
         "candidate": gate.EXPECTED_SOURCE,
-        "current_unchanged": gate.EXPECTED_INSTALLED,
+        "release_manifest": gate.EXPECTED_SOURCE,
+        "promotion_state": "promoted_exact_candidate",
+        "previous_installed_release": gate.EXPECTED_INSTALLED,
         "files": 23,
         "candidate_source_build": "PASS",
         "exact_https_generated_manager": True,
@@ -48,9 +50,11 @@ class R4GoNogoTests(unittest.TestCase):
     def test_success_means_only_future_separate_review_not_install(self):
         report = gate.inspect(source_probe=source_ok, host_probe=host_ok)
         self.assertTrue(report["candidate_source_verified"])
+        self.assertTrue(report["promoted_manifest_verified"])
         self.assertEqual(report["candidate_files_checked"], 23)
         self.assertTrue(report["live_host_readiness_verified"])
         self.assertTrue(report["ready_for_separate_release_review"])
+        self.assertTrue(report["ready_for_separate_owner_install_prompt"])
         self.assertEqual(report["blockers"], [])
         for key in ("r4_installed_by_report", "install_authorized_by_report",
                     "real_r4_social_sends_authorized",
@@ -76,7 +80,9 @@ class R4GoNogoTests(unittest.TestCase):
     def test_wrong_manifest_or_real_send_arming_never_passes(self):
         for key, value in (
             ("files", 22),
-            ("current_unchanged", "v0.8.0-r3skip1"),
+            ("release_manifest", "v0.8.0-r3canary1"),
+            ("previous_installed_release", "v0.8.0-r3skip1"),
+            ("promotion_state", "not_promoted"),
             ("real_social_action_authorized", True),
             ("install_authorized", True),
             ("all_new_auto_modes_compiled_off", False),
