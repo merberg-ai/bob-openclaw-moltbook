@@ -688,25 +688,61 @@ def r4_apply_guarded_schema(current,plan,contents,backup,
         publisher_inactive=r4_publisher_inactive())
 
 
+# Only these hardcoded labels may be displayed after an early patch refusal.
+# No exception message, path, HTTP body, database content, credential or raw
+# systemd unit is ever written to the terminal.
+R4_PATCH_REFUSAL_STAGES=frozenset((
+    "state_directory","updater_lock","publisher_topology",
+    "prior_journal","installed_hashes","authenticated_https",
+    "verified_sqlite_backup","archive_absence","archive_creation",
+    "archive_original_files","archive_checksums","archive_registry",
+    "transaction_journal",
+))
+
+
+def _r4_patch_refusal_stage(plan,stage,exc):
+    """Reveal the safe stage for an otherwise generic pre-transaction error."""
+    if (isinstance(plan,dict)
+            and plan.get("release")=="v0.8.0-r4propose1"
+            and stage in R4_PATCH_REFUSAL_STAGES):
+        print("BOB R4 PATCH PREFLIGHT: refused at "+stage+
+              " ("+type(exc).__name__+")")
+
+
 def update(folder, current, plan, contents, *, auth):
-    private_dir(STATE_DIR)
-    fd = locked()
+    stage="state_directory"
+    try:
+        private_dir(STATE_DIR)
+        stage="updater_lock"
+        fd=locked()
+    except (OSError,ValueError,RuntimeError) as exc:
+        _r4_patch_refusal_stage(plan,stage,exc)
+        raise
+    stage="publisher_topology"
     try:
         if plan["release"]=="v0.8.0-r4propose1" and not r4_publisher_inactive():
             raise ValueError("r4_proposal_patch_publisher_topology_unverified")
-        if read_journal() and read_journal()["phase"] not in ("complete", "rolled_back"):
+        stage="prior_journal"
+        before=read_journal()
+        if before and before["phase"] not in ("complete", "rolled_back"):
             raise ValueError("incomplete prior release; use --recover")
+        stage="installed_hashes"
         if not live_ok(current):
             raise ValueError("installed file hash drift")
+        stage="authenticated_https"
         if not healthy(auth,release=current["release"]):
             raise ValueError("existing authenticated UI unhealthy")
         # Backup is verified before any live code is replaced.
+        stage="verified_sqlite_backup"
         from backup_live_sqlite import create_verified_backup
         backup=create_verified_backup(DB, BACKUP_DIR)
+        stage="archive_absence"
         tx = STATE_DIR / ("tx-" + plan["release"])
         if tx.exists() or tx.is_symlink():
             raise ValueError("release journal archive exists")
+        stage="archive_creation"
         private_dir(tx)
+        stage="archive_original_files"
         originals = {}
         for name in contents:
             installed = BIN / name
@@ -720,13 +756,19 @@ def update(folder, current, plan, contents, *, auth):
                 save_private(tx / ("old-" + name), data)
             else:
                 originals[name] = "absent"
+        stage="archive_checksums"
         save_private(tx / "original.json", json.dumps(originals,sort_keys=True).encode())
         save_private(tx / "candidate.json", json.dumps(
             {name: digest(blob) for name, blob in contents.items()}, sort_keys=True).encode())
+        stage="archive_registry"
         save_private(tx / "registry-before.json", json.dumps(current, sort_keys=True).encode())
         journal = {"format": FORMAT, "release": plan["release"],
                    "phase": "prepared", "restart_manager": plan["restart_manager"]}
+        stage="transaction_journal"
         store_journal(journal)
+        # After this point the old rollback-aware transaction logic owns all
+        # exceptions. Never replace it with a pretransaction diagnostic.
+        stage="installing"
         try:
             step = "installing listed files"
             for name, payload in contents.items():
@@ -775,6 +817,10 @@ def update(folder, current, plan, contents, *, auth):
                 store_journal({**journal, "phase": "incident"})
                 raise RuntimeError("rollback incident; inspection required") from None
             return "rolled_back"
+    except (OSError,ValueError,RuntimeError,sqlite3.Error,ImportError,
+            AttributeError,TypeError,SyntaxError,subprocess.TimeoutExpired) as exc:
+        _r4_patch_refusal_stage(plan,stage,exc)
+        raise
     finally:
         os.close(fd)
 
@@ -942,7 +988,14 @@ def main():
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
-        outcome = update(folder, current, plan, contents, auth=authorization())
+        try:
+            auth=authorization()
+        except (OSError,ValueError,TypeError,KeyError) as exc:
+            if plan["release"]=="v0.8.0-r4propose1":
+                print("BOB R4 PATCH PREFLIGHT: refused at dashboard_credentials "+
+                      "("+type(exc).__name__+")")
+            raise
+        outcome = update(folder, current, plan, contents, auth=auth)
         print("BOB UPDATE:", outcome)
         return 0 if outcome == "updated" else 1
     except (OSError, ValueError, RuntimeError, sqlite3.Error,
