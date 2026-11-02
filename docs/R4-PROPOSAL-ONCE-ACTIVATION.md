@@ -218,3 +218,27 @@ OpenClaw; never replay or alter the original time/used-source checks.
 
 R4 scheduling, Auto, real public votes/comments/posts/follows, and all
 new public publisher privileges remain disabled regardless of results.
+
+
+## Historical Scout source claimed between R4 refusal and contract probe
+
+The owner's first diagnostic for `20261102T042747Z` returned
+`source_already_used` before any model call. This does **not** resolve the
+earlier `r4_model_or_contract_unverified` error. A refused R4 model response
+does not commit a social decision, but the existing scheduled R3 or publisher
+may have claimed a Scout source afterward.
+
+The follow-up diagnostic now follows the installed producer's bounded
+sealed Scout selection: latest 20 valid observations from up to 100 files,
+within 48 hours, excluding R4, R3 and publication ledger-consumed runs.
+It can show the previous fixed source's current ledger owner as a sanitized
+category, never the post text or database rows. There are no new model
+instructions or relaxation of the eight-field contract. If no unused
+source exists, it returns `no_fresh_r4_source` without invoking OpenClaw.
+The user should let normal Scout gather new source records; do not reset
+or replay any previous run.
+
+The operator invocation remains the same single `--once` command after
+pulling the reviewed change. A successful diagnostic means the model
+completed a valid **unsaved** decision; an OpenClaw call may persist an
+isolated agent session even though it never creates a social proposal.
