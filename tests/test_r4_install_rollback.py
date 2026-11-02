@@ -123,6 +123,7 @@ class R4CodeOnlyRollbackTests(unittest.TestCase):
         self.registry.chmod(0o600)
         with patch.object(updater,"BIN",self.bin), \
              patch.object(updater,"STATE_DIR",self.state), \
+             patch.object(updater,"LOCK",self.state/"lock"), \
              patch.object(updater,"REGISTRY",self.registry), \
              patch.object(updater,"JOURNAL",self.journal_file), \
              patch.object(updater,"DB",self.db_file), \
