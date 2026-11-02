@@ -45,6 +45,7 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-r3canary1": "https",
     "v0.8.0-autonomy1": "https",
     "v0.8.0-r4propose1": "https",
+    "v0.8.0-r4format1": "https",
 }
 TLS_DIR=HOME/".config/bob-system/manager-tls"
 TLS_CA=TLS_DIR/"ca.crt"
