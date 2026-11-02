@@ -19,6 +19,7 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 import ssl
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -54,6 +55,8 @@ MANAGER_TRANSPORTS = {
     "v0.8.0-r3format1": "https",
     "v0.8.0-r3skip1": "https",
     "v0.8.0-r3canary1": "https",
+    # R4 only after separate signed, owner-approved one-time install.
+    "v0.8.0-autonomy1": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -451,7 +454,8 @@ def read_journal():
         return None
     data = read_json(JOURNAL)
     if (data.get("format") != FORMAT or data.get("phase") not in
-            ("prepared", "installed", "restarted", "rolled_back", "complete", "incident")
+            ("prepared", "installed", "migrated", "restarted", "rolled_back",
+              "complete", "incident")
             or not RELEASE_ID.fullmatch(data.get("release", ""))):
         raise ValueError("unrecognized updater journal")
     return data
@@ -575,6 +579,88 @@ def preflight_r3_diagnostics_only() -> bool:
         return False
 
 
+
+def preflight_r4_installation() -> bool:
+    """Check exact accepted R3 canary host, not obsolete R3 handoff versions.
+
+    This is a read-only, fail-closed prerequisite to the separate owner-typed
+    UPDATE and its independent backup/hash/migration guards. It neither
+    grants new R4 publish privileges nor edits services or SQLite.
+    """
+    try:
+        from report_r4_preinstall import inspect
+        return inspect()["ready_for_separate_owner_install_prompt"] is True
+    except (OSError, ValueError, RuntimeError, TypeError, KeyError,
+            ImportError, AttributeError, UnicodeError):
+        return False
+
+
+def r4_publisher_inactive() -> bool:
+    """Read-only unique original publisher topology, rechecked at migration.
+
+    Do not mistake a momentarily idle service for the absence of competing
+    dispatch workers or unknown systemd drop-ins. This must still be true
+    AFTER candidate hashes are staged and BEFORE the R4 DDL transaction.
+    """
+    try:
+        import report_r3_cutover_inventory as inventory
+        import report_r38_effective_units as effective
+        import report_r3_diagnostic_installed as diagnostics
+        facts=inventory.unit_facts("user",effective.SERVICE)
+        unit_shape=effective.report()
+        return (facts.get("load")=="loaded" and
+                facts.get("active")=="inactive" and
+                unit_shape.get("effective_service")=="reviewed_shape" and
+                unit_shape.get("effective_timer")=="reviewed_shape" and
+                unit_shape.get("review_blockers")==[] and
+                diagnostics._units_ok() is True)
+    except (OSError,ValueError,TypeError,KeyError,ImportError,
+            RuntimeError,AttributeError):
+        return False
+
+
+def installed_r4_schema_module():
+    """Load reviewed staged module only from the hash-verified BIN tree."""
+    p=BIN/"bob_r4_schema.py"
+    if p.is_symlink() or not p.is_file():
+        raise ValueError("r4_installed_schema_missing")
+    # Only the updater-selected, hash-verified installed dependency directory.
+    sys.path.insert(0,str(BIN))
+    try:
+        spec=importlib.util.spec_from_file_location(
+            "_bob_r4_installed_schema",p)
+        if spec is None or spec.loader is None:
+            raise ValueError("r4_installed_schema_loader_invalid")
+        mod=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if Path(mod.__file__).resolve()!=p.resolve():
+            raise ValueError("r4_schema_import_source_changed")
+        return mod
+    finally:
+        sys.path.remove(str(BIN))
+
+
+def r4_apply_guarded_schema(current,plan,contents,backup,
+                            *,candidate_registry):
+    """Only from existing locked updater, after candidate hashes verified.
+
+    R4 SQLite DDL is additive. A later rollback restores code/registry only,
+    never an old DB snapshot over possible newly counted public attempts.
+    """
+    if plan["release"]!="v0.8.0-autonomy1":
+        return None
+    if not live_ok(candidate_registry):
+        raise ValueError("r4_candidate_code_hash_unverified")
+    from r4_install_guard import run_migration
+    # No TLS downgrade, new publisher, or hidden schema-created-on-GET.
+    return run_migration(
+        schema_module=installed_r4_schema_module(),
+        db_path=DB,backup=backup,backup_dir=BACKUP_DIR,
+        current=current,plan=plan,contents=contents,
+        candidate_hashes_verified=True,
+        publisher_inactive=r4_publisher_inactive())
+
+
 def update(folder, current, plan, contents, *, auth):
     private_dir(STATE_DIR)
     fd = locked()
@@ -587,7 +673,7 @@ def update(folder, current, plan, contents, *, auth):
             raise ValueError("existing authenticated UI unhealthy")
         # Backup is verified before any live code is replaced.
         from backup_live_sqlite import create_verified_backup
-        create_verified_backup(DB, BACKUP_DIR)
+        backup=create_verified_backup(DB, BACKUP_DIR)
         tx = STATE_DIR / ("tx-" + plan["release"])
         if tx.exists() or tx.is_symlink():
             raise ValueError("release journal archive exists")
@@ -632,6 +718,14 @@ def update(folder, current, plan, contents, *, auth):
             # failed-health rollback can restore the old code AND registry.
             # This is code-only recovery: never restore SQLite after a send.
             save_private(REGISTRY, json.dumps(next_state, sort_keys=True).encode())
+            if plan["release"]=="v0.8.0-autonomy1":
+                step="performing guarded additive R4 SQLite migration"
+                r4_apply_guarded_schema(
+                    current,plan,contents,backup,
+                    candidate_registry=next_state)
+                # The journal explicitly records that R4 DDL may remain
+                # after code-only rollback. Never restore a stale DB backup.
+                store_journal({**journal,"phase":"migrated"})
             if plan["restart_manager"]:
                 step = "restarting Activity Manager"
                 restart_manager()
@@ -641,7 +735,9 @@ def update(folder, current, plan, contents, *, auth):
                 raise RuntimeError("dashboard failed bounded post-restart health checks")
             store_journal({**journal, "phase": "complete"})
             return "updated"
-        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        except (OSError, ValueError, RuntimeError, sqlite3.Error,
+                ImportError, AttributeError, TypeError, SyntaxError,
+                subprocess.TimeoutExpired) as exc:
             # Safe stage only, never print HTTP responses, credentials or payloads.
             print("BOB UPDATE: failed at " + step + " (" + type(exc).__name__ + ")")
             try:
@@ -654,6 +750,36 @@ def update(folder, current, plan, contents, *, auth):
         os.close(fd)
 
 
+
+
+def rollback_completed_r4(*, auth):
+    """Owner-only R4-to-R3 code recovery AFTER a successfully completed install.
+
+    Unlike --recover (interrupted installs), this deliberately permits only
+    the exact completed autonomy1 journal and its archived r3canary1 baseline.
+    The same existing archive/hash checks perform code-only restoration:
+    NEVER restore an older SQLite snapshot over later public attempts.
+    """
+    fd = locked()
+    try:
+        journal = read_journal()
+        installed = registry()
+        if (not journal or journal.get("phase") != "complete"
+                or journal.get("release") != "v0.8.0-autonomy1"
+                or journal.get("restart_manager") is not True
+                or installed["release"] != "v0.8.0-autonomy1"
+                or not live_ok(installed) or not r4_publisher_inactive()):
+            raise ValueError("r4_completed_rollback_scope_unverified")
+        archive = STATE_DIR / "tx-v0.8.0-autonomy1"
+        safe_private(archive, directory=True)
+        before = read_json(archive / "registry-before.json")
+        if (before.get("format") != FORMAT or
+                before.get("release") != "v0.8.0-r3canary1" or
+                not isinstance(before.get("files"), dict)):
+            raise ValueError("r4_completed_rollback_archive_unverified")
+        return rollback(journal, auth=auth)
+    finally:
+        os.close(fd)
 
 def rollback_shadow_to(target, *, auth):
     """Only roll back the exact just-installed R2 release to verified R1 bytes.
@@ -702,6 +828,8 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true")
     group.add_argument("--recover", action="store_true")
+    group.add_argument("--rollback-r4", action="store_true",
+                       help="owner-typed, code-only rollback of completed autonomy1 to r3canary1")
     group.add_argument("--channel", choices=sorted(CHANNELS))
     group.add_argument("--rollback-to", metavar="RELEASE")
     args = parser.parse_args()
@@ -718,6 +846,13 @@ def main():
             result = switch_channel(folder, args.channel)
             print("BOB UPDATE: channel " + args.channel + " (" + result + "); no production changes")
             return 0
+        if args.rollback_r4:
+            if not sys.stdin.isatty() or input(
+                    "Type ROLLBACK-R4 to restore R3 code ONLY (never SQLite): "
+            ) != "ROLLBACK-R4":
+                raise ValueError("r4_completed_rollback_approval_not_granted")
+            print("BOB UPDATE:", rollback_completed_r4(auth=authorization()))
+            return 0
         if args.rollback_to is not None:
             if args.rollback_to != "v0.7.8-updater2":
                 raise ValueError("unsupported_rollback_target")
@@ -730,7 +865,8 @@ def main():
             return 0
         if args.recover:
             journal = read_journal()
-            if not journal or journal["phase"] not in ("prepared", "installed", "restarted"):
+            if not journal or journal["phase"] not in (
+                    "prepared","installed","migrated","restarted"):
                 raise ValueError("no recoverable interrupted transaction")
             print("Recovery requested for:", journal["release"])
             if not sys.stdin.isatty() or input("Type RECOVER to restore original code: ") != "RECOVER":
@@ -765,14 +901,17 @@ def main():
             raise ValueError("r3_offfirst_preinstall_host_or_publisher_unverified")
         if plan["release"] in ("v0.8.0-r3diag1","v0.8.0-r3format1","v0.8.0-r3skip1","v0.8.0-r3canary1") and not preflight_r3_diagnostics_only():
             raise ValueError("r3_diagnostics_host_or_publisher_unverified")
+        if plan["release"]=="v0.8.0-autonomy1" and not preflight_r4_installation():
+            raise ValueError("r4_preinstall_signed_r3_canary_host_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
         outcome = update(folder, current, plan, contents, auth=authorization())
         print("BOB UPDATE:", outcome)
         return 0 if outcome == "updated" else 1
-    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
-            json.JSONDecodeError, ImportError, AttributeError) as exc:
+    except (OSError, ValueError, RuntimeError, sqlite3.Error,
+            subprocess.TimeoutExpired, json.JSONDecodeError,
+            ImportError, AttributeError, SyntaxError, TypeError) as exc:
         print("BOB UPDATE: REFUSED (" + type(exc).__name__ + ")")
         reason = str(exc)
         # Only release IDs validated by the manifest/registry or fixed messages
