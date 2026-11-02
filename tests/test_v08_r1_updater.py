@@ -246,6 +246,21 @@ class ManifestAndCommandTests(unittest.TestCase):
                              {i["name"] for i in obj["files"]})
             self.assertNotIn("bob-moltbook-scout",
                              {i["name"] for i in obj["files"]})
+        elif obj["release"]=="v0.8.0-autonomy1":
+            self.assertEqual(obj["from"],"v0.8.0-r3canary1")
+            self.assertTrue(obj["restart_manager"])
+            reviewed=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
+            self.assertEqual(obj,reviewed)
+            names={i["name"] for i in obj["files"]}
+            self.assertEqual(len(names),23)
+            self.assertIn("bob-activity-manager",names)
+            self.assertIn("bob-moltbook-publisher",names)
+            self.assertIn("bob-release-updater",names)
+            self.assertIn("bobctl",names)
+            self.assertIn("bob_r4_schema.py",names)
+            self.assertIn("bob_r4_publisher_adapter.py",names)
+            self.assertNotIn("bob-r4-publisher",names)
+            self.assertNotIn("bob-moltbook-scout",names)
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:
