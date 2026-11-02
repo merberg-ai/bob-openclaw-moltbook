@@ -39,30 +39,19 @@ def signed_old_host():
 
 
 class Format1SourceTests(unittest.TestCase):
-    def test_exact_new_offer_reviewed_and_public_off(self):
-        report=audit.inspect()
-        self.assertEqual(report["candidate_release"],NEW)
-        self.assertEqual(report["previous_installed_release"],OLD)
-        self.assertEqual(report["candidate_files"],4)
-        for key in ("strict_r4_parser_preserved",
-                    "same_openclaw_main_agent_transport",
-                    "trusted_json_only_prompt",
-                    "one_fresh_session_per_requested_decision",
-                    "all_r4_public_sends_hard_off",
-                    "exact_promoted_candidate"):
-            self.assertIs(report[key],True)
-        for key in ("proposal_schedule_enabled",
-                    "automatic_model_retry_enabled",
-                    "owner_modes_edited","database_migrated","installed_on_omen"):
-            self.assertIs(report[key],False)
-        offer=json.loads((ROOT/"releases/current.json").read_text())
-        exact=json.loads((ROOT/"releases/candidates/r4-format1-json-reliability.json").read_text())
-        self.assertEqual(offer,exact)
-        self.assertEqual(offer["format"],updater.FORMAT)
-        self.assertEqual(offer["from"],OLD)
-        self.assertEqual({x["name"]:x["source"] for x in offer["files"]},
+    def test_prior_format1_offer_is_historical_not_repromoted(self):
+        archived=json.loads((ROOT/
+            "releases/candidates/r4-format1-json-reliability.json").read_text())
+        self.assertEqual(archived["release"],NEW)
+        self.assertEqual(archived["from"],OLD)
+        self.assertEqual({x["name"]:x["source"] for x in archived["files"]},
                          audit.ALLOWED)
+        live=json.loads((ROOT/"releases/current.json").read_text())
+        self.assertEqual(live["release"],"v0.8.0-r4schedule1")
+        self.assertEqual(live["from"],archived["release"])
         self.assertEqual(updater.manager_transport(NEW),"https")
+        with self.assertRaisesRegex(ValueError,"r4_format_exact_offer_unverified"):
+            audit.inspect()
 
     def test_old_host_preflight_gates_require_complete_signed_prior_release(self):
         for key,value in (
@@ -98,7 +87,7 @@ class Format1SourceTests(unittest.TestCase):
         ):
             self.assertNotIn(banned,source)
         self.assertEqual(audit.main(["--install"]),2)
-        self.assertEqual(audit.main(["--check"]),0)
+        self.assertEqual(audit.main(["--check"]),1)
 
 
 class Format1TransactionTests(unittest.TestCase):
@@ -116,7 +105,7 @@ class Format1TransactionTests(unittest.TestCase):
             db.execute("CREATE TABLE proof (token TEXT)")
             db.execute("INSERT INTO proof VALUES ('old durable record')")
         self.db.chmod(0o600)
-        self.offer=json.loads((ROOT/"releases/current.json").read_text())
+        self.offer=json.loads((ROOT/"releases/candidates/r4-format1-json-reliability.json").read_text())
         self.assertEqual(self.offer["release"],NEW)
         self.payloads={
             item["name"]:updater.release_bytes(ROOT,item)

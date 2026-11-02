@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Owner-gated R4 private scheduling. No Moltbook network/API authority.
+
+--status / --check are read-only. --stage, --enable, --disable and
+--recover each require an exact owner-typed confirmation. --once is the
+single systemd service worker, not an independent publisher.
+"""
+from __future__ import annotations
+
+import os
+import sys
+
+
+def main(argv=None):
+    os.umask(0o077)
+    try:
+        from bob_r4_schedule import main as schedule_main
+        return schedule_main(sys.argv[1:] if argv is None else argv)
+    except (OSError,ValueError,TypeError,KeyError,ImportError):
+        print("BOB R4 SCHEDULE: refused (signed schedule or host unavailable)")
+        return 1
+
+
+if __name__=="__main__":
+    raise SystemExit(main())

@@ -1,0 +1,33 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r4schedule1",
+  "from": "v0.8.0-r4format1",
+  "notes": "OFF-first R4 private proposal timer capability. Install signed schedule CLI, fixed systemd unit templates and read-only Activity Manager status, but DO NOT create, stage, enable or start any R4 timer during update. Separate typed owner approvals required for unit staging and timer enable. Every scheduled run re-verifies signed source, existing R3/Scout/publisher topology, Propose modes and pause; no automatic model retry, DB migration, real public send, extra publisher, new credentials or Moltbook dispatch. HTTPS manager remains verified; code-only rollback requires unit recovery first.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r4_installed_gate.py",
+      "source": "src/lib/bob/bob_r4_installed_gate.py"
+    },
+    {
+      "name": "bob_r4_schedule.py",
+      "source": "src/lib/bob/bob_r4_schedule.py"
+    },
+    {
+      "name": "bob-r4-schedule",
+      "source": "src/bin/bob-r4-schedule"
+    },
+    {
+      "name": "bob_r4_web.py",
+      "source": "src/lib/bob/bob_r4_web.py"
+    }
+  ],
+  "restart_manager": true
+}

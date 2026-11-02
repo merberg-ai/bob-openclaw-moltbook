@@ -41,13 +41,18 @@ class R3IntegratedOffCandidateTests(unittest.TestCase):
     def test_candidate_does_not_change_promoted_release(self):
         current=json.loads((ROOT/"releases/current.json").read_text())
         plan=json.loads((ROOT/"releases/candidates/r3-cutover1-integration-off.json").read_text())
-        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        self.assertEqual(current["release"],"v0.8.0-r4schedule1")
         self.assertEqual(plan["from"],"v0.8.0-chhttps3")
         self.assertEqual(plan["release"],"v0.8.0-cutover1")
-        self.assertEqual(current["from"],"v0.8.0-r4propose1")
-        self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-format1-json-reliability.json").read_text()))
-        self.assertEqual(len(current["files"]),4)
-        self.assertIn("bob_r4_agent.py",{row["name"] for row in current["files"]})
+        self.assertEqual(current["from"],"v0.8.0-r4format1")
+        self.assertEqual(current,json.loads((ROOT/"releases/candidates/r4-schedule1-offfirst.json").read_text()))
+        self.assertEqual(len(current["files"]),6)
+        self.assertIn("bob_r4_schedule.py",
+                      {row["name"] for row in current["files"]})
+        prior_format=json.loads((ROOT/
+            "releases/candidates/r4-format1-json-reliability.json").read_text())
+        self.assertIn("bob_r4_agent.py",
+                      {row["name"] for row in prior_format["files"]})
         self.assertNotIn("bob-r4-publisher",{row["name"] for row in current["files"]})
         with self.assertRaisesRegex(
                 ValueError,"unreviewed_source_release_or_promotion"):

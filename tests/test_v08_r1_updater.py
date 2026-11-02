@@ -282,6 +282,19 @@ class ManifestAndCommandTests(unittest.TestCase):
                                     "bob_r4_agent.py","bob_r4_installed_gate.py"})
             self.assertNotIn("bob-moltbook-publisher",names)
             self.assertNotIn("bob-r4-propose",names)
+        elif obj["release"]=="v0.8.0-r4schedule1":
+            self.assertEqual(obj["from"],"v0.8.0-r4format1")
+            self.assertTrue(obj["restart_manager"])
+            reviewed=json.loads((ROOT/
+                "releases/candidates/r4-schedule1-offfirst.json").read_text())
+            self.assertEqual(obj,reviewed)
+            names={i["name"] for i in obj["files"]}
+            self.assertEqual(names,{"bob-release-updater","bobctl",
+                                    "bob_r4_installed_gate.py",
+                                    "bob_r4_schedule.py","bob-r4-schedule",
+                                    "bob_r4_web.py"})
+            self.assertNotIn("bob-moltbook-publisher",names)
+            self.assertNotIn("bob-r4-propose",names)
         else:
             self.fail("Unexpected release chain")
         for item in obj["files"]:
