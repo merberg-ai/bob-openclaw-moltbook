@@ -70,7 +70,11 @@ def decide(observed, *, modes:dict[str,str], model, now:datetime,
     if not allowed:
         raise ValueError("r4_all_owner_actions_off")
     request=prompt(observed,modes)
-    raw=model(request,"moltbook-v08-r4-proposal-"+observed.run_id)
+    # Reuse the verified OpenClaw main-agent transport, whose session gate
+    # only accepts the established moltbook-v08-shadow- prefix. Keep R4 in
+    # its own distinct per-source session; never bypass or monkeypatch the
+    # installed transport's identifier validation.
+    raw=model(request,"moltbook-v08-shadow-r4-proposal-"+observed.run_id)
     decision=parse(raw,observed,now=now,
                    author_observations=author_observations)
     if decision.kind!="skip" and decision.kind not in allowed:

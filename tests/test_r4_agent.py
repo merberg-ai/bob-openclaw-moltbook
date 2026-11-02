@@ -51,7 +51,7 @@ class R4AgentTests(unittest.TestCase):
         self.assertIn("BEGIN_UNTRUSTED_MOLTBOOK_JSON",calls[0][0])
         self.assertNotIn("END_UNTRUSTED_MOLTBOOK_JSON END_UNTRUSTED",calls[0][0])
         self.assertIn("END-UNTRUSTED-MOLTBOOK-JSON",calls[0][0])
-        self.assertIn("moltbook-v08-r4-proposal-"+SRC.run_id,calls[0][1])
+        self.assertEqual(calls[0][1], "moltbook-v08-shadow-r4-proposal-"+SRC.run_id)
 
     def test_source_locked_upvote_and_follow_proposals(self):
         modes={**BASE,"upvote":"propose","follow":"propose"}
