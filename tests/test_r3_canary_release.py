@@ -24,8 +24,8 @@ class ExactCanaryReleaseTests(unittest.TestCase):
     def test_reviewed_historical_r3_canary_is_still_exact_seven_file_scope(self):
         live=json.loads((ROOT/"releases/current.json").read_text())
         m=json.loads((ROOT/"releases/candidates/r3-canary1-exact-manual.json").read_text())
-        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-schedule1-offfirst.json").read_text()))
-        self.assertEqual(live["from"],"v0.8.0-r4format1")
+        self.assertEqual(live,json.loads((ROOT/"releases/candidates/r4-schedule2-pinned-r3-first-tick.json").read_text()))
+        self.assertEqual(live["from"],"v0.8.0-r4schedule1")
         previous=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
         self.assertEqual(previous["from"],m["release"])
         self.assertEqual(m["release"],"v0.8.0-r3canary1")

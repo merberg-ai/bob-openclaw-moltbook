@@ -64,6 +64,9 @@ MANAGER_TRANSPORTS = {
     # OFF-first R4 private proposal scheduling; timer is NOT installed by
     # updater and may only be staged/enabled with separate typed approval.
     "v0.8.0-r4schedule1": "https",
+    # Strict allowance for the pinned R3 first-tick bootstrap; no new
+    # timer or authority, previous OFF-first schedule still absent.
+    "v0.8.0-r4schedule2": "https",
 }
 TLS_DIR = HOME / ".config/bob-system/manager-tls"
 TLS_CA = TLS_DIR / "ca.crt"
@@ -677,6 +680,33 @@ def preflight_r4_schedule_patch() -> bool:
         return False
 
 
+def preflight_r4_schedule2_patch() -> bool:
+    """One code-only compatibility patch; refuse any R4 unit staging.
+
+    This validates installed schedule1 with the same accepted HTTPS/schema
+    and publisher constraints as original schedule1. New scheduler version
+    cannot replace a deployed unit while it is active or staged.
+    """
+    try:
+        from report_r4_installed import inspect
+        info=inspect()
+        return (
+            info.get("acceptance") in (None,"PASS")
+            and info.get("release")=="v0.8.0-r4schedule1"
+            and info.get("signed_installed_source") is True
+            and info.get("legacy_and_r3_registry") is True
+            and info.get("authenticated_https") is True
+            and info.get("new_r4_routes") is True
+            and info.get("versioned_additive_schema") is True
+            and info.get("publisher_inactive_at_check") is True
+            and info.get("new_r4_actions_attempted")==0
+            and r4_publisher_inactive() is True
+            and r4_schedule_units_absent() is True)
+    except (OSError,ValueError,RuntimeError,TypeError,KeyError,
+            ImportError,AttributeError,UnicodeError,sqlite3.Error):
+        return False
+
+
 def r4_publisher_inactive() -> bool:
     """Read-only unique original publisher topology, rechecked at migration.
 
@@ -760,7 +790,8 @@ def _r4_patch_refusal_stage(plan,stage,exc):
     if (isinstance(plan,dict)
             and plan.get("release") in ("v0.8.0-r4propose1",
                                         "v0.8.0-r4format1",
-                                        "v0.8.0-r4schedule1")
+                                        "v0.8.0-r4schedule1",
+                                        "v0.8.0-r4schedule2")
             and stage in R4_PATCH_REFUSAL_STAGES):
         print("BOB R4 PATCH PREFLIGHT: refused at "+stage+
               " ("+type(exc).__name__+")")
@@ -777,8 +808,11 @@ def update(folder, current, plan, contents, *, auth):
         raise
     stage="publisher_topology"
     try:
-        if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1","v0.8.0-r4schedule1") and not r4_publisher_inactive():
+        if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1",
+                                "v0.8.0-r4schedule1","v0.8.0-r4schedule2") and not r4_publisher_inactive():
             raise ValueError("r4_proposal_patch_publisher_topology_unverified")
+        if plan["release"]=="v0.8.0-r4schedule2" and not r4_schedule_units_absent():
+            raise ValueError("r4_schedule2_units_must_be_absent")
         stage="prior_journal"
         before=read_journal()
         if before and before["phase"] not in ("complete", "rolled_back"):
@@ -907,7 +941,8 @@ def r4_schedule_units_absent() -> bool:
         if state.exists():
             safe_private(state)
             record=read_json(state)
-            if (record.get("release")!="v0.8.0-r4schedule1"
+            if (record.get("release") not in (
+                    "v0.8.0-r4schedule1","v0.8.0-r4schedule2")
                     or record.get("phase")!="rolled_back"):
                 return False
         return True
@@ -920,7 +955,7 @@ def rollback_completed_r4(*, auth):
 
     Unlike --recover (interrupted installs), this permits only the
     reviewed signed completed transitions R3->autonomy1, autonomy1->
-    r4propose1, r4propose1->r4format1, r4format1->r4schedule1.
+    r4propose1, r4propose1->r4format1, r4format1->r4schedule1 and r4schedule1->r4schedule2.
     The same existing archive/hash checks perform code-only restoration:
     NEVER restore an older SQLite snapshot over later public attempts.
     """
@@ -933,6 +968,7 @@ def rollback_completed_r4(*, auth):
             "v0.8.0-r4propose1":"v0.8.0-autonomy1",
             "v0.8.0-r4format1":"v0.8.0-r4propose1",
             "v0.8.0-r4schedule1":"v0.8.0-r4format1",
+            "v0.8.0-r4schedule2":"v0.8.0-r4schedule1",
         }
         release=journal.get("release") if journal else None
         if (not journal or journal.get("phase") != "complete"
@@ -941,7 +977,7 @@ def rollback_completed_r4(*, auth):
                 or installed["release"] != release
                 or not live_ok(installed) or not r4_publisher_inactive()):
             raise ValueError("r4_completed_rollback_scope_unverified")
-        if release=="v0.8.0-r4schedule1" and not r4_schedule_units_absent():
+        if release in ("v0.8.0-r4schedule1","v0.8.0-r4schedule2") and not r4_schedule_units_absent():
             raise ValueError("r4_schedule_units_must_be_recovered_first")
         archive = STATE_DIR / ("tx-"+release)
         safe_private(archive, directory=True)
@@ -1082,6 +1118,8 @@ def main():
             raise ValueError("r4_format_patch_existing_install_unverified")
         if plan["release"]=="v0.8.0-r4schedule1" and not preflight_r4_schedule_patch():
             raise ValueError("r4_schedule_patch_existing_install_unverified")
+        if plan["release"]=="v0.8.0-r4schedule2" and not preflight_r4_schedule2_patch():
+            raise ValueError("r4_schedule2_existing_install_or_unit_state_unverified")
         if not sys.stdin.isatty() or input("Type UPDATE to back up and install this release: ") != "UPDATE":
             print("BOB UPDATE: no production changes")
             return 1
@@ -1089,7 +1127,7 @@ def main():
             auth=authorization()
         except (OSError,ValueError,TypeError,KeyError) as exc:
             if plan["release"] in ("v0.8.0-r4propose1","v0.8.0-r4format1",
-                                    "v0.8.0-r4schedule1"):
+                                    "v0.8.0-r4schedule1","v0.8.0-r4schedule2"):
                 print("BOB R4 PATCH PREFLIGHT: refused at dashboard_credentials "+
                       "("+type(exc).__name__+")")
             raise

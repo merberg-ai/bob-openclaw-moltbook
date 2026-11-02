@@ -38,34 +38,21 @@ def signed_old_host():
 
 
 class ScheduleSourceTests(unittest.TestCase):
-    def test_exact_offer_is_six_signed_files_with_no_auto_schedule(self):
-        result=audit.inspect()
-        self.assertEqual(result["candidate_release"],NEW)
-        self.assertEqual(result["from_release"],OLD)
-        self.assertEqual(result["signed_candidate_files"],6)
-        self.assertEqual(set(result["verified_sha256"]),set(audit.ALLOWED))
-        self.assertTrue(result["exact_promoted_candidate"])
-        for name in ("unit_stage_owner_confirmed_only",
-                     "schedule_enable_owner_confirmed_only",
-                     "existing_r3_publisher_and_scout_unchanged",
-                     "all_r4_public_sends_hard_off","no_automatic_model_retry",
-                     "authenticated_https"):
-            self.assertIs(result[name],True)
-        for name in ("schedule_installed_by_updater",
-                     "schedule_enabled_by_updater",
-                     "no_database_migration",
-                     "host_installed_by_source_audit"):
-            if name=="no_database_migration":
-                self.assertIs(result[name],True)
-            else:
-                self.assertIs(result[name],False)
-        self.assertEqual(updater.manager_transport(NEW),"https")
-        offer=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(offer,json.loads((ROOT/
-            "releases/candidates/r4-schedule1-offfirst.json").read_text()))
-        self.assertEqual(offer["from"],OLD)
-        self.assertEqual({x["name"]:x["source"] for x in offer["files"]},
+    def test_archived_schedule1_is_exact_predecessor_not_reoffered(self):
+        old=json.loads((ROOT/
+            "releases/candidates/r4-schedule1-offfirst.json").read_text())
+        current=json.loads((ROOT/"releases/current.json").read_text())
+        self.assertEqual(old["release"],NEW)
+        self.assertEqual(old["from"],OLD)
+        self.assertEqual(len(old["files"]),6)
+        self.assertEqual({x["name"]:x["source"] for x in old["files"]},
                          audit.ALLOWED)
+        self.assertEqual(current["from"],old["release"])
+        self.assertEqual(current["release"],"v0.8.0-r4schedule2")
+        self.assertEqual(updater.manager_transport(NEW),"https")
+        with self.assertRaisesRegex(ValueError,
+                                    "r4_schedule_exact_release_unverified"):
+            audit.inspect()
 
     def test_host_preflight_requires_signed_format1_and_idle_publisher(self):
         for name,wrong in (
@@ -94,7 +81,7 @@ class ScheduleSourceTests(unittest.TestCase):
 
     def test_source_audit_cannot_install_or_mutate_live_host(self):
         self.assertEqual(audit.main(["--install"]),2)
-        self.assertEqual(audit.main(["--check"]),0)
+        self.assertEqual(audit.main(["--check"]),1)
         text=(ROOT/"scripts/report_r4_schedule_candidate.py").read_text()
         for forbidden in ("subprocess.run(", "sqlite3.connect(", "systemctl ",
                           "api_key(", "openclaw_decide(", "set_mode(",
@@ -117,7 +104,7 @@ class SignedUpdaterRehearsal(unittest.TestCase):
             db.execute("CREATE TABLE receipts (source TEXT)")
             db.execute("INSERT INTO receipts VALUES ('historical R3 and R4 state')")
         self.db.chmod(0o600)
-        self.offer=json.loads((ROOT/"releases/current.json").read_text())
+        self.offer=json.loads((ROOT/"releases/candidates/r4-schedule1-offfirst.json").read_text())
         self.payloads={x["name"]:updater.release_bytes(ROOT,x)
                        for x in self.offer["files"]}
         self.old_bytes={}

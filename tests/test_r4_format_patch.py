@@ -47,8 +47,11 @@ class Format1SourceTests(unittest.TestCase):
         self.assertEqual({x["name"]:x["source"] for x in archived["files"]},
                          audit.ALLOWED)
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"],"v0.8.0-r4schedule1")
-        self.assertEqual(live["from"],archived["release"])
+        self.assertEqual(live["release"],"v0.8.0-r4schedule2")
+        schedule1=json.loads((ROOT/
+            "releases/candidates/r4-schedule1-offfirst.json").read_text())
+        self.assertEqual(schedule1["from"],archived["release"])
+        self.assertEqual(live["from"],schedule1["release"])
         self.assertEqual(updater.manager_transport(NEW),"https")
         with self.assertRaisesRegex(ValueError,"r4_format_exact_offer_unverified"):
             audit.inspect()

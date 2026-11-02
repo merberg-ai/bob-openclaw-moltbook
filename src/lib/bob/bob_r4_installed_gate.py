@@ -19,7 +19,9 @@ RELEASE="v0.8.0-autonomy1"
 PROPOSAL_RELEASE="v0.8.0-r4propose1"
 FORMAT_RELEASE="v0.8.0-r4format1"
 SCHEDULE_RELEASE="v0.8.0-r4schedule1"
-SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE,SCHEDULE_RELEASE))
+SCHEDULE2_RELEASE="v0.8.0-r4schedule2"
+SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE,
+                     SCHEDULE_RELEASE,SCHEDULE2_RELEASE))
 REGISTRY_FORMAT="bob-updater-v1"
 REQUIRED=frozenset((
     "bob-moltbook-publisher","bob-activity-manager","bob_r3_package.pyz",
@@ -87,13 +89,13 @@ def verify(*,home:Path|None=None)->bool:
         hashes=info["files"]
         if not REQUIRED.issubset(hashes.keys()):
             return False
-        if info["release"]==SCHEDULE_RELEASE and not frozenset((
+        if info["release"] in (SCHEDULE_RELEASE,SCHEDULE2_RELEASE) and not frozenset((
                 "bob-r4-schedule","bob_r4_schedule.py"
                 )).issubset(hashes):
             return False
         for name in (REQUIRED|frozenset((
                 "bob-r4-schedule","bob_r4_schedule.py"
-                )) if info["release"]==SCHEDULE_RELEASE else REQUIRED):
+                )) if info["release"] in (SCHEDULE_RELEASE,SCHEDULE2_RELEASE) else REQUIRED):
             expected=hashes[name]
             p=bindir/name
             if (type(expected) is not str or not DIGEST.fullmatch(expected)

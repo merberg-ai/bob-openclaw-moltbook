@@ -105,6 +105,11 @@ class ScheduleLifecycleTests(unittest.TestCase):
         self.mocks=[
             patch.object(sched,"HOME",self.home),
             patch.object(sched,"UNIT_DIR",self.unit_dir),
+            patch.object(sched,"R3_BOOTSTRAP_DIR",
+                         self.unit_dir/(sched.R3_TIMER+".d")),
+            patch.object(sched,"R3_BOOTSTRAP",
+                         self.unit_dir/(sched.R3_TIMER+".d")/
+                         "10-first-run.conf"),
             patch.object(sched,"STATE",self.state),
             patch.object(sched,"JOURNAL",self.state/"journal.json"),
             patch.object(sched,"LOCK",self.state/"lock"),
@@ -228,6 +233,82 @@ class ScheduleLifecycleTests(unittest.TestCase):
             "not-found","inactive","","/tmp/operator-unit","")
         self.assertFalse(self.state_view()["ready_to_stage"])
         self.fake.states[sched.TIMER]=original
+
+    def test_existing_exact_r3_first_tick_dropin_is_allowlisted(self):
+        """R3's legitimate owner-typed bootstrap must not block R4 staging."""
+        import repair_r3_first_timer as historical
+        self.assertEqual(sched.R3_BOOTSTRAP_BYTES,historical.BODY)
+        folder=sched.R3_BOOTSTRAP_DIR
+        folder.mkdir(mode=0o700)
+        file=sched.R3_BOOTSTRAP
+        file.write_bytes(sched.R3_BOOTSTRAP_BYTES)
+        file.chmod(0o600)
+        original=self.fake.states[sched.R3_TIMER]
+        try:
+            self.fake.states[sched.R3_TIMER]=sched.Unit(
+                original.load,original.active,original.enabled,
+                original.fragment,str(file))
+            self.assertTrue(self.state_view()["ready_to_stage"])
+            self.assertEqual(self.stage(),"staged_disabled")
+            self.assertFalse(self.state_view()["timer_enabled"])
+            self.assertEqual(self.enable(),"enabled_private_proposals")
+            self.assertTrue(self.state_view()["timer_enabled"])
+            self.assertEqual(self.disable(),"timer_disabled")
+            self.assertEqual(self.recover(),"schedule_units_removed_no_data_restore")
+            self.assertEqual(file.read_bytes(),historical.BODY)
+            self.assertEqual(self.fake.states[sched.R3_TIMER].dropins,str(file))
+        finally:
+            self.fake.states[sched.R3_TIMER]=original
+
+    def test_r3_dropin_fails_closed_on_any_unreviewed_drift(self):
+        folder=sched.R3_BOOTSTRAP_DIR
+        folder.mkdir(mode=0o700)
+        file=sched.R3_BOOTSTRAP
+        file.write_bytes(sched.R3_BOOTSTRAP_BYTES)
+        file.chmod(0o600)
+        original=self.fake.states[sched.R3_TIMER]
+        self.fake.states[sched.R3_TIMER]=sched.Unit(
+            original.load,original.active,original.enabled,
+            original.fragment,str(file))
+        def refused():
+            self.assertFalse(self.state_view()["ready_to_stage"])
+            with self.assertRaisesRegex(ValueError,"stage_topology_unverified"):
+                self.stage()
+            self.assertEqual(self.fake.calls,[])
+        file.write_bytes(b"[Timer]\\nOnActiveSec=9min\\n")
+        refused()
+        file.write_bytes(sched.R3_BOOTSTRAP_BYTES)
+        file.chmod(0o644)
+        refused()
+        file.chmod(0o600)
+        file2=folder/"20-unreviewed.conf"
+        file2.write_text("[Timer]\\nOnActiveSec=1min\\n")
+        refused()
+        file2.unlink()
+        self.fake.states[sched.R3_TIMER]=sched.Unit(
+            original.load,original.active,original.enabled,
+            original.fragment,str(file)+" "+str(folder/"20-unreviewed.conf"))
+        refused()
+        self.fake.states[sched.R3_TIMER]=sched.Unit(
+            original.load,original.active,original.enabled,
+            original.fragment,str(file))
+        file.unlink()
+        file.symlink_to("/tmp/untrusted-systemd-timer")
+        refused()
+        self.fake.states[sched.R3_TIMER]=original
+
+    def test_r3_dropin_directory_disagreement_is_refused(self):
+        folder=sched.R3_BOOTSTRAP_DIR
+        folder.mkdir(mode=0o700)
+        # Loaded empty dropins while an on-disk directory remains is drift.
+        self.assertFalse(self.state_view()["ready_to_stage"])
+        folder.chmod(0o755)
+        original=self.fake.states[sched.R3_TIMER]
+        self.fake.states[sched.R3_TIMER]=sched.Unit(
+            original.load,original.active,original.enabled,
+            original.fragment,str(sched.R3_BOOTSTRAP))
+        self.assertFalse(self.state_view()["ready_to_stage"])
+        self.fake.states[sched.R3_TIMER]=original
 
     def test_collision_and_symlink_fail_closed(self):
         (self.unit_dir/sched.TIMER).write_text("unreviewed timer")

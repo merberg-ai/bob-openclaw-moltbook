@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-r4schedule1",
-  "from": "v0.8.0-r4format1",
-  "notes": "OFF-first R4 private proposal timer capability. Install signed schedule CLI, fixed systemd unit templates and read-only Activity Manager status, but DO NOT create, stage, enable or start any R4 timer during update. Separate typed owner approvals required for unit staging and timer enable. Every scheduled run re-verifies signed source, existing R3/Scout/publisher topology, Propose modes and pause; no automatic model retry, DB migration, real public send, extra publisher, new credentials or Moltbook dispatch. HTTPS manager remains verified; code-only rollback requires unit recovery first.",
+  "release": "v0.8.0-r4schedule2",
+  "from": "v0.8.0-r4schedule1",
+  "notes": "R4 private scheduling compatibility for the already owner-approved R3 first-tick timer drop-in. Accept ONLY the existing openclaw-owned 10-first-run.conf at the exact R3 timer path with byte-exact [Timer] OnActiveSec=2min content and private permissions; all other drop-ins still fail closed. Four signed code files only, existing authenticated HTTPS manager restart, no unit creation/staging/enable, no automatic model retry, no database migration, no owner modes change, no publisher or Moltbook public action. Require prior accepted signed schedule1 and R4 unit absence; code-only rollback preserves historical DB.",
   "files": [
     {
       "name": "bob-release-updater",
@@ -19,14 +19,6 @@
     {
       "name": "bob_r4_schedule.py",
       "source": "src/lib/bob/bob_r4_schedule.py"
-    },
-    {
-      "name": "bob-r4-schedule",
-      "source": "src/bin/bob-r4-schedule"
-    },
-    {
-      "name": "bob_r4_web.py",
-      "source": "src/lib/bob/bob_r4_web.py"
     }
   ],
   "restart_manager": true
