@@ -150,7 +150,7 @@ class R4LiveAgentContractSourceTests(unittest.TestCase):
         ordinary=bob_r4_agent.prompt(source,modes)
         formatted=probe._format_test_prompt(ordinary,source)
         self.assertTrue(formatted.startswith(ordinary))
-        self.assertIn("END_UNTRUSTED_MOLTBOOK_JSON\\n\\nTRUSTED OUTPUT CONTRACT",
+        self.assertIn("END_UNTRUSTED_MOLTBOOK_JSON\n\nTRUSTED OUTPUT CONTRACT",
                       formatted)
         self.assertIn("ALL eight values must be JSON strings",formatted)
 
