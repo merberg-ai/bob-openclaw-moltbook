@@ -214,6 +214,21 @@ class ScheduleLifecycleTests(unittest.TestCase):
         self.assertEqual(self.fake.calls,[])
         self.assertFalse(self.state.exists())
 
+    def test_missing_systemd_unit_may_have_empty_unit_file_state_only(self):
+        original=self.fake.states[sched.TIMER]
+        self.fake.states[sched.TIMER]=sched.Unit(
+            "not-found","inactive","","","")
+        self.assertTrue(self.state_view()["ready_to_stage"])
+        # An empty UnitFileState must not override proof of a loaded unit,
+        # an unauthorized fragment, or a drop-in.
+        self.fake.states[sched.TIMER]=sched.Unit(
+            "loaded","inactive","","","")
+        self.assertFalse(self.state_view()["ready_to_stage"])
+        self.fake.states[sched.TIMER]=sched.Unit(
+            "not-found","inactive","","/tmp/operator-unit","")
+        self.assertFalse(self.state_view()["ready_to_stage"])
+        self.fake.states[sched.TIMER]=original
+
     def test_collision_and_symlink_fail_closed(self):
         (self.unit_dir/sched.TIMER).write_text("unreviewed timer")
         self.assertFalse(self.state_view()["ready_to_stage"])
