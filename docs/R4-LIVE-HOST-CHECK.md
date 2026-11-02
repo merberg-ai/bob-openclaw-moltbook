@@ -1,7 +1,26 @@
 # R4 live OMEN GO/NO-GO, one read-only command
 
-**Status:** R4 source-only draft PR #137. No R4 installation, migration,
-R4 public social API authority or new systemd unit has been approved.
+**Status:** PR #137 merged into `next`; the previously recorded 2026-11-01
+OMEN read-only host inspection passed seven checks with zero blockers.
+Source-only manifest promotion PR #138 advertises R4 to the owner updater,
+but it does not install/migrate or authorize public social actions.
+
+## Before and after manifest promotion
+
+The historical pre-promotion source command below was used for the actual
+owner host snapshot on 2026-11-01 PDT. Once PR #138 is merged to `next`, the
+exact promoted source must be checked from the trusted, updated `~/bob-next`
+checkout. Run this **read-only** source+OMEN report (no installation):
+
+```bash
+cd ~/bob-next && git pull --ff-only && PYTHONDONTWRITEBYTECODE=1 \\
+  python3 scripts/report_r4_go_nogo.py --check
+```
+
+A PASS now means `promoted_manifest_verified:true`, the new current manifest
+matches the reviewed candidate exactly, and seven host probes still pass
+against the independently unchanged installed R3 canary. It is NOT the owner
+installation prompt. See [R4 promotion and installation](R4-PROMOTION-AND-INSTALL.md).
 
 ## Run once in OpenClawLab as the normal openclaw account
 
