@@ -201,8 +201,11 @@ def _unit_ok(name:str,unit:Unit)->bool:
 
 def _unit_absent(name:str,unit:Unit)->bool:
     p=UNIT_DIR/name
+    # systemd versions may leave UnitFileState empty for a not-found unit.
+    # The stronger checks (not-found LoadState, absent fragment/drop-ins and
+    # absent on-disk unit) are mandatory in both cases.
     return (unit.load=="not-found" and unit.active=="inactive"
-            and unit.enabled=="not-found" and unit.fragment==""
+            and unit.enabled in ("not-found","") and unit.fragment==""
             and unit.dropins=="" and not p.exists() and not p.is_symlink())
 
 
