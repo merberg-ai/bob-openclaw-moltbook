@@ -896,6 +896,11 @@ def r4_schedule_units_absent() -> bool:
             target=unit_dir/unit
             if target.exists() or target.is_symlink():
                 return False
+        # systemctl enable creates this link; manual removal of the unit
+        # file without disabling the timer is NOT safe to roll back.
+        wants=unit_dir/"timers.target.wants/bob-r4-propose.timer"
+        if wants.exists() or wants.is_symlink():
+            return False
         state=HOME/".local/state/bob-r4-schedule/journal.json"
         if state.is_symlink():
             return False
