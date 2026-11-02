@@ -82,7 +82,7 @@ def inspect(*, source_probe=None, host_probe=None) -> dict:
         "host_checks": host_checks,
         "blockers": sorted(set(blockers)),
         "ready_for_separate_release_review": source_ok and host_ok,
-        "installed_r4": False,
+        "r4_installed_by_report": False,
         "install_authorized_by_report": False,
         "real_r4_social_sends_authorized": False,
         "host_files_changed_by_report": False,
