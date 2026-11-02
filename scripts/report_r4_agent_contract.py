@@ -90,8 +90,17 @@ def sanitized_shape(raw)->dict:
 def _format_test_prompt(original:str,observed)->str:
     """Trusted output-only instruction, appended AFTER untrusted source."""
     from bob_r4_decision import exact_example
-    if type(original) is not str or not original.endswith(
-            "\nEND_UNTRUSTED_MOLTBOOK_JSON\n"):
+    if type(original) is not str:
+        raise ValueError("r4_untrusted_decision_envelope")
+    # Supports BOTH installed signed releases: original r4propose1 prompt
+    # ends at the untrusted boundary; r4format1 adds its own trusted JSON
+    # reminder after that boundary. Never accept an arbitrary alternative
+    # prompt string or allow untrusted content to become trusted instructions.
+    old_boundary="\nEND_UNTRUSTED_MOLTBOOK_JSON\n"
+    new_boundary=old_boundary+"\nTRUSTED OUTPUT CONTRACT:"
+    if not (original.endswith(old_boundary)
+            or (new_boundary in original
+                and original.endswith("\nFINAL ANSWER: SINGLE JSON OBJECT ONLY.\n"))):
         raise ValueError("r4_untrusted_decision_envelope")
     return original+(
         "\nTRUSTED OUTPUT CONTRACT (this is NOT permission to take action): "
