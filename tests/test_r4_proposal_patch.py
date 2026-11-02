@@ -82,7 +82,10 @@ class ProposalPatchTests(unittest.TestCase):
         intermediate=json.loads((ROOT/
             "releases/candidates/r4-format1-json-reliability.json").read_text())
         self.assertEqual(intermediate["from"],old["release"])
-        self.assertEqual(current["from"],intermediate["release"])
+                schedule1=json.loads((ROOT/
+            "releases/candidates/r4-schedule1-offfirst.json").read_text())
+        self.assertEqual(schedule1["from"],intermediate["release"])
+        self.assertEqual(current["from"],schedule1["release"])
         self.assertEqual(current["release"],"v0.8.0-r4schedule2")
         self.assertNotIn("bob-moltbook-publisher",
                          {f["name"] for f in current["files"]})
