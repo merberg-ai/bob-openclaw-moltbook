@@ -142,14 +142,15 @@ class R4PreinstallTests(unittest.TestCase):
             self.assertNotIn("synthetic secret", text)
         self.assertEqual(gate.main(["--apply"]), 2)
 
-    def test_candidate_is_still_unpromoted_and_updater_invokes_new_gate(self):
+    def test_candidate_exact_promotion_and_updater_invokes_new_gate(self):
         import inspect
         from pathlib import Path
         candidate=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
         live=json.loads((ROOT/"releases/current.json").read_text())
-        self.assertEqual(live["release"], "v0.8.0-r3canary1")
-        self.assertEqual(candidate["from"], live["release"])
+        self.assertEqual(live["release"], "v0.8.0-autonomy1")
+        self.assertEqual(candidate, live)
+        self.assertEqual(candidate["from"], "v0.8.0-r3canary1")
         source=inspect.getsource(updater.main)
         self.assertIn('not preflight_r4_installation()', source)
         self.assertNotIn(
