@@ -6,7 +6,9 @@
 - [x] **Actual loopback TLS UI smoke developed:** `tests/test_r4_https_host_smoke.py` tests CA-verified HTTPS, six authenticated R4 routes, legacy routes, hostile Host/Origin, CSRF, plaintext refusal, wrong CA and read-only GET in synthetic HOME.
 - [x] **Real UI navigation regression discovered/fixed:** shared sidebar accepted `/r4/now` but threw on subpages. R4 handlers now render their internal tab while passing canonical `/r4/now` to the existing sidebar, preserving all authenticated subroutes.
 - [x] **Final source CI:** 1,262 offline Python tests PASS and Windows startup parsing PASS on code commit `7b07b75` (GitHub Actions run 41366703351); the real ephemeral TLS regression and completed-install code-only rollback tests pass. See [R4 rehearsal notes](docs/R4-INSTALLATION-REHEARSAL.md).
-- [ ] **Release/host review still required:** finish exact effective publisher service/timer and owner-specific WSL HTTPS installation acceptance. Do not claim a real OMEN rehearsal from synthetic CI.
+- [x] **R4 canary-aware installation preflight fixed:** the obsolete R3 diagnostic preflight rejected the live accepted `v0.8.0-r3canary1`. New `report_r4_preinstall.py --check` verifies exact accepted signed source, owner, R3/Scout/publisher schedule, effective publisher service/timer, no competing publisher, current HTTPS and no incomplete journal, without changing host state. R4 updater uses this gate instead of the incompatible older R3 one.
+- [x] **Migration-stage topology recheck:** after installing hash-verified R4 candidate files but before R4 DDL, reverify original publisher idle, effective service/timer shape and absence of competing workers; refuse drift and code-only roll back. Added negative tests for busy publisher, unknown unit changes and competing worker.
+- [ ] **Live host review still required:** run exact read-only R4 preinstall acceptance on the actual OMEN after source review; no proof of real OMEN readiness or installation from synthetic CI.
 - [ ] **One separately approved R4 install:** no `releases/current.json` promotion, no OMEN binary/SQLite migration, and no real R4 send authorization yet.
 
 ---
