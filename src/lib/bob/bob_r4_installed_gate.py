@@ -17,7 +17,8 @@ import stat
 
 RELEASE="v0.8.0-autonomy1"
 PROPOSAL_RELEASE="v0.8.0-r4propose1"
-SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE))
+FORMAT_RELEASE="v0.8.0-r4format1"
+SUPPORTED=frozenset((RELEASE,PROPOSAL_RELEASE,FORMAT_RELEASE))
 REGISTRY_FORMAT="bob-updater-v1"
 REQUIRED=frozenset((
     "bob-moltbook-publisher","bob-activity-manager","bob_r3_package.pyz",
