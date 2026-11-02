@@ -2,8 +2,9 @@
 
 - [x] Added `scripts/report_r4_go_nogo.py --check`: a single no-install, no-public-send, sanitized combined **23-file source candidate audit + actual-host R3-canary/HTTPS/service/journal review**. One PASS only means ready for *separate* release review, never owner authorization.
 - [x] Added synthetic fail-closed tests `tests/test_r4_go_nogo.py`, CI path triggers, and [one-paste isolated host check instructions](docs/R4-LIVE-HOST-CHECK.md). Uses a separate `~/bob-r4-review` checkout; no change to trusted `~/bob-next`, active systemd, SQLite or Moltbook.
-- [ ] Await the real OMEN result from the owner running the one read-only command as `openclaw`. Do **not** infer live host readiness from GitHub CI, and do not stop publisher/Scout timers to force PASS.
-- [ ] Review the live evidence; only then complete source PR review/merge into `next`, followed by a separately approved release-manifest promotion and owner-typed R4 installation. Real R4 sends require another distinct authorization.
+- [x] **Owner-observed OMEN read-only GO/NO-GO PASS (2026-11-01 PDT):** `report_r4_go_nogo.py --check` returned 23 source files verified, `blockers:[]`, seven of seven host probes true (signed R3 canary, owner, worker topology, effective publisher units, idle publisher, authenticated HTTPS, no incomplete update), `ready_for_separate_release_review:true`, no DB/service/host-file changes, and zero Moltbook requests. Evidence is the owner's sanitized output, **not independent remote access or installation authority**.
+- [x] Source-host readiness evidence accepted for PR #137 final source review. Source-only merge into `next` is the next non-production gate.
+- [ ] **Not approved:** distinct release-manifest promotion, owner-typed OMEN R4 migration/installation, and all real R4 social sends. Installation and public action require separate approvals.
 
 ---
 
