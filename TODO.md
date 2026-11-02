@@ -1,3 +1,13 @@
+## R4 proposal patch refusal: verified private backup, categorical gate reporting (2026-11-01 PST)
+
+- [x] **Owner independently verified SQLite backup AND isolated restore PASS** after the second `v0.8.0-r4propose1` refusal; signed `autonomy1` remains installed, prior journal `complete`, no patch archive. This is a point-in-time test, not evidence the backup succeeded during the earlier refusal.
+- [x] Reviewed exact pre-archive updater path: private state directory, updater lock, second publisher-idle check, prior journal, installed hash verification, authenticated loopback HTTPS, verified private SQLite backup, archive absence and creation, then private copy/journal. The generic `ValueError` did not identify which early check refused.
+- [x] Staged **allowlisted categorical error reporting** in source updater, restricted to the R4 proposal patch before the rollback-aware install transaction. It reveals only fixed gate name and exception type, never private paths, credentials, HTTP body, SQLite content or raw error messages. Refusal still raises exactly as before; no bypass, install, retry, service/timer changes or Moltbook action.
+- [x] Added synthetic refusal-stage tests covering publisher, HTTPS, backup, journal and lock errors, including rejection of unreviewed diagnostic labels and proof that installed file writes never occur.
+- [ ] Source PR CI/merge; separate owner choice to perform at most one instrumented update after review. If the patch refuses, stop and inspect the printed stage; do not loop, force, recover or restore DB without evidence.
+
+---
+
 ## R4 proposal patch: second owner-confirmed refusal after typed UPDATE (2026-11-01 PST)
 
 - [x] The owner ran the one reviewed retry of `v0.8.0-r4propose1`, with exact four-file offer and typed `UPDATE`. The updater **again** returned `BOB UPDATE: REFUSED (ValueError)` without an inner transaction-stage reason; `report_r4_installed.py --check` did not execute due to `&&`. The current installed state after this SECOND refusal is not yet independently reported.
