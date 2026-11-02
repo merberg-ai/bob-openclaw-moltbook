@@ -120,3 +120,30 @@ Auto and all real public sends remain source-inaccessible independently of
 these controls. **No scheduled R4 proposal timer is part of this patch.**
 The owner can separately review a bounded schedule only after manual
 one-shot acceptance.
+
+## Interruption / refused patch triage (no automatic retry)
+
+The owner attempted the promoted four-file patch, typed `UPDATE`, and
+received only `BOB UPDATE: REFUSED (ValueError)`. Follow-up read-only
+inspection confirmed that `v0.8.0-autonomy1` remains hash-verified, the old
+journal is `complete`, no `tx-v0.8.0-r4propose1` archive exists, and local
+HTTPS/SQLite schema/signature are healthy with zero R4 sends.
+
+Do not run `--recover` or rollback when the original journal remains
+complete. Do not repeatedly type `UPDATE` without investigating. The generic
+ValueError does **not** identify which early pre-archive gate refused; a
+publisher-timer race is a plausible but unproven explanation.
+
+From the trusted checkout, after a simple `git pull --ff-only`, run the
+read-only sanitized check:
+
+```bash
+cd ~/bob-next && PYTHONDONTWRITEBYTECODE=1 python3 scripts/report_r4_patch_refusal.py --check
+```
+
+It reports only allowlisted booleans and identifiers, never credentials,
+database contents, raw systemd unit text, network payloads, or private paths.
+A green result reflects conditions **now**, not the historical failed instant.
+It never retries, installs, creates a database backup, invokes OpenClaw, changes
+a service or makes any Moltbook API call.
+
