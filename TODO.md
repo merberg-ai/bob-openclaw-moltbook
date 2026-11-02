@@ -4,8 +4,9 @@
 - [x] Corrected to distinct `moltbook-v08-shadow-r4-proposal-*` OpenClaw main-agent session and added regression test using the real verified model-transport validator with a synthetic subprocess response; no real model, key or external network in CI.
 - [x] Staged **unpromoted** `v0.8.0-r4propose1` four-file signed patch candidate (updater, bobctl, agent bridge, installed R4 attestation), strict private-HTTPS ID, installed autonomy1 health/schema/zero-R4-attempt/publisher preflight, code-only immediate predecessor rollback. Existing dashboard/social code and public send hard-Off flags untouched.
 - [x] Documented owner-controlled **one-shot** trial in [R4 private proposal activation](docs/R4-PROPOSAL-ONCE-ACTIVATION.md): allow Upvote/Comment Propose in Controls, `RESUME R4`, run one signed `bob-r4-propose --once`, inspect private Inbox. Do not schedule, queue, follow, upvote or publish.
-- [ ] Require CI and exact source review before merging candidate to `next`; a **distinct promotion** to `releases/current.json` and owner-typed update follow. No live host action has been taken by this source PR.
-- [ ] Confirm installed patch acceptance and one actual manual OpenClaw `--once` result. Then discuss source freshness/model contract refinements or a separate bounded scheduling phase.
+- [x] **Source PR #139 and exact signed promotion PR #140 merged:** 1,284 offline Python tests and Windows CI PASS for both release stages. `releases/current.json` now offers the exact four-file `v0.8.0-r4propose1` patch from installed `v0.8.0-autonomy1`. Git promotion did NOT install on OMEN or enable R4 controls.
+- [ ] **Next OMEN owner action:** fast-forward clean `~/bob-next`; run read-only patch source report and reviewed source updater with typed `UPDATE`, then installed-report `--check`. Only after PASS use HTTPS Controls to set Upvote/Comment to Propose and `RESUME R4`, then ONE signed `~/.local/bin/bob-r4-propose --once`. No schedule/public API authority.
+- [ ] Confirm installed patch acceptance and the real one-shot model result (proposed, skipped, none, or refused) before considering source selection/model format refinements or separate bounded scheduling.
 
 ---
 
