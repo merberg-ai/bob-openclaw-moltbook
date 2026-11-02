@@ -1,3 +1,15 @@
+## R4 production-shaped release hardening (2026-11-01, PR #137)
+
+- [x] **One full-payload transaction rehearsal:** `tests/test_r4_production_shape_rehearsal.py` installs the exact 23 candidate blobs in disposable private paths, executes the **real** updater's verified SQLite backup/independent restore, hash gate, additive R4 migration and journal, preserving the existing R3 canary receipt. No OMEN, systemd or Moltbook requests.
+- [x] **Automatic and interrupted rollback:** broken candidate HTTPS postflight restores the R3 code/registry without database rollback. Abrupt interruption at `migrated` is recoverable and does not erase a later counted publication record.
+- [x] **Completed-install owner rollback:** the updated trusted updater adds `--rollback-r4`, requires exact typed `ROLLBACK-R4`, completed R4 journal, correct archived R3 baseline, no source drift, and inactive original publisher. Restores code/registry ONLY; never SQLite. Wrong archive/active service are refused.
+- [x] **Actual loopback TLS UI smoke developed:** `tests/test_r4_https_host_smoke.py` tests CA-verified HTTPS, six authenticated R4 routes, legacy routes, hostile Host/Origin, CSRF, plaintext refusal, wrong CA and read-only GET in synthetic HOME.
+- [x] **Real UI navigation regression discovered/fixed:** shared sidebar accepted `/r4/now` but threw on subpages. R4 handlers now render their internal tab while passing canonical `/r4/now` to the existing sidebar, preserving all authenticated subroutes.
+- [ ] **Final CI and release review:** both Windows and full Python workflows must PASS on the final code head; finish exact service topology and owner-specific WSL HTTPS acceptance plan. See [R4 rehearsal notes](docs/R4-INSTALLATION-REHEARSAL.md).
+- [ ] **One separately approved R4 install:** no `releases/current.json` promotion, no OMEN binary/SQLite migration, and no real R4 send authorization yet.
+
+---
+
 ## R4 autonomy1 consolidated development, one eventual installation (2026-11-01)
 
 - [x] **R3 public canary accepted:** exact approved comment was acknowledged by the original publisher, recorded as attempted/published, and independently found in the public listing. No automatic retry or second local attempt. Preserve its ledger, release and original HTTPS service.
