@@ -48,7 +48,7 @@ class Format1SourceTests(unittest.TestCase):
                          audit.ALLOWED)
         live=json.loads((ROOT/"releases/current.json").read_text())
         self.assertEqual(live["release"],"v0.8.0-r4schedule2")
-                schedule1=json.loads((ROOT/
+        schedule1=json.loads((ROOT/
             "releases/candidates/r4-schedule1-offfirst.json").read_text())
         self.assertEqual(schedule1["from"],archived["release"])
         self.assertEqual(live["from"],schedule1["release"])
