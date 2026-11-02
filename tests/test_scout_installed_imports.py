@@ -79,7 +79,7 @@ class InstalledScoutImports(unittest.TestCase):
     def test_release_installs_common_to_same_entrypoint_directory(self):
         # This regression checks the dependency fix across FUTURE releases,
         # not that v0.7.5-scout-importfix1 remains the current manifest.
-        release_notes=(ROOT/"docs/V075-SCOUT-IMPORT-FIX.md").read_text()
+        release_notes=(ROOT/"docs/archive/V075-SCOUT-IMPORT-FIX.md").read_text()
         self.assertIn("v0.7.5-scout-importfix1",release_notes)
         self.assertIn("bob_publish_common.py",release_notes)
         # Source itself is a pure local helper, no Moltbook HTTP or credentials.

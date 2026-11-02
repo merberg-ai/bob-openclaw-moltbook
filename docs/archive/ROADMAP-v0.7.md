@@ -1,12 +1,12 @@
 # Bob / OpenClawLab — v0.7 Roadmap
 
 **Working title:** Continuity, Learning & Usable Operations  
-**Status (October 29, 2026):** v0.7.0–v0.7.2 foundational operations and later PM1/PM2, FM1–FM3.1 milestones have been implemented and operator-tested through **`v0.7.5-fm31-watch1`**. The operator's last reported Friends Manager update works as expected. The Scout missing-module installation issue was repaired in `v0.7.5-scout-importfix1`; a new timer-driven Scout run after that repair has not yet been independently confirmed. **FM3.2 is next**, then newly agreed **FM4 Social Memory** and **FM5 Independent Social Exploration**. The repository `main` remains authoritative, with `bobctl update` as the deployment workflow. See the [current FM1–FM5 roadmap and fresh-chat handoff](FRIENDS-ROADMAP-AND-HANDOFF.md) for exact accepted status, constraints and next steps.  
+**Status (October 29, 2026):** v0.7.0–v0.7.2 foundational operations and later PM1/PM2, FM1–FM3.1 milestones have been implemented and operator-tested through **`v0.7.5-fm31-watch1`**. The operator's last reported Friends Manager update works as expected. The Scout missing-module installation issue was repaired in `v0.7.5-scout-importfix1`; a new timer-driven Scout run after that repair has not yet been independently confirmed. **FM3.2 is next**, then newly agreed **FM4 Social Memory** and **FM5 Independent Social Exploration**. The repository `main` remains authoritative, with `bobctl update` as the deployment workflow. See the [current FM1–FM5 roadmap and fresh-chat handoff](../FRIENDS-ROADMAP-AND-HANDOFF.md) for exact accepted status, constraints and next steps.  
 **Planning baseline:** Bob currently uses an existing Windows 11/OpenClawLab WSL2 setup, local Ollama, OpenClaw, Docker and user-systemd services. A general **fresh-host installer is still missing**. Historical v0.5/v0.6 source and staging notes below are retained for technical context, not as current instructions.
 
 **Non-negotiable rule:** Preserve existing services, authentication, publication records, approval decisions, autonomous settings, sandboxing, and reboot recovery throughout every upgrade.
 
-**Friends project continuation:** FM1, FM2, FM3 and FM3.1 are operator-tested. FM3.2 is not yet built. FM4 and FM5 are now explicitly planned, but do not imply authorization for follows, DMs or friend-targeted auto-replies. Resume with [the Friends roadmap and handoff](FRIENDS-ROADMAP-AND-HANDOFF.md) rather than treating this historical long-range v0.7 document as the latest installation instructions.
+**Friends project continuation:** FM1, FM2, FM3 and FM3.1 are operator-tested. FM3.2 is not yet built. FM4 and FM5 are now explicitly planned, but do not imply authorization for follows, DMs or friend-targeted auto-replies. Resume with [the Friends roadmap and handoff](../FRIENDS-ROADMAP-AND-HANDOFF.md) rather than treating this historical long-range v0.7 document as the latest installation instructions.
 
 ## 1. Objectives
 
@@ -28,7 +28,7 @@ The deployed v0.7.2 installation builds on the original v0.6 host architecture:
 - A trusted-LAN authenticated dashboard; successful handling of the observed opaque `Origin: null` form submission without dropping CSRF/draft checks.
 - Optional bounded auto-**comments**; original posts remain approval-only.
 
-**Current source is in `main`.** The live host has been patched through verified v0.7.2 upgrades, and the owner's successful updater bootstrap recorded exact installed checksums. Older referenced source and installer labs are historical. Never add credentials or runtime databases to Git; see [architecture](ARCHITECTURE.md) and [operations](OPERATIONS.md).
+**Current source is in `main`.** The live host has been patched through verified v0.7.2 upgrades, and the owner's successful updater bootstrap recorded exact installed checksums. Older referenced source and installer labs are historical. Never add credentials or runtime databases to Git; see [architecture](ARCHITECTURE-v0.7.md) and [operations](OPERATIONS-log.md).
 
 ## 3. UI and navigation
 
@@ -100,7 +100,7 @@ Add retention limits, export/backup and an operator action to mark evidence inco
 
 ### Personality & Memory Manager, then Friends Manager (agreed feature order)
 
-The original PM-first feature order is now fulfilled: the operator has tested PM1, PM2, FM1, FM2, FM3 and FM3.1. The detailed implementation status and the next-chat checklist live in [Friends Manager Roadmap & Handoff](FRIENDS-ROADMAP-AND-HANDOFF.md). The fresh-host installer remains a separate future workstream.
+The original PM-first feature order is now fulfilled: the operator has tested PM1, PM2, FM1, FM2, FM3 and FM3.1. The detailed implementation status and the next-chat checklist live in [Friends Manager Roadmap & Handoff](../FRIENDS-ROADMAP-AND-HANDOFF.md). The fresh-host installer remains a separate future workstream.
 
 1. **PM1: Personality Foundation (implemented and operator-tested).** Guarded staged sliders/identity styling, explicit apply/rollback and previews; no implied change to core posting/tool permissions.
 2. **PM2: Memory Manager (implemented and operator-tested).** Private curated memories, Scout and local-model review suggestions, and separately opt-in read-only contextual recall; never let untrusted posts rewrite Bob's high-priority identity files.

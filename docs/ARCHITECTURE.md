@@ -1,43 +1,72 @@
-# Bob architecture and trust boundaries
+# Bob architecture (v0.8 / R4)
 
-**Current implementation:** v0.7.2 installed on the operator's Windows 11 / OpenClawLab WSL2 system. Reviewed application sources are merged into GitHub `main`. The host's existing updater was installed successfully; the operator reports the canonical `main` release-channel migration completed successfully. A fresh-host installer remains unbuilt.
+Bob is the existing **OpenClaw main agent** ("Bob 💀") running locally. Bob reads Moltbook through a bounded Scout, and makes private decisions in isolated OpenClaw sessions. A single host publisher acts on Moltbook, and only for actions the owner has authorized. Installed state lives in [STATUS.md](STATUS.md); the plan lives in [ROADMAP-v0.8.md](ROADMAP-v0.8.md).
 
-## Runtime architecture
+## Runtime
 
 ```text
-Windows 11 OMEN
-  Ollama (qwen3.5:9b)                 Docker Desktop
-         |                                  |
-OpenClawLab (WSL2, systemd user services)
-  OpenClaw Gateway 127.0.0.1:18789 -- restricted Docker sandbox
-         |
-  Moltbook scout -> sanitized feed -> agent draft -> source validation
-                                                  |
-                       human review or separately enabled auto-comments
-                                                  |
-  host publisher -> bounded queued POST -> Moltbook verification / public check
-         |
-  private SQLite queue, event history, replies and original post drafts
-         |
-  Activity Manager HTTP 127.0.0.1:18790 (optional trusted LAN)
-      desktop/mobile navigation, Settings, Original Posts,
-      Publishing Activity and live 15-second System Status
+Windows 11 (OMEN)
+  Ollama 127.0.0.1:11434            Docker Desktop (OpenClaw sandbox image)
+        │
+OpenClawLab WSL2 · user systemd · account `openclaw`
+  openclaw-gateway.service ── 127.0.0.1:18789 (loopback only) ── Bob main agent
+        │                                                        (isolated decision sessions)
+  ┌─────────────┬──────────────────┬────────────────────┬──────────────────────┐
+  Scout timer   R3 propose timer   R4 propose timer      Publisher timer (~1/min)
+  reads public  private sealed     private proposal-only ONLY holder of the
+  feed, saves   drafts → owner     decisions → R4 ledger Moltbook credential;
+  sealed source approval           (public send OFF)     budgets, intent-before-send,
+        │             │                   │              no blind retries
+        └─────────────┴─────── private SQLite ───────────┘
+                     ~/.config/moltbook/activity-queue.sqlite3
+                                     │
+  bob-activity-manager.service ── HTTPS :18790 via lan.conf (private CA, Basic auth,
+                                     Host/Origin/CSRF) ── trusted LAN browsers only
 ```
 
-- **Scout:** Retrieves bounded public discussions, validates their IDs and drafts, and sends only sanitized untrusted data to the sandboxed local agent. Reports observed job stages.
-- **Publisher:** Owns Moltbook credentials. Submits a queued comment only after the appropriate manual decision or separately enabled autonomous policy, with two attempts per UTC day and at least one hour between attempts. Manual decisions have queue priority. Ambiguous or unconfirmed outcomes are not silently retried.
-- **Original posts:** Draft generation uses the local agent, accepts explicitly structured responses and validates them; publication still requires separate human approval. Challenges and visibility tracking remain separate from outbound comment counts.
-- **Activity Manager:** Serves authenticated local/LAN pages; controls review and approval routes using origin, CSRF, session, input and digest constraints. Shows live service/worker status without inventing progress, and distinguishes an API acknowledgment from independently observed public comments.
-- **Private state:** `~/.config/moltbook/activity-queue.sqlite3`, feed/report files, job checkpoints and per-host credentials are outside Git. The updater keeps its private manifest registry and rollback archives under `~/.local/state/bob-updater`.
+## Components and where they live
+
+| Concern | Code |
+|---|---|
+| Scout (read public feed, seal sources) | `src/bin/bob-moltbook-scout`, `src/lib/bob/bob_friend_scout.py` |
+| Publisher (single credentialed writer) | `src/bin/bob-moltbook-publisher`, `bob_publish_common.py`, `bob_moltbook_api.py` |
+| R3 proposals and owner approvals | `src/bin/bob-r3-propose`, `src/bob_v08/r3_*`, `bob_r313d_*` |
+| R4 decision pipeline | `bob_r4_producer.py` (source selection) → `bob_r4_agent.py` (OpenClaw, strict 8-field JSON) → `bob_r4_policy.py` / `bob_r4_controls.py` (Off/Propose/Auto, pause) → `bob_r4_ledger.py` (source-sealed decisions, single consumption) |
+| R4 scheduling | `bob_r4_schedule.py`, `src/bin/bob-r4-schedule`: exact unit templates, topology and signed-install guards |
+| R4 future send plumbing (hard OFF) | `bob_r4_outbox.py`, `bob_r4_remote_gate.py`, `bob_r4_final_gate.py`, `bob_r4_publisher_adapter.py`, `bob_r4_budget.py` |
+| Memory / personality / friends | `bob_memory*.py`, `bob_personality*.py`, `bob_friend*.py`, `bob_social_memory.py` |
+| Activity Manager | `src/bin/bob-activity-manager` **as generated by** `scripts/build_r4_manager_candidate.py` (legacy patch chain; replaced by Console v2 in Phase 2), `bob_r4_web.py`, `bob_manager_tls.py`, `bob_dashboard_auth.py` |
+| Updater | `scripts/bob_release_updater.py` (installed as `bob-release-updater`), `src/bin/bobctl`, `releases/current.json` |
+| Installed-code attestation | `bob_r4_installed_gate.py`, `scripts/report_r4_installed.py` |
+| Host evidence (read-only) | `scripts/bob_evidence.py` |
 
 ## Trust boundaries
 
-Moltbook posts and model outputs are untrusted **data**, never instructions to grant host access, mutate policy, change credentials or edit the agent's identity. The sandbox does not contain the Moltbook API key. The dashboard and publisher run as separate processes but currently share the same Linux user, **not** independent OS security identities. HTTP Basic over plain LAN HTTP is unencrypted; use a trusted LAN/VPN or HTTPS reverse proxy and don't expose to the internet.
+- **One real Bob.** Decisions come from the OpenClaw main agent in isolated sessions. There is no second persona, and no model calls bypass OpenClaw.
+- **One credentialed publisher.** The model, the dashboard, Scout and the R3/R4 workers never read the Moltbook key.
+- **Untrusted input.** Moltbook content, model output and saved text are data. They never become shell, SQL, path, URL or policy input. Model output must match strict schemas and fails closed. Rejected text is never logged verbatim.
+- **Authority is layered.** An action needs all of the following:
+  - an owner mode
+  - global pause off
+  - a signed feature gate
+  - source integrity
+  - atomic reservation
+  - per-kind budget
+  - a just-before-send recheck
+  - the single publisher
 
-Autonomous **comments**, original **posts**, and follow-up **replies** have separate authorization domains. Neither a response from Moltbook nor the presence of a valid comment ID proves the item is publicly visible. Public visibility audits remain read-only. The existing publisher stores its intent before POST and does not attempt blind retries.
+  A policy verdict alone authorizes nothing.
+- **Provenance labels.** Records distinguish observed, drafted, proposed, queued, attempted, acknowledged, publicly verified, received reply, tentative opinion and owner-reviewed memory.
+- **Network.** The Gateway is bound to loopback only. The dashboard runs on HTTPS for the trusted LAN only. No browser-to-Gateway path and no generic WebSocket/RPC proxy exist.
 
-## Versioned operations and planned work
+## Deployment model
 
-`bobctl update` is a manifest-driven, explicit-confirmation updater. It checks the correct GitHub branch, release chain and installed file checksums, backs up SQLite before a nonempty change, installs code atomically, checks authenticated health and attempts a code-only rollback on failure. The installed updater now tracks canonical `main` following the operator-confirmed [main migration](MAIN-UPDATER-MIGRATION.md). Git `main` is canonical source; source history does not automatically mutate the running host.
+Git never deploys. The flow is:
 
-**Next:** Deploy compact Scout/Activity polish (reviewed `v0.7.2-compact1`), then design a guided clean WSL/Windows installation workflow. The real manifest-driven update process is operator-verified. Source-linked observations, opinions, reflections and conversation continuity are v0.7.3+ roadmap work, **not currently shipped capabilities**. See [roadmap](ROADMAP-v0.7.md) and [installation status](INSTALLATION-STATUS.md).
+1. PR to `next`, then green CI.
+2. A signed manifest in `releases/current.json` (exact `from` release, hash-pinned files).
+3. The owner runs `bob-release-updater --check`.
+4. The owner types `UPDATE`. The updater backs up SQLite, swaps code atomically, restarts the manager if needed, runs a health check, and rolls code back on failure.
+5. An installed acceptance report.
+
+Timer staging and enablement are separate typed owner steps. Data rollback is never automatic.

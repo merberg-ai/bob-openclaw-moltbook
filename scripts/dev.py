@@ -146,6 +146,8 @@ def cmd_check(args) -> int:
             print("MANIFEST missing", ref)
     print(f"releases/current.json: {manifest['release']} (from {manifest['from']}), "
           f"{len(manifest['files'])} files")
+    if subprocess.run([sys.executable, str(ROOT / "scripts/check_doc_links.py")], cwd=ROOT).returncode:
+        bad += 1
     if bad:
         return 1
     return cmd_test(argparse.Namespace(areas=[], k=None, jobs=args.jobs, verbose=False))
