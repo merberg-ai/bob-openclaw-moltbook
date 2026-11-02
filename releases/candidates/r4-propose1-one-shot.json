@@ -1,0 +1,25 @@
+{
+  "format": "bob-updater-v1",
+  "release": "v0.8.0-r4propose1",
+  "from": "v0.8.0-autonomy1",
+  "notes": "R4 proposal-only OpenClaw session compatibility patch. One original signed main agent; one-shot private proposals only after owner sets Propose and RESUME R4. No scheduled worker, public dispatch, queueing, following, voting, database migration, or new publisher. Four public-send source gates stay hard Off. Existing R4 HTTPS dashboard restarts under signed updater with prior-code rollback.",
+  "files": [
+    {
+      "name": "bob-release-updater",
+      "source": "scripts/bob_release_updater.py"
+    },
+    {
+      "name": "bobctl",
+      "source": "src/bin/bobctl"
+    },
+    {
+      "name": "bob_r4_agent.py",
+      "source": "src/lib/bob/bob_r4_agent.py"
+    },
+    {
+      "name": "bob_r4_installed_gate.py",
+      "source": "src/lib/bob/bob_r4_installed_gate.py"
+    }
+  ],
+  "restart_manager": true
+}
