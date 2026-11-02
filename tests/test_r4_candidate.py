@@ -12,19 +12,19 @@ import report_r4_candidate as source
 
 
 class R4CandidateReportTests(unittest.TestCase):
-    def test_source_scope_is_one_promoted_https_release(self):
-        audit=source.inspect()
-        self.assertEqual(audit["release_manifest"],"v0.8.0-r4propose1")
-        self.assertEqual(audit["previous_installed_release"],"v0.8.0-autonomy1")
-        self.assertEqual(audit["promotion_state"],"promoted_exact_r4_proposal_patch")
-        self.assertEqual(audit["candidate"],"v0.8.0-autonomy1")
-        self.assertEqual(audit["candidate_source_build"],"PASS")
-        self.assertTrue(audit["legacy_r3_publisher_not_replaced"])
-        self.assertTrue(audit["all_new_auto_modes_compiled_off"])
-        self.assertFalse(audit["install_authorized"])
-        self.assertFalse(audit["real_social_action_authorized"])
-        self.assertFalse(audit["legacy_queue_or_database_modified"])
-        self.assertEqual(set(audit["verified_source_hashes"]),source.FILES)
+    def test_historical_r4_source_audit_refuses_obsolete_promotion(self):
+        # R4 autonomy1's original audit does NOT claim to audit format1.
+        historic=json.loads((ROOT/
+            "releases/candidates/r4-autonomy1-consolidated.json").read_text())
+        old_patch=json.loads((ROOT/
+            "releases/candidates/r4-propose1-one-shot.json").read_text())
+        current=json.loads((ROOT/"releases/current.json").read_text())
+        self.assertEqual(historic["release"],"v0.8.0-autonomy1")
+        self.assertEqual(old_patch["from"],historic["release"])
+        self.assertEqual(current["from"],old_patch["release"])
+        self.assertEqual(current["release"],"v0.8.0-r4format1")
+        with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
+            source.inspect()
 
     def test_miswired_path_or_broad_dispatch_source_fails(self):
         with tempfile.TemporaryDirectory(prefix="r4-source-synthetic-") as t:
@@ -33,7 +33,7 @@ class R4CandidateReportTests(unittest.TestCase):
             # but failed manifest/path tests return before any source import.
             (root/"releases/candidates").mkdir(parents=True)
             (root/"releases/current.json").write_text(
-                (ROOT/"releases/current.json").read_text())
+                (ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
             candidate=json.loads((ROOT/
                 "releases/candidates/r4-autonomy1-consolidated.json").read_text())
             candidate["files"][4]["source"]="src/lib/bob/bob_r4_WRONG.py"
@@ -53,7 +53,8 @@ class R4CandidateReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="r4-promotion-drift-") as t:
             root=Path(t)
             (root/"releases/candidates").mkdir(parents=True)
-            original=json.loads((ROOT/"releases/current.json").read_text())
+            original=json.loads((ROOT/
+                "releases/candidates/r4-propose1-one-shot.json").read_text())
             candidate=json.loads((ROOT/"releases/candidates/r4-autonomy1-consolidated.json").read_text())
             (root/"releases/candidates/r4-autonomy1-consolidated.json").write_text(json.dumps(candidate))
             (root/"releases/candidates/r4-propose1-one-shot.json").write_text((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
@@ -69,26 +70,31 @@ class R4CandidateReportTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,"r4_unsigned_release_chain"):
                         source.inspect(root=root)
 
-    def test_promoted_manifest_must_exactly_match_candidate(self):
+    def test_current_format_patch_chain_references_immutable_old_r4_candidate(self):
         live=json.loads((ROOT/"releases/current.json").read_text())
-        candidate=json.loads((ROOT/
+        offer=json.loads((ROOT/
+            "releases/candidates/r4-format1-json-reliability.json").read_text())
+        previous=json.loads((ROOT/
+            "releases/candidates/r4-propose1-one-shot.json").read_text())
+        base=json.loads((ROOT/
             "releases/candidates/r4-autonomy1-consolidated.json").read_text())
-        patch=json.loads((ROOT/"releases/candidates/r4-propose1-one-shot.json").read_text())
-        self.assertEqual(live,patch)
-        self.assertEqual(live["release"],"v0.8.0-r4propose1")
-        self.assertEqual(live["from"],"v0.8.0-autonomy1")
-        self.assertEqual(candidate["release"],live["from"])
-        self.assertEqual(candidate["from"],"v0.8.0-r3canary1")
+        self.assertEqual(live,offer)
+        self.assertEqual(live["release"],"v0.8.0-r4format1")
+        self.assertEqual(live["from"],previous["release"])
+        self.assertEqual(previous["from"],base["release"])
+        self.assertEqual(base["from"],"v0.8.0-r3canary1")
         self.assertTrue(live["restart_manager"])
-        # The ONE original publisher is included, not a second worker.
+        self.assertEqual({x["name"] for x in live["files"]},{
+            "bob-release-updater","bobctl","bob_r4_agent.py",
+            "bob_r4_installed_gate.py"})
+        self.assertNotIn("bob-moltbook-publisher",
+                         {x["name"] for x in live["files"]})
         self.assertIn("bob-moltbook-publisher",
-                      {f["name"] for f in candidate["files"]})
+                      {f["name"] for f in base["files"]})
         self.assertIn("bob_r4_publisher_adapter.py",
-                      {f["name"] for f in candidate["files"]})
-        self.assertIn("bob_r4_outbox.py",
-                      {f["name"] for f in candidate["files"]})
+                      {f["name"] for f in base["files"]})
         self.assertNotIn("bob-r4-publisher",
-                         {f["name"] for f in candidate["files"]})
+                         {f["name"] for f in base["files"]})
 
 
 if __name__=="__main__":
