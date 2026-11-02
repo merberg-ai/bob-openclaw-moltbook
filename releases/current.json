@@ -1,8 +1,8 @@
 {
   "format": "bob-updater-v1",
-  "release": "v0.8.0-r4propose1",
-  "from": "v0.8.0-autonomy1",
-  "notes": "R4 proposal-only OpenClaw session compatibility patch. One original signed main agent; one-shot private proposals only after owner sets Propose and RESUME R4. No scheduled worker, public dispatch, queueing, following, voting, database migration, or new publisher. Four public-send source gates stay hard Off. Existing R4 HTTPS dashboard restarts under signed updater with prior-code rollback.",
+  "release": "v0.8.0-r4format1",
+  "from": "v0.8.0-r4propose1",
+  "notes": "R4 proposal-only OpenClaw JSON reliability patch. One fresh source-scoped main-agent session per explicitly requested private decision, stronger trusted eight-string-field JSON-only instructions, unchanged strict source/target/action parser. No automatic retries, scheduled R4 worker, public Moltbook dispatch, queueing, migrations, owner mode edits, or new publisher. All R4 public-send gates remain compiled Off. Original authenticated HTTPS manager restarted under code-only rollback.",
   "files": [
     {
       "name": "bob-release-updater",
